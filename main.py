@@ -106,7 +106,6 @@ def create_school_info(data, df_dict):
     school_info.to_csv('Geral/school_info.csv', index=False, encoding='utf-8-sig')
     print("arquivo school_info criado com sucesso na pasta ""Geral/school_info.csv"" ! ")
 
-
 def create_infrastructure(data, df_dict):
 
     # Carregando o dicionario para infraestrutura.
@@ -182,6 +181,148 @@ def create_school_enrollment(data, df_dict):
     
     print("Arquivos de matricula criados com sucesso! e adicionado na pasta de matricula.")
 
+def get_acessible_rating(df_infra_wide, active_schools_ids):
+    
+    acessible_cols = [
+        'QT_SALAS_UTILIZADAS', 'QT_SALAS_UTILIZADAS_ACESSIVEIS',
+        'IN_BANHEIRO_PNE', 'IN_SALA_ATENDIMENTO_ESPECIAL',
+        'IN_ACESSIBILIDADE_CORRIMAO', 'IN_ACESSIBILIDADE_PISOS_TATEIS',
+        'IN_ACESSIBILIDADE_VAO_LIVRE', 'IN_ACESSIBILIDADE_RAMPAS',
+        'IN_ACESSIBILIDADE_SINAL_TATIL'
+    ]
+    
+    ratings_map = {}
+    
+    for school_id in active_schools_ids:
+        school_data = df_infra_wide.loc[school_id]
+        
+        sum_acessibility = school_data[acessible_cols[2:]].sum()
+        qnt_room = school_data[acessible_cols[0]]
+        qnt_acessible_room = school_data[acessible_cols[1]]
+        
+        ratio_rooms = (qnt_acessible_room / qnt_room) if qnt_room > 0 else 0
+        
+        rating = round((ratio_rooms + sum_acessibility) / len(acessible_cols), 2)
+        
+        ratings_map[school_id] = rating
+    
+    return pd.Series(ratings_map)
+    
+def get_recreation_rating(df_infra_wide, active_schools_ids):
+    recreation_cols = [
+        'QT_SALAS_UTILIZADAS', 'QT_SALAS_UTILIZA_CLIMATIZADAS',
+        'IN_TERREIRAO', 'IN_AREA_PLANTIO',
+        'IN_PATIO_COBERTO', 'IN_PATIO_DESCOBERTO',
+        'IN_PARQUE_INFANTIL', 'IN_PISCINA',
+        'IN_QUADRA_ESPORTES', 'IN_TERREIRAO'
+    ]
+    
+    ratings_map = {}
+    
+    for school_id in active_schools_ids:
+        school_data = df_infra_wide.loc[school_id]
+        
+        qnt_room = school_data[recreation_cols[0]]
+        qnt_air_conditioned_room = school_data[recreation_cols[1]]
+        
+        ration_room = qnt_air_conditioned_room/qnt_room
+        
+        sum_recreation = school_data[recreation_cols[2:]].sum() + ration_room
+        
+        rating = round(sum_recreation / len(recreation_cols), 2)
+        
+        ratings_map[school_id] = rating
+    
+    return pd.Series(ratings_map)
+
+def get_wellbeing_rating(df_infra_wide, active_schools_ids):
+    
+    wellbeing_cols = [
+        'IN_AGUA_POTAVEL', 'IN_ALIMENTACAO',
+        'IN_COZINHA', 'IN_REFEITORIO', 
+        'IN_ESGOTO_REDE_PUBLICA', 'IN_ENERGIA_REDE_PUBLICA',
+        'IN_LIXO_SERVICO_COLETA'
+    ]
+    
+    rating_maps = {}
+    
+    for school_id in active_schools_ids:
+        school_data = df_infra_wide.loc[school_id]
+        
+        rating = school_data[wellbeing_cols].sum() / len(wellbeing_cols)
+        
+        rating_maps[school_id] = rating.round(2)
+
+    return pd.Series(rating_maps)
+        
+def get_human_support_rating(df_enroll_wide, active_schools_ids):
+    support_staff_cols = [
+        'QT_PROF_PSICOLOGO', 'QT_PROF_ASSIST_SOCIAL',
+        'QT_PROF_FONAUDIOLOGO', 'QT_PROF_NUTRICIONISTA'
+    ]
+    
+    rating_maps = {}
+    
+    for school_id in active_schools_ids:
+        school_data = df_enroll_wide.loc[school_id]
+        
+        rating = school_data[support_staff_cols].sum() / len(support_staff_cols)
+        
+        rating_maps[school_id] = rating.round(2)
+
+    return pd.Series(rating_maps)
+
+def get_management_rating(df_enroll_wide, active_schools_ids):
+    management_cols = ['IN_ORGAO_ASS_PAIS', 'IN_ORGAO_CONSELHO_ESCOLAR', 'IN_ORGAO_GREMIO_ESTUDANTIL']
+    
+    rating_maps = {}
+    
+    for school_id in active_schools_ids:
+        school_data = df_enroll_wide.loc[school_id]
+        
+        rating = school_data[management_cols].sum() / len(management_cols)
+        
+        rating_maps[school_id] = rating.round(2)
+
+    return pd.Series(rating_maps)
+
+def get_age_grade_distortion(df_enroll_wide, active_schools_ids):
+    distortion_cols = [
+        'QT_MAT_BAS_15_17', 'QT_MAT_FUND_AF_6',
+        'QT_MAT_FUND_AF_7', 'QT_MAT_FUND_AF_8',
+        'QT_MAT_FUND_AF_9']
+    
+    rating_maps = {}
+    
+    for school_id in active_schools_ids:
+        school_data = df_enroll_wide.loc[school_id]
+        
+        total_15_17 = school_data[distortion_cols[0]]
+        
+        rating = school_data[distortion_cols[1:]].sum() / total_15_17
+        
+        rating_maps[school_id] = rating.round(2)
+
+    return pd.Series(rating_maps)
+
+def get_pedagogical_rating(df_infra_wide, active_schools_ids):
+    pedagogical_cols = [
+        'IN_BIBLIOTECA_SALA_LEITURA', 'IN_LABORATORIO_INFORMATICA',
+        'IN_LABORATORIO_CIENCIAS', 'IN_BANDA_LARGA',
+        'IN_INTERNET_ALUNOS', 'IN_MATERIAL_PED_JOGOS'
+        ]
+    
+    rating_maps = {}
+    
+    for school_id in active_schools_ids:
+        school_data = df_infra_wide.loc[school_id]
+        
+        rating = school_data[pedagogical_cols].sum() / len(pedagogical_cols)
+        
+        rating_maps[school_id] = rating.round(2)
+
+    return pd.Series(rating_maps)
+
 
 def create_rating_table(data, df_dict):
     df_infra = pd.read_csv("Infraestrutura/infrastructure_values.csv")
@@ -192,33 +333,42 @@ def create_rating_table(data, df_dict):
 
     df_school_info = pd.read_csv("Geral/school_info.csv")
     
-
-    while(True):
-        
-        coluna1 = df_dict_infra.loc[df_dict_infra['variavel'] == 'QT_SALAS_UTILIZADAS'].iloc[0]
-        coluna2 = df_dict_infra.loc[df_dict_infra['variavel'] == 'QT_SALAS_UTILIZADAS_ACESSIVEIS'].iloc[0]
-        escola_aleatoria = df_school_info.sample(1).iloc[0]
-
-        qnt_room = df_infra.loc[ (df_infra['id_escola'] == escola_aleatoria['id_escola']) & (df_infra['id_atributo'] == coluna1['id_atributo']), 'valor' ]
-        qnt_acessible_room = df_infra.loc[ (df_infra['id_escola'] == escola_aleatoria['id_escola']) & (df_infra['id_atributo'] == coluna2['id_atributo']), 'valor']
-
+    df_active = df_school_info[df_school_info['funcionamento'] == 1].copy()
     
-        print(f"Quantidade de salas utilizadas {qnt_room.item()}, acessiveis: {qnt_acessible_room.item()}")
-        break
-
-        # resultado = qnt_acessible_room / qnt_room
-
-
-
-        # if not resultado.empty:
-        #     valor_final = resultado['valor']
-        #     print(f"Escola: {escola_aleatoria['nome_escola']}")
-        #     print(f"Variável1 : {coluna1['variavel']}")
-        #     print(f"Variável2  : {coluna2['variavel']}")
-        #     print(f"Valor Encontrado: {valor_final}")
-        #     print(valor_final)
-        #     break
-
+    df_school_ratings = pd.DataFrame(index=df_active['id_escola'])
+    
+    df_school_ratings = pd.DataFrame(index=df_active['id_escola'])
+    df_school_ratings['ano'] = 2024
+    
+    map_infra_names = dict(zip(df_dict_infra['id_atributo'], df_dict_infra['variavel']))
+    df_infra_wide = df_infra.pivot(index='id_escola', columns='id_atributo', values='valor')
+    df_infra_wide.columns = df_infra_wide.columns.map(map_infra_names)
+        
+    df_infra_wide = df_infra_wide.reindex(df_school_ratings.index).fillna(0)
+    
+    map_enroll_names = dict(zip(df_dict_enroll['id_atributo'], df_dict_enroll['variavel']))
+    df_enroll_wide = df_enroll.pivot(index='id_escola', columns='id_atributo', values='valor')
+    df_enroll_wide.columns = df_enroll_wide.columns.map(map_enroll_names)
+    
+    df_enroll_wide = df_enroll_wide.reindex(df_school_ratings.index).fillna(0)
+    
+    df_school_ratings['acessibility_rating'] = get_acessible_rating(df_infra_wide, df_school_ratings.index)
+    
+    df_school_ratings['recreation_rating'] = get_recreation_rating(df_infra_wide, df_school_ratings.index)
+    
+    df_school_ratings['wellbeing_rating'] = get_wellbeing_rating(df_infra_wide, df_school_ratings.index)
+    
+    df_school_ratings['human_support_rating'] = get_human_support_rating(df_enroll_wide, df_school_ratings.index)
+    
+    df_school_ratings['management_rating'] = get_management_rating(df_enroll_wide, df_school_ratings.index)
+    
+    df_school_ratings['age_grade_distortion_rating'] = get_age_grade_distortion(df_enroll_wide, df_school_ratings.index)
+    
+    df_school_ratings['pedagogical_rating'] = get_pedagogical_rating(df_infra_wide, df_school_ratings.index)
+    
+    
+    print(df_school_ratings.head(10))
+    
 
 
 def main():
@@ -239,7 +389,7 @@ def main():
     # create_infrastructure(data, df_dict)
 
     # Criando csv para enrollment e dict_enrollment
-    # create_school_enrollment(data, df_dict)
+    # create_school_enrollment(data, df_dict)``
 
 
     # Criando csv para tabelas de rating.
