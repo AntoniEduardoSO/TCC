@@ -5,35 +5,44 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 
 def get_driver(download_folder, headless=False):
-    
-    # Configura e retorna uma instância do Chrome Driver e o WebDriverWait.
+    download_folder = os.path.abspath(download_folder)
     
     if not os.path.exists(download_folder):
         os.makedirs(download_folder)
 
     chrome_options = webdriver.ChromeOptions()
     
-    # Configurações de Download e PDF
     prefs = {
         "download.default_directory": download_folder,
         "download.prompt_for_download": False,
-        "directory_upgrade": True,
-        "plugins.always_open_pdf_externally": True # Evita visualizador de PDF do Chrome
+        "download.directory_upgrade": True,
+        "safebrowsing.enabled": True,
+        "safebrowsing.disable_download_protection": True,
+        "profile.default_content_setting_values.automatic_downloads": 1,
+        "profile.content_settings.exceptions.automatic_downloads.*.setting": 1,
+        "download.transfer_protection_enabled": False, 
+        "browser.helperApps.alwaysAsk.force": False,
     }
+    
     chrome_options.add_experimental_option("prefs", prefs)
-
-    # Opções extras de estabilidade
+    
+    
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--window-size=1920,1080") # Garante que elementos estejam visíveis
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--start-maximized")
+    chrome_options.add_argument("--disable-features=InsecureDownloadWarnings")
     
-    if headless:
-        chrome_options.add_argument("--headless")
+    chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
     
-    # Um Wait padrão de 20 segundos (sites governamentais são lentos)
-    wait = WebDriverWait(driver, 20) 
+    driver.execute_cdp_cmd("Page.setDownloadBehavior", {
+        "behavior": "allow",
+        "downloadPath": download_folder
+    })
+    
+    wait = WebDriverWait(driver, 40) # Aumentado para 40s
     
     return driver, wait

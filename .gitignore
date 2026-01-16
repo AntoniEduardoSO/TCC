@@ -1,3 +1,6 @@
 __pycache__/
 .DS_Store
 data/raw/
+.vscode
+.venv
+.data/Transparencia
