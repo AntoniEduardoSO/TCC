@@ -2,7 +2,7 @@ import pandas as pd
 import os
 
 def verificar_dados():
-    # Caminho exato que você passou
+    # Caminho exato que você passou 
     caminho_arquivo = "/Users/katochi/Dev/TCC/data/Transparencia/BARRAO_DE_SAO_MIGUEL_CONSOLIDADO.csv.gz"
 
     if os.path.exists(caminho_arquivo):
