@@ -44,7 +44,6 @@ def download_and_read_csv(driver, wait, downloads_folder):
         path_completo = os.path.join(downloads_folder, nome_arquivo)
         
         if nome_arquivo.endswith('.crdownload') or nome_arquivo.endswith('.tmp'):
-            print(f"      [⏳] Baixando... ({nome_arquivo})")
             time.sleep(2)
             continue
             
