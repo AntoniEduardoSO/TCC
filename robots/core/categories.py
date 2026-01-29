@@ -11,7 +11,7 @@ def categorize_cost(description):
     termos_nutricao = [
         'MERENDA', 'ALIMENT', 'GENERO ALIMENTICIO', 'HORTIFRUTI', 'CARNE', 'LEITE', 
         'PÃO', 'PAO', 'GÁS', 'GAS DE COZINHA', 'GLP', 'AGUA MINERAL', 'ÁGUA MINERAL', 
-        'NUTRICIONISTA', 'KITS DE ALIMENTAÇÃO', 'KIT MERENDA', 'REFEIÇÕES'
+        'NUTRICIONISTA', 'KITS DE ALIMENTAÇÃO', 'KIT MERENDA', 'REFEIÇÕES', 'FORNECIMENTO DE ÁGUA', 'FORNECIMENTO DE AGUA'
     ]
     if any(termo in desc_upper for termo in termos_nutricao):
         return "Nutrição e Segurança Alimentar"
@@ -21,7 +21,8 @@ def categorize_cost(description):
         'ENERGIA', 'ELETRIC', 'EQUATORIAL', 'AGUA E ESGOTO', 'CASAL', 'ALUGUEL', 
         'LOCAÇÃO DE IMÓVEL', 'OBRA', 'REFORMA', 'ENGENHARIA', 'MANUTENÇÃO PREDIAL', 
         'AR CONDICIONADO', 'DEDETIZAÇÃO', 'LIMPEZA DE FOSSA', 'PINTURA', 'HIDRAULI',
-        'MATERIAL DE CONSTRUÇÃO', 'REPAROS'
+        'MATERIAL DE CONSTRUÇÃO', 'REPAROS', 'ENÉRGIA', "CONSTRUÇÃO", "CONSTRUCAO", "CONSTRUCÕES",
+        "CONSTRUÇÕES", "CONSTRUCOES", "COSNTRUÇÃO"
     ]
     if any(termo in desc_upper for termo in termos_infra):
         return "Infraestrutura e Ambiente Escolar"
@@ -41,7 +42,8 @@ def categorize_cost(description):
         'FOLHA', 'PESSOAL', 'SALARIO', 'VENCIMENTO', 'PROFESSOR', 'MAGISTERIO', 
         'FUNDEB', '13º', 'FERIAS', 'FÉRIAS', 'INSS', 'FGTS', 'CAPACITAÇÃO', 'CURSO', 
         'TREINAMENTO', 'DIDATICO', 'DIDÁTICO', 'PEDAGOGICO', 'PEDAGÓGICO', 'LIVRO', 
-        'KIT ESCOLAR', 'BRINQUEDOTECA', 'MATERIAL DE EXPEDIENTE'
+        'KIT ESCOLAR', 'BRINQUEDOTECA', 'MATERIAL DE EXPEDIENTE', "SUBSTITUIÇÃO DA PROF",
+        "SUBSTITUICAO DA PROF", "SUBSTITUIÇÃO DO PROF", "SUBSTITUICAO DO PROF", "SUBSTITUIÇÃO DA PROF."
     ]
     if any(termo in desc_upper for termo in termos_pedagogico):
         return "Pedagógico e Capital Humano"
@@ -60,7 +62,8 @@ def categorize_cost(description):
     termos_materiais = [
         'MATERIAL DE LIMPEZA', 'HIGIENE', 'MOBILIARIO', 'CADEIRA', 'MESA', 'ARMARIO',
         'ESTANTE', 'COMPUTADOR', 'NOTEBOOK', 'IMPRESSORA', 'ELETRODOMESTICO', 
-        'VENTILADOR', 'FREEZER', 'GELADEIRA', 'FOGÃO'
+        'VENTILADOR', 'FREEZER', 'GELADEIRA', 'FOGÃO', 'CARTUCHO', "MANUTENÇÃO EM EQUIPAMENTOS",
+        "MANUTENCAO EM EQUIPAMENTOS"
     ]
     if any(termo in desc_upper for termo in termos_materiais):
         return "Materiais e Equipamentos"

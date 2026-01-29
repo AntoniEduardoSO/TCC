@@ -1,98 +1,76 @@
 import pandas as pd
-from .categories import categorizar_despesa
+from .categories import categorize_cost
 
-EDUCATION_TERMS = [
-    'EDUCA',
-    'FUNDEB',
-    'FUNDO DE EDUCACAO',
-    'FUNDO MUNICIPAL DE EDUCACAO',
-    'SECRETARIA DE EDUCACAO',
-    'SEMED',
-    'ENSINO'
-]
+def process_education_data(df):
+    if df is None or df.empty:
+        return None
 
-def _normalize_str(value):
-    if not isinstance(value, str):
-        return ""
-    return value.strip().upper()
+    # Normalização de nomes de colunas para facilitar a busca
+    df.columns = [c.strip() for c in df.columns]
 
-def _is_education(row):
-    orgao = _normalize_str(row.get("Órgão"))
-    unidade = _normalize_str(row.get("Unidade"))
+    word_filter = 'educa|ensino|fundeb|merenda|semed|ensino|fundo de educa'
+    keyword_col = ['org', 'unid', 'secr', 'centr', 'dep', 'setor']
 
-    base = f"{orgao} {unidade}"
-    return any(term in base for term in EDUCATION_TERMS)
+    # Identifica colunas relevantes
+    col_to_verify = [col for col in df.columns if any(key in col.lower() for key in keyword_col)]
 
-def _build_description(row):
-    parts = []
+    if not col_to_verify:
+        return None
 
-    for col in ["DsEmpenho", "DsItemDespesa", "Elemento"]:
-        val = row.get(col)
-        if isinstance(val, str) and val.strip():
-            parts.append(val.strip())
+    # Cria máscara booleana para filtrar linhas
+    final_mask = pd.Series(False, index=df.index)
+    for col in col_to_verify:
+        col_mask = df[col].astype(str).str.contains(
+            word_filter, case=False, na=False, regex=True
+        )
+        final_mask |= col_mask
 
-    if not parts:
-        return "SEM DESCRIÇÃO"
+    df_edu = df[final_mask].copy()
+    if df_edu.empty:
+        return None
 
-    return " | ".join(parts)
+    # Lógica de consolidação de Órgão
+    col_orgao_orig = next((c for c in col_to_verify if 'org' in c.lower()), None)
+    col_unidade_orig = next((c for c in col_to_verify if 'unid' in c.lower()), None)
 
-def transform_portal_type2(
-    df_raw: pd.DataFrame,
-    municipio_nome: str,
-    codigo_ibge: str,
-    ano_referencia: int
-) -> pd.DataFrame:
-    """
-    Transforma CSV bruto do Portal Tipo 2
-    em DataFrame final do TCC
-    """
+    if col_orgao_orig and col_unidade_orig:
+        df_edu['Orgao_Consolidado'] = df_edu[col_orgao_orig].astype(str) + " - " + df_edu[col_unidade_orig].astype(str)
+    elif col_unidade_orig:
+        df_edu['Orgao_Consolidado'] = df_edu[col_unidade_orig]
+    elif col_orgao_orig:
+        df_edu['Orgao_Consolidado'] = df_edu[col_orgao_orig]
+    else:
+        df_edu['Orgao_Consolidado'] = df_edu[col_to_verify[0]]
 
-    df = df_raw.copy()
+    # Lógica de Descrição
+    col_empenho = 'DsEmpenho' if 'DsEmpenho' in df_edu.columns else None
+    col_item = 'DsItemDespesa' if 'DsItemDespesa' in df_edu.columns else None
 
-    # Filtra Educação
-    df = df[df.apply(_is_education, axis=1)]
+    if col_empenho and col_item:
+        df_edu['Descricao_Final'] = df_edu[col_empenho].fillna(df_edu[col_item]).fillna('')
+    elif col_empenho:
+        df_edu['Descricao_Final'] = df_edu[col_empenho].fillna('')
+    elif col_item:
+        df_edu['Descricao_Final'] = df_edu[col_item].fillna('')
+    else:
+        df_edu['Descricao_Final'] = 'Sem Descrição'
 
-    if df.empty:
-        return pd.DataFrame()
+    # Categorização (usa seu módulo existente)
+    df_edu['Categoria'] = df_edu['Descricao_Final'].apply(categorize_cost)
 
-    # Colunas finais básicas
-    df["Data"] = pd.to_datetime(df["Data"], dayfirst=True, errors="coerce")
-    df["Empenho"] = df["Empenho"].astype(str)
-    df["Credor"] = df["Credor"].astype(str)
-    df["Valor"] = pd.to_numeric(df["Empenhado"], errors="coerce").fillna(0)
+    # Mapeamento final
+    cols_map = {
+        'Data': 'Data',
+        'Empenho': 'Empenho',
+        'Orgao_Consolidado': 'Órgão',
+        'Credor': 'Credor',
+        'Empenhado': 'Valor',
+        'Descricao_Final': 'Descrição',
+        'Categoria': 'Categoria',
+        'ano_referencia': 'Ano',
+        'municipio_nome': 'Municipio_nome',
+        'municipio_id': 'municipio_id'
+    }
 
-    # Órgão consolidado
-    df["Orgao_Consolidado"] = (
-        df["Órgão"].astype(str).str.strip() +
-        " - " +
-        df["Unidade"].astype(str).str.strip()
-    )
-
-    # Descrição final
-    df["Descrição"] = df.apply(_build_description, axis=1)
-
-    # Categoria (ML / Dashboard)
-    df["Categoria"] = df["Descrição"].apply(categorizar_despesa)
-
-    # Metadados do TCC
-    df["Ano"] = int(ano_referencia)
-    df["Municipio_nome"] = municipio_nome
-    df["municipio_id"] = codigo_ibge
-
-    # Seleção final
-    df_final = df[
-        [
-            "Data",
-            "Empenho",
-            "Orgao_Consolidado",
-            "Credor",
-            "Valor",
-            "Descrição",
-            "Categoria",
-            "Ano",
-            "Municipio_nome",
-            "municipio_id",
-        ]
-    ].copy()
-
-    return df_final
+    cols_finais = [c for c in cols_map.keys() if c in df_edu.columns]
+    return df_edu[cols_finais].rename(columns=cols_map)

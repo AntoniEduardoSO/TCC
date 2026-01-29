@@ -3,4 +3,5 @@ __pycache__/
 data/raw/
 .vscode
 .venv
-.data/Transparencia
+data/Transparencia/
+data/state/

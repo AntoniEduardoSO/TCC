@@ -1,85 +1,62 @@
-import csv
 import os
+import csv
+import threading
 
-from datetime import datetime
-from threading import Lock
+class ScrapingState:
+    def __init__(self):
+        self.rows = []
+        self.lock = threading.Lock()
 
-STATE_FOLDER = os.path.join("data", "state")
-os.makedirs(STATE_FOLDER, exist_ok=True)
+    def load_csv(self, filepath):
+        if not os.path.exists(filepath):
+            return
+        try:
+            with open(filepath, mode='r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                self.rows = list(reader)
+            print(f"Estado carregado: {len(self.rows)} registros.")
+        except Exception as e:
+            print(f"Erro ao ler CSV: {e}")
 
-LOCK = Lock()
+    def add(self, municipio, ano, periodo, status, portal_type, motivo="", detalhe=""):
+        row = {
+            "municipio": str(municipio),
+            "ano": str(ano),
+            "periodo": str(periodo),
+            "status": status,
+            "motivo": motivo,
+            "detalhe": detalhe,
+            "portal": portal_type
+        }
+        with self.lock: 
+            self.rows.append(row)
 
-STATUS_OK = "OK"
-STATUS_EMPTY = "EMPTY"
-STATUS_ERROR = "ERROR"
-STATUS_INCONSISTENT = "INCONSISTENT"
+    def is_ok(self, municipio, ano, periodo):
+        municipio_str = str(municipio)
+        ano_str = str(ano)
+        periodo_str = str(periodo)
 
-class State:
-    def __init__(self, portal_name):
-        self.portal = portal_name
-        self.path = os.path.join(STATE_FOLDER, f"{portal_name}.csv")
-        self._ensure_file()
-
-    def _ensure_file(self):
-        if not os.path.exists(self.path):
-            with open(self.path, "w", newline="", encoding="utf-8") as f:
-                writer = csv.writer(f, delimiter=";")
-                writer.writerow([
-                    "portal",
-                    "municipio",
-                    "ibge",
-                    "ano",
-                    "status",
-                    "linhas",
-                    "mensagem",
-                    "timestamp"
-                ])
-    
-    def _read_all(self):
-        if not os.path.exists(self.path):
-            return []
-
-        with open(self.path, encoding="utf-8") as f:
-            reader = csv.DictReader(f, delimiter=";")
-            return list(reader)
-
-    def is_done(self, municipio, ano):
-        rows = self._read_all()
-        for r in rows:
-            if r["municipio"] == municipio and int(r["ano"]) == ano:
-                return r["status"] == STATUS_OK or r["status"] == STATUS_EMPTY
+        with self.lock:
+            for row in self.rows:
+                if (
+                    row["municipio"] == municipio_str and
+                    row["ano"] == ano_str and
+                    row["periodo"] == periodo_str and
+                    row["status"] == "OK"
+                ):
+                    return True
         return False
 
-    def should_retry(self, municipio, ano):
-        rows = self._read_all()
-        for r in rows:
-            if r["municipio"] == municipio and int(r["ano"]) == ano:
-                return r["status"] in (STATUS_ERROR, STATUS_INCONSISTENT)
-        return True
+    def save_csv(self, filepath):
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
-    def _append(self, municipio, ibge, ano, status, linhas=0, msg=""):
-        with LOCK:
-            with open(self.path, "a", newline="", encoding="utf-8") as f:
-                writer = csv.writer(f, delimiter=";")
-                writer.writerow([
-                    self.portal,
-                    municipio,
-                    ibge,
-                    ano,
-                    status,
-                    linhas,
-                    msg,
-                    datetime.now().isoformat(timespec="seconds")
-                ])
+        if not self.rows:
+            return
 
-    def mark_ok(self, municipio, ibge, ano, linhas):
-        self._append(municipio, ibge, ano, STATUS_OK, linhas)
-
-    def mark_empty(self, municipio, ibge, ano):
-        self._append(municipio, ibge, ano, STATUS_EMPTY, 0, "sem dados")
-
-    def mark_error(self, municipio, ibge, ano, msg):
-        self._append(municipio, ibge, ano, STATUS_ERROR, 0, msg)
-
-    def mark_inconsistent(self, municipio, ibge, ano, msg):
-        self._append(municipio, ibge, ano, STATUS_INCONSISTENT, 0, msg)
+        with open(filepath, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=self.rows[0].keys()
+            )
+            writer.writeheader()
+            writer.writerows(self.rows)
