@@ -39,7 +39,7 @@ def exec_single_year(city, year, driver, wait, downloads_folder, state):
     df_city = []
     
     driver.get(city['url'])
-    driver.delete_all_cookies() 
+    driver.delete_all_cookies()
     
 
     tab_empenhos = wait.until(EC.element_to_be_clickable((By.ID, "lnkEmpenhos")))

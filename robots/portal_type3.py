@@ -5,6 +5,8 @@ import os
 import glob
 import pandas as pd
 
+from .core import io
+
 def limpar_pasta_temp(folder):
     files = glob.glob(os.path.join(folder, "*"))
     for f in files:
@@ -76,7 +78,7 @@ def download_and_read_csv(driver, wait, downloads_folder):
         return None
 
 
-def exec3(cities_config, driver, wait, downloads_folder):
+def exec3(cities_config, driver, wait, downloads_folder, state):
     for city in cities_config:
         df_city_years = []
 
@@ -150,10 +152,22 @@ def exec3(cities_config, driver, wait, downloads_folder):
                 if not os.path.exists(final_folder): os.makedirs(final_folder)
                 
                 df_final = pd.concat(df_city_years, ignore_index=True)
-                path_final = os.path.join(final_folder, f"{city['nome']}_CONSOLIDADO.csv.gz")
-                df_final.to_csv(path_final, index=False, sep=';', compression='gzip', encoding='utf-8-sig')
+
+                output_dir = os.path.join("data", "Transparencia")
+                os.makedirs(output_dir, exist_ok=True)
+
+                io.save_consolidated_df(
+                    df=df_final,
+                    output_folder=output_dir,
+                    filename=f"{city['nome']}_CONSOLIDADO.csv"
+                )
+
+                state.add(city_config["nome"], year, "P0", status="OK", portal_type="3", detalhe=f"{len(df_final)} regs" )
+
+
+                
 
         except Exception as e:
-            print(f"Erro ao selecionar a entidade: {e}")
+            state.add(city["nome"], year, "P0", status="OK", portal_type="3", motivo="Sem dados ou erro download")
             raise e
 

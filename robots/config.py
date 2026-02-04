@@ -4,7 +4,13 @@ import time
 from .portal_type1 import exec1
 from .portal_type2 import exec2
 from .portal_type3 import exec3
-# from .portal_type4 import exec4
+from .portal_type4 import exec4
+from .portal_type5 import exec5
+from .portal_type6 import exec6
+from .portal_type7 import exec7
+from .portal_type10 import exec10
+
+
 
 from .driver_setup import get_driver
 from .verificar_dados import verificar_dados
@@ -231,6 +237,24 @@ MUNICIPIOS_TIPO2 = [
         "url": "https://municipioonline.com.br/al/prefeitura/maragogi/cidadao/despesa",
         "years_list": [2017, 2018, 2019, 2020]  
     },
+    {
+        "nome": "PAO_DE_ACUCAR",
+        "codigo_ibge": "2706406",
+        "url": "https://municipioonline.com.br/al/prefeitura/paodeacucar/cidadao/despesa",
+        "years_list": [2019, 2020, 2022, 2023, 2024, 2025]
+    },
+    {
+        "nome": "JEQUIA_DA_PRAIA",
+        "codigo_ibge": "2703759",
+        "url": "https://municipioonline.com.br/al/prefeitura/jequiadapraia/cidadao/despesa",
+        "years_list": [2021, 2022, 2023, 2024, 2025]
+    },
+    {
+        "nome": "ESTRELA_DE_ALAGOAS",
+        "codigo_ibge": "2702553",
+        "url": "https://municipioonline.com.br/al/prefeitura/estreladealagoas/cidadao/despesa",
+        "years_list": [2017, 2018, 2019, 2020, 2021]
+    },
 
 
     
@@ -281,13 +305,77 @@ MUNICIPIOS_TIPO4 = [
     }
 ]
 
+MUNICIPIOS_TIPO5 = [
+    {
+
+    }
+]
+
+MUNICIPIOS_TIPO6 = [
+    {
+        "nome": "CORURIPE",
+        "codigo_ibge": "2702306",
+        "url": "https://transparencia.betha.cloud/#/__zskWgzCFzFPEOT7Ihn8Q==/consulta/188066",
+        "years_list": [2021, 2022, 2023, 2024, 2025]
+    }
+]
+
+MUNICIPIOS_TIPO7 = [
+    {
+        "nome": "JACUIPE",
+        "codigo_ibge": "2703502",
+        "url": "https://sistemas.jacuipe.al.gov.br:8079/transparencia/Default.aspx?AcessoIndividual=lnkDespesasPor_ProjetoAtividade",
+        "years_list": [2021, 2022, 2023, 2024, 2025]
+    }
+]
+
+
+MUNICIPIOS_TIPO10 = [
+    {
+        "nome": "OURO_BRANCO",
+        "codigo_ibge": "2706109",
+        "url": "https://admin.ourobranco.al.gov.br/api/siap-empenho?with=credor,funcao,subfuncao,undOrcamentaria,pagamentos,liquidacoes,acao"
+    },
+    {
+        "nome": "CAMPESTRE",
+        "codigo_ibge": "2701357",
+        "url": "https://admin.campestre.al.gov.br/api/siap-empenho?with=credor,funcao,subfuncao,undOrcamentaria,pagamentos,liquidacoes,acao" 
+    },
+    {
+        "nome": "CAPELA",
+        "codigo_ibge": "2701704",
+        "url": "https://admin.capela.al.gov.br/api/siap-empenho?with=credor,funcao,subfuncao,undOrcamentaria,pagamentos,liquidacoes,acao"
+    },
+    {
+        "nome": "CARNEIROS",
+        "codigo_ibge": "2701803",
+        "url": "https://admin.carneiros.al.gov.br/api/siap-empenho?with=credor,funcao,subfuncao,undOrcamentaria,pagamentos,liquidacoes,acao"
+    },
+    {
+        "nome": "JAPARATINGA",
+        "codigo_ibge": "2703601",
+        "url": "https://admin.japaratinga.al.gov.br/api/siap-empenho?with=credor,funcao,subfuncao,undOrcamentaria,pagamentos,liquidacoes,acao"
+    },
+    {
+        "nome": "MATA_GRANDE",
+        "codigo_ibge": "2705002",
+        "url": "https://admin.matagrande.al.gov.br/api/siap-empenho?with=credor,funcao,subfuncao,undOrcamentaria,pagamentos,liquidacoes,acao"
+    },
+    {
+        "nome": "POCO_DAS_TRINCHEIRAS",
+        "codigo_ibge": "2707206",
+        "url": "https://admin.pocodastrincheiras.al.gov.br/api/siap-empenho?with=credor,funcao,subfuncao,undOrcamentaria,pagamentos,liquidacoes,acao"
+    },
+]
+
+
 def exec_robots():
 
     base_dir = os.getcwd()
 
     downloads_folder = os.path.join(base_dir, "data", "raw")
 
-    driver, wait = get_driver(downloads_folder)
+    
 
     state_path = os.path.join(
         base_dir,
@@ -301,32 +389,40 @@ def exec_robots():
     state = ScrapingState()
 
     state.load_csv(state_path)
+    
 
     time_execs = []
 
     try:
-        
-        # exec1(MUNICIPIOS_TIPO1, driver, wait, downloads_folder)
-        # time_execs.append(time.time() - inicio)
 
-        inicio = time.perf_counter()
-        exec2(MUNICIPIOS_TIPO2, driver, wait, downloads_folder, state)
-        duracao = (time.perf_counter() - inicio) / 60
-        time_execs.append(("Portal Tipo 2", duracao))
-        driver.quit()
-        
+        # driver, wait = get_driver(downloads_folder)
+        # exec1(MUNICIPIOS_TIPO1, driver, wait, downloads_folder, state)
+        # driver.quit()
 
-        # exec3(MUNICIPIOS_TIPO3, driver, wait, downloads_folder)
+        # driver, wait = get_driver(downloads_folder)
+        # exec2(MUNICIPIOS_TIPO2, driver, wait, downloads_folder, state)
+        # driver.quit()
+
+        # driver, wait = get_driver(downloads_folder)
+        # exec3(MUNICIPIOS_TIPO3, driver, wait, downloads_folder, state)
+        # driver.quit()
 
         # exec4(MUNICIPIOS_TIPO4, driver, wait, downloads_folder)
 
-        fim = time.time()
+        # exec5()
+
+        # driver, wait = get_driver(downloads_folder)
+        # exec6(MUNICIPIOS_TIPO6, driver, wait, downloads_folder, state)
+        # driver.quit()
+
+        driver, wait = get_driver(downloads_folder)
+        exec7(MUNICIPIOS_TIPO7, driver, wait, downloads_folder, state)
+        driver.quit()
+
+        # exec10(MUNICIPIOS_TIPO10, downloads_folder, state)
+
 
         state.save_csv(state_path)
-
-        print("Tempos de cada tipo de portal:")
-        for nome_portal, tempo in time_execs:
-            print(f"Tempo de execucao do {nome_portal}: {tempo:.2f} minutos")
 
         # verificar_dados()
     
