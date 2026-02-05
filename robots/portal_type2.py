@@ -91,7 +91,6 @@ def exec_single_year(city, year, driver, wait, downloads_folder, state):
         if df_processed is not None and not df_processed.empty:
             df_city.append(df_processed)
             state.add(city["nome"], year, periodo_label, status="OK", portal_type="2", detalhe=f"{len(df_processed)} regs")
-            print(f" [V] {len(df_processed)} registros capturados de {city['nome']} ({year}-P{idx})")
         else:
              state.add(city["nome"], year, periodo_label, status="FILTERED_EMPTY", portal_type="2", detalhe="Zero registros após filtro educação")
 

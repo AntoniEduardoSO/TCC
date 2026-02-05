@@ -11,52 +11,33 @@ import time
 import os
 import pandas as pd
 
-def safe_click_csv_in_iframe(driver, wait):
-    """
-    Tenta clicar no botão CSV lidando com atualizações de página (StaleElement).
-    Tenta até 3 vezes.
-    """
-    attempts = 0
-    max_attempts = 3
-    
-    while attempts < max_attempts:
-        try:
-            # 1. SEMPRE volte para o contexto principal antes de buscar o iframe
-            driver.switch_to.default_content()
-            
-            # 2. Aguarda e muda para o Iframe (Isso pega a REFERÊNCIA NOVA)
-            print(f" [Tentativa {attempts+1}] Entrando no Iframe 'frmPaginaAspx'...")
-            wait.until(EC.frame_to_be_available_and_switch_to_it((By.ID, "frmPaginaAspx")))
-            
-            # 3. Busca o botão lá dentro
-            btn = wait.until(EC.presence_of_element_located((By.ID, "btnExportarCSV")))
-            
-            # 4. Scroll e Clique (JS é mais seguro aqui)
-            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn)
-            time.sleep(0.5) # Estabilidade visual
-            driver.execute_script("arguments[0].click();", btn)
-            
-            print(" [Sucesso] Clique realizado!")
-            
-            # Importante: Voltar para o contexto padrão imediatamente após o sucesso
-            driver.switch_to.default_content()
-            return True
+def click_export_csv(driver):
+    WebDriverWait(driver, 20).until(
+        EC.frame_to_be_available_and_switch_to_it((By.ID, "frmPaginaAspx"))
+    )
 
-        except StaleElementReferenceException:
-            # AQUI É O PULO DO GATO
-            print(" [Stale] O Iframe ou Botão atualizou na nossa cara. Tentando de novo...")
-            attempts += 1
-            time.sleep(1) # Dá um tempo para o DOM assentar
-            
-        except Exception as e:
-            print(f" [Erro] Falha genérica ao clicar no iframe: {e}")
-            driver.switch_to.default_content() # Garante saída em caso de erro
-            return False
-            
-    print(" [Falha] Não foi possível clicar após 3 tentativas.")
-    return False
+    try:
+        btn_csv = WebDriverWait(driver, 15).until(
+            EC.element_to_be_clickable((By.ID, "btnExportarCSV"))
+        )
+        btn_csv.click()
+        print(f"Clique no CSV realizado para {city['nome']} - {year}")
+    except Exception as e:
+        print(f"Erro ao clicar no CSV: {e}")
+        try:
+            csv_element = driver.find_element(By.ID, "btnExportarCSV")
+            driver.execute_script("arguments[0].click();", csv_element)
+        except:
+            pass
+
+    driver.switch_to.default_content()
+
 
 def select_entity(driver):
+    WebDriverWait(driver, 20).until(
+        EC.invisibility_of_element_located((By.CSS_SELECTOR, "#divModalLoader, #_divModalLoader"))
+    )
+
     btn = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable((By.XPATH, "//*[contains(@id, 'cmbEntidadeContabil_B-1')]"))
     )
@@ -79,11 +60,15 @@ def select_year(driver, year):
     )
     btn.click()
 
-    # clicar no ano
+    time.sleep(1)
+
     btn = WebDriverWait(driver, 10).until(
     EC.element_to_be_clickable((By.XPATH, f"//table[@id='cmbExercicio_DDD_L_LBT']//td[normalize-space()='{str(year)}']"))
     )
     btn.click()
+    driver.execute_script("arguments[0].click();", btn)
+    
+    
 
 def exec7(cities_config, driver, wait, downloads_folder, state):
     driver.quit()
@@ -91,36 +76,29 @@ def exec7(cities_config, driver, wait, downloads_folder, state):
     for city in cities_config:
         df_city = []
         for year in city["years_list"]:
+            if state.is_ok(city["nome"], year, "P0"):
+                continue
+
+
             driver, wait = get_driver(downloads_folder)
             df_city_per_year = []
 
+
             driver.get(city["url"])
 
-            time.sleep(1)
+            time.sleep(2)
 
             select_year(driver, year)
             wait_loading(driver)
 
-            WebDriverWait(driver, 20).until(
-                EC.invisibility_of_element_located((By.CSS_SELECTOR, "#divModalLoader, #_divModalLoader"))
-            )
-
             select_entity(driver)
             wait_loading(driver)
 
-            time.sleep(2) # Pequena pausa de segurança
+            time.sleep(2)
+
+            click_export_csv(driver)
 
             
-
-            success = safe_click_csv_in_iframe(driver, WebDriverWait(driver, 15))
-
-            if not success:
-                print(f"Pular {city['nome']} {year} por falha no clique.")
-                state.add(city["nome"], year, "P0", status="ERROR", portal_type="7", motivo="Falha Click Iframe")
-                continue 
-                # Segue para o próximo ano/cidade
-            
-            # --- ESPERA O DOWNLOAD ---
             df_city_per_year = io.wait_and_read_csv(downloads_folder)
             
 
@@ -133,7 +111,8 @@ def exec7(cities_config, driver, wait, downloads_folder, state):
             df_city_per_year['municipio_id'] = city["codigo_ibge"]
 
             df_city.append(df_city_per_year)
-            state.add(city["nome"], year, "P0", status="OK", portal_type="7", motivo="Sem dados ou erro download")
+            state.add(city["nome"], year, "P0", status="OK", portal_type="7", detalhe = f"{len(df_city_per_year)} regs")
+            driver.delete_all_cookies()
             driver.quit()
 
         output_dir = os.path.join("data", "Transparencia")

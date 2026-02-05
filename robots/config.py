@@ -329,6 +329,15 @@ MUNICIPIOS_TIPO7 = [
     }
 ]
 
+MUNICIPIOS_TIPO9 = [
+    {
+        "nome": "JACUIPE",
+        "codigo_ibge": "2703502",
+        "url": "https://sistemas.jacuipe.al.gov.br:8079/transparencia/Default.aspx?AcessoIndividual=lnkDespesasPor_ProjetoAtividade",
+        "years_list": [2021, 2022, 2023, 2024, 2025]
+    }
+]
+
 
 MUNICIPIOS_TIPO10 = [
     {
