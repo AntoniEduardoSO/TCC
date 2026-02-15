@@ -1,11 +1,10 @@
 __pycache__/
 .DS_Store
 data/raw/
-.vscode
-.venv
 data/Transparencia/
 data/state/
 data/Geral/
 data/Infraestrutura/
 data/Matricula/
-
+.vscode
+.venv
