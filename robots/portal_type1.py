@@ -2,12 +2,12 @@ import time
 import os
 import pandas as pd
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import Select, WebDriverWait
+from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as EC
 from .core import io
+
+from .core.driver_setup import get_driver
 
 diretory_project = os.getcwd()
 downloads_folder = os.path.join(diretory_project, "data/raw")
@@ -52,11 +52,12 @@ def download_and_read_csv(driver, wait, downloads_folder):
 
 
 
-def exec1(cities_config,driver, wait, downloads_folder,  state):
+def exec1(cities_config, downloads_folder, state, progress_callback=None):
     
     df_cities_year = []
     
     for city_config in cities_config:
+        driver, wait = get_driver(downloads_folder, True)
         
         try:
             
@@ -91,7 +92,7 @@ def exec1(cities_config,driver, wait, downloads_folder,  state):
                         df_year['municipio_nome'] = city_config["nome"]
                         df_year['codigo_ibge'] = city_config["codigo_ibge"]
                         df_cities_year.append(df_year)
-                        print(f"Dados de {year} adicionados à memória.")
+                        state.add(city_config["nome"], year, "P0", status="OK", portal_type="1", detalhe=f"{len(df_final)} regs" )
                 else:
                     state.add(city_config["nome"], year, "P0", status="NO_DATA", portal_type="1", motivo="Sem dados ou erro download")
 
@@ -105,15 +106,17 @@ def exec1(cities_config,driver, wait, downloads_folder,  state):
                 io.save_consolidated_df(
                     df=df_final,
                     output_folder=output_dir,
-                    filename=f"{city_config['nome']}_CONSOLIDADO.csv"
+                    filename=f"{city_config['nome']}_CONSOLIDADO_1.csv"
                 )
                 
+            io.clean_tmp_folder(downloads_folder)
 
-                state.add(city_config["nome"], year, "P0", status="OK", portal_type="1", detalhe=f"{len(df_final)} regs" )
+            if progress_callback:
+                progress_callback()
+    
 
 
         except Exception as e:
             state.add(city_config["nome"], year, "P0", status="NO_DATA", portal_type="1", motivo="Sem dados ou erro download" )
-            print(f"Erro em {city_config['nome']}: {e}")
     
     driver.quit()

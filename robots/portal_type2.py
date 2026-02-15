@@ -1,13 +1,16 @@
 import os
 import shutil
 import pandas as pd
-from concurrent.futures import ThreadPoolExecutor
+
+from tqdm import tqdm
+
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select, WebDriverWait
 
-from .driver_setup import get_driver
+from .core.driver_setup import get_driver
 from .core import io
 from .core import transform
 
@@ -69,7 +72,6 @@ def exec_single_year(city, year, driver, wait, downloads_folder, state):
             download_action(driver, wait) # Clica no botão
             df = io.wait_and_read_csv(downloads_folder) # Espera e lê
         except Exception as e:
-            print(f"Erro no download/leitura: {e}")
             df = None
 
         if df is None or df.empty:
@@ -96,22 +98,20 @@ def exec_single_year(city, year, driver, wait, downloads_folder, state):
 
     return df_city
 
-def process_city(city, base_download_folder, state):
+def process_city(city, downloads_folder, state):
     
     output_dir = os.path.join("data", "Transparencia")
     os.makedirs(output_dir, exist_ok=True)
-    city_download_folder = os.path.join(base_download_folder, city['nome'])
+    city_download_folder = os.path.join(downloads_folder, city['nome'])
     
     city_df_list = []
 
     for year in city["years_list"]:
-        driver, wait = get_driver(city_download_folder)
+        driver, wait = get_driver(city_download_folder, True)
         try:
             dfs = exec_single_year(city, year, driver, wait, city_download_folder, state)
             if dfs:
                 city_df_list.extend(dfs)
-        except Exception as e:
-            print(f"Erro critico: {e}")
         finally:
             driver.quit()
             
@@ -121,7 +121,10 @@ def process_city(city, base_download_folder, state):
         io.save_consolidated_df(
             df=df_final,
             output_folder=output_dir,
-            filename=f"{city['nome']}_CONSOLIDADO.csv")
+            filename=f"{city['nome']}_CONSOLIDADO_2.csv")
+    
+    io.clean_tmp_folder(downloads_folder)
+    
 
     
     try:
@@ -129,12 +132,21 @@ def process_city(city, base_download_folder, state):
     except:
         pass
 
-def exec2(cities, driver_dummy, wait_dummy, downloads_folder, state):
+def exec2(cities, downloads_folder, state, progress_callback=None):
     MAX_WORKERS = 3
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        futures = [executor.submit(process_city, city, downloads_folder, state) for city in cities]
-        for f in futures:
+
+        future_to_city = {
+            executor.submit(process_city, city, downloads_folder, state): city 
+            for city in cities
+        }
+
+        for future in as_completed(future_to_city):
+            city = future_to_city[future]
             try:
-                f.result()
+                future.result()
             except Exception as e:
-                print(e)
+                tqdm.write(f"Erro em {city['nome']}: {e}")
+            
+            if progress_callback:
+                progress_callback()

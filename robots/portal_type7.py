@@ -1,11 +1,9 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.common.exceptions import StaleElementReferenceException
 
 from .core import io
-from .driver_setup import get_driver
+from .core.driver_setup import get_driver
 
 import time
 import os
@@ -21,9 +19,7 @@ def click_export_csv(driver):
             EC.element_to_be_clickable((By.ID, "btnExportarCSV"))
         )
         btn_csv.click()
-        print(f"Clique no CSV realizado para {city['nome']} - {year}")
     except Exception as e:
-        print(f"Erro ao clicar no CSV: {e}")
         try:
             csv_element = driver.find_element(By.ID, "btnExportarCSV")
             driver.execute_script("arguments[0].click();", csv_element)
@@ -70,8 +66,7 @@ def select_year(driver, year):
     
     
 
-def exec7(cities_config, driver, wait, downloads_folder, state):
-    driver.quit()
+def exec7(cities_config, downloads_folder, state, progress_callback=None):
 
     for city in cities_config:
         df_city = []
@@ -80,7 +75,7 @@ def exec7(cities_config, driver, wait, downloads_folder, state):
                 continue
 
 
-            driver, wait = get_driver(downloads_folder)
+            driver, wait = get_driver(downloads_folder, True)
             df_city_per_year = []
 
 
@@ -126,3 +121,7 @@ def exec7(cities_config, driver, wait, downloads_folder, state):
                 output_folder=output_dir,
                 filename=f"{city['nome']}_CONSOLIDADO_7.csv"
             )
+            io.clean_tmp_folder(downloads_folder)
+
+        if progress_callback:
+                progress_callback()

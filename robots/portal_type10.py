@@ -11,7 +11,7 @@ headers = {
 terms = ['EDUCA', 'FUNDEB', 'PNAE', 'MERENDA', 'ALIMENTA', 'ESCOLA', 'CRECHE', 'ENSINO', 'PROFESSOR', 'PROFESSORA', "TRANSPORTE ESCOLAR", "FUNDEO DE EDUCA"]
 colunas = ['municipio', 'municipio_id', 'detalhes', 'data', 'valor', 'acao']
 
-def exec10(cities_config, downloads_folder, state):
+def exec10(cities_config, downloads_folder, state, progress_callback=None):
     for city in cities_config:
         if state.is_ok(city["nome"], 0000, "P0"):
             continue
@@ -63,8 +63,13 @@ def exec10(cities_config, downloads_folder, state):
             io.save_consolidated_df(
                 df=df_city,
                 output_folder=output_dir,
-                filename=f"{city['nome']}_CONSOLIDADO.csv"
+                filename=f"{city['nome']}_CONSOLIDADO_10.csv"
             )
+
+            io.clean_tmp_folder(downloads_folder)
+
+            if progress_callback:
+                progress_callback()
             
             state.add(city["nome"], 0000, "P0", status="OK", portal_type="10", detalhe=f"{len(df_city)} regs")
         

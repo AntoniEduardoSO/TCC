@@ -1,0 +1,244 @@
+{
+    "1": [
+        {
+            "nome": "ARAPIRACA",
+            "codigo_ibge": "2700300",
+            "url": "https://transparencia.arapiraca.al.gov.br/despesas"
+        }
+    ],
+    "2": [
+        {
+            "nome": "BARRA_DE_SAO_MIGUEL",
+            "codigo_ibge": "2700607",
+            "url": "https://municipioonline.com.br/al/prefeitura/barradesaomiguel/cidadao/despesa",
+            "years_list": [2017, 2018, 2019, 2020, 2021, 2022]
+        },
+        {
+            "nome": "BELEM",
+            "codigo_ibge": "2700805",
+            "url": "https://municipioonline.com.br/al/prefeitura/belem/cidadao/despesa",
+            "years_list": [2017, 2018, 2019, 2020, 2021]
+        },
+        {
+            "nome": "BELO_MONTE",
+            "codigo_ibge": "2700904",
+            "url": "https://www.municipioonline.com.br/al/prefeitura/belomonte/cidadao/despesa",
+            "years_list": [2017, 2018, 2019, 2020, 2021]
+        },
+        {
+            "nome": "CAMPO_ALEGRE",
+            "codigo_ibge": "2701407",
+            "url": "https://www.municipioonline.com.br/al/prefeitura/campoalegre/cidadao/despesa",
+            "years_list": [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025]
+        },
+        {
+            "nome": "DOIS_RIACHOS",
+            "codigo_ibge": "2702504",
+            "url": "https://www.municipioonline.com.br/al/prefeitura/doisriachos/cidadao/despesa",
+            "years_list": [2017, 2018, 2019, 2020, 2025]
+        },
+        {
+            "nome": "IBATEGUARA",
+            "codigo_ibge": "2703007",
+            "url": "https://www.municipioonline.com.br/al/prefeitura/ibateguara/cidadao/despesa",
+            "years_list": [2017, 2018, 2019, 2020, 2021]
+        },
+        {
+            "nome": "TEOTONIO_VILELA",
+            "codigo_ibge": "2709152",
+            "url": "https://www.municipioonline.com.br/al/prefeitura/teotoniovilela/cidadao/despesa",
+            "years_list": [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025]
+        },
+        {
+            "nome": "SENADOR_RUI_PALMEIRA",
+            "codigo_ibge": "2708956",
+            "url": "https://www.municipioonline.com.br/al/prefeitura/senadorruipalmeira/cidadao/despesa",
+            "years_list": [2017, 2018, 2019, 2020] 
+        },
+        {
+            "nome": "COLONIA_LEOPOLDINA",
+            "codigo_ibge": "2702108",
+            "url": "https://municipioonline.com.br/al/prefeitura/colonialeopoldina/cidadao/despesa",
+            "years_list": [2017]  
+        },
+        {
+            "nome": "INHAPI",
+            "codigo_ibge": "2703304",
+            "url": "https://municipioonline.com.br/al/prefeitura/inhapi/cidadao/despesa",
+            "years_list": [2018, 2019, 2020, 2021]  
+        },
+        {
+            "nome": "DELMIRO_GOUVEIA",
+            "codigo_ibge": "2703304",
+            "url": "https://municipioonline.com.br/al/prefeitura/delmirogouveia/cidadao/despesa",
+            "years_list": [2017, 2018, 2019, 2020, 2021]  
+        },
+        {
+            "nome": "MONTEIROPOLIS",
+            "codigo_ibge": "2705408",
+            "url": "https://municipioonline.com.br/al/prefeitura/monteiropolis/cidadao/despesa",
+            "years_list": [2017, 2018, 2019, 2020, 2021]  
+        },
+        {
+            "nome": "PIRANHAS",
+            "codigo_ibge": "2707107",
+            "url": "https://municipioonline.com.br/al/prefeitura/piranhas/cidadao/despesa#empenhos",
+            "years_list": [2017, 2018, 2019, 2020]  
+        },
+        {
+            "nome": "QUEBRANGULO",
+            "codigo_ibge": "2707602",
+            "url": "https://municipioonline.com.br/al/prefeitura/quebrangulo/cidadao/despesa",
+            "years_list": [2017, 2018, 2019]  
+        },
+        {
+            "nome": "SANTANA_DO_IPANEMA",
+            "codigo_ibge": "2708006",
+            "url": "https://municipioonline.com.br/al/prefeitura/santanadoipanema/cidadao/despesa",
+            "years_list": [2017, 2018, 2019, 2020]  
+        },
+        {
+            "nome": "TANQUE_D_ARCA",
+            "codigo_ibge": "2709004",
+            "url": "https://municipioonline.com.br/al/prefeitura/tanquedarca/cidadao/despesa",
+            "years_list": [2018, 2019, 2020]  
+        },
+        {
+            "nome": "CORURIPE",
+            "codigo_ibge": "2702306",
+            "url": "https://municipioonline.com.br/al/prefeitura/coruripe/cidadao/despesa",
+            "years_list": [2017, 2018, 2019, 2020]  
+        },
+        {
+            "nome": "AGUA_BRANCA",
+            "codigo_ibge": "2700102",
+            "url": "https://municipioonline.com.br/al/prefeitura/aguabranca/cidadao/despesa",
+            "years_list": [2017, 2018, 2019, 2020]  
+        },
+        {
+            "nome": "AGUA_BRANCA",
+            "codigo_ibge": "2704500",
+            "url": "https://municipioonline.com.br/al/prefeitura/maragogi/cidadao/despesa",
+            "years_list": [2017, 2018, 2019, 2020]  
+        },
+        {
+            "nome": "PAO_DE_ACUCAR",
+            "codigo_ibge": "2706406",
+            "url": "https://municipioonline.com.br/al/prefeitura/paodeacucar/cidadao/despesa",
+            "years_list": [2019, 2020, 2022, 2023, 2024, 2025]
+        },
+        {
+            "nome": "JEQUIA_DA_PRAIA",
+            "codigo_ibge": "2703759",
+            "url": "https://municipioonline.com.br/al/prefeitura/jequiadapraia/cidadao/despesa",
+            "years_list": [2021, 2022, 2023, 2024, 2025]
+        },
+        {
+            "nome": "ESTRELA_DE_ALAGOAS",
+            "codigo_ibge": "2702553",
+            "url": "https://municipioonline.com.br/al/prefeitura/estreladealagoas/cidadao/despesa",
+            "years_list": [2017, 2018, 2019, 2020, 2021]
+        }
+    ],
+    "3": [
+        {
+            "nome": "BATALHA",
+            "codigo_ibge": "2700706",
+            "url": "https://portalbatalha.tcgestaopublica.com.br/RelacaoEmpenho",
+            "years_list": [2021, 2022, 2023, 2024]
+        },
+        {
+            "nome": "BRANQUINHA",
+            "codigo_ibge": "2701100",
+            "url": "https://portalbranquinha.tcgestaopublica.com.br/RelacaoEmpenho",
+            "years_list": [2021, 2022, 2023, 2024, 2025]
+        },
+        {
+            "nome": "CANAPI",
+            "codigo_ibge": "2701605",
+            "url": "https://portalpmcanapi.tcgestaopublica.com.br/RelacaoEmpenho",
+            "years_list": [2021, 2022, 2023, 2024, 2025]
+        },
+        {
+            "nome": "FLEXEIRAS",
+            "codigo_ibge": "2702801",
+            "url": "http://portalflexeiras.tcgestaopublica.com.br/RelacaoEmpenho",
+            "years_list": [2021, 2022, 2023, 2024, 2025]
+        },
+        {
+            "nome": "IGACI",
+            "codigo_ibge": "2703106",
+            "url": "http://portalflexeiras.tcgestaopublica.com.br/RelacaoEmpenho",
+            "years_list": [2021, 2022, 2023, 2024, 2025]
+        }
+    ],
+    "6": [
+        {
+            "nome": "CORURIPE",
+            "codigo_ibge": "2702306",
+            "url": "https://transparencia.betha.cloud/#/__zskWgzCFzFPEOT7Ihn8Q==/consulta/188066",
+            "years_list": [2021, 2022, 2023, 2024, 2025]
+        }
+    ],
+    "7": [
+        {
+            "nome": "JACUIPE",
+            "codigo_ibge": "2703502",
+            "url": "https://sistemas.jacuipe.al.gov.br:8079/transparencia/Default.aspx?AcessoIndividual=lnkDespesasPor_ProjetoAtividade",
+            "years_list": [2021, 2022, 2023, 2024, 2025]
+        }
+    ],
+    "8": [
+        {
+            "nome": "MACEIO",
+            "codigo_ibge": "2704302",
+            "url": "https://www.transparencia.maceio.al.gov.br/transparencia/pages/despesas.faces",
+            "years_list": [2020, 2021, 2023, 2024, 2025]
+        }
+    ],
+    "9": [
+        {
+            "nome": "SAO_LUIS_DO_QUITUNDE",
+            "codigo_ibge": "2708501",
+            "url": "https://saoluisdoquitunde.al.gov.br/receitas-e-despesas",
+            "years_list": ["2020", "2021", "2022", "2023"]
+        }
+    ],
+    "10": [
+        {
+            "nome": "OURO_BRANCO",
+            "codigo_ibge": "2706109",
+            "url": "https://admin.ourobranco.al.gov.br/api/siap-empenho?with=credor,funcao,subfuncao,undOrcamentaria,pagamentos,liquidacoes,acao"
+        },
+        {
+            "nome": "CAMPESTRE",
+            "codigo_ibge": "2701357",
+            "url": "https://admin.campestre.al.gov.br/api/siap-empenho?with=credor,funcao,subfuncao,undOrcamentaria,pagamentos,liquidacoes,acao" 
+        },
+        {
+            "nome": "CAPELA",
+            "codigo_ibge": "2701704",
+            "url": "https://admin.capela.al.gov.br/api/siap-empenho?with=credor,funcao,subfuncao,undOrcamentaria,pagamentos,liquidacoes,acao"
+        },
+        {
+            "nome": "CARNEIROS",
+            "codigo_ibge": "2701803",
+            "url": "https://admin.carneiros.al.gov.br/api/siap-empenho?with=credor,funcao,subfuncao,undOrcamentaria,pagamentos,liquidacoes,acao"
+        },
+        {
+            "nome": "JAPARATINGA",
+            "codigo_ibge": "2703601",
+            "url": "https://admin.japaratinga.al.gov.br/api/siap-empenho?with=credor,funcao,subfuncao,undOrcamentaria,pagamentos,liquidacoes,acao"
+        },
+        {
+            "nome": "MATA_GRANDE",
+            "codigo_ibge": "2705002",
+            "url": "https://admin.matagrande.al.gov.br/api/siap-empenho?with=credor,funcao,subfuncao,undOrcamentaria,pagamentos,liquidacoes,acao"
+        },
+        {
+            "nome": "POCO_DAS_TRINCHEIRAS",
+            "codigo_ibge": "2707206",
+            "url": "https://admin.pocodastrincheiras.al.gov.br/api/siap-empenho?with=credor,funcao,subfuncao,undOrcamentaria,pagamentos,liquidacoes,acao"
+        }
+    ]
+}

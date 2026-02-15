@@ -3,3 +3,5 @@ selenium
 webdriver-manager
 bs4
 pdfplumber
+tqdm
+colorama

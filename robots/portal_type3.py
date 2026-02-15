@@ -6,6 +6,7 @@ import glob
 import pandas as pd
 
 from .core import io
+from .core.driver_setup import get_driver
 
 def limpar_pasta_temp(folder):
     files = glob.glob(os.path.join(folder, "*"))
@@ -57,8 +58,6 @@ def download_and_read_csv(driver, wait, downloads_folder):
             if tamanho_t1 == tamanho_t2:
                 arquivo_final = path_completo
                 break
-            else:
-                print("Arquivo ainda crescendo.")
         else:
             time.sleep(1)
 
@@ -72,14 +71,15 @@ def download_and_read_csv(driver, wait, downloads_folder):
             os.remove(arquivo_final)
             return df
         except Exception as e:
-            print(f"Arquivo corrompido ou erro de leitura: {e}")
             return None
     else:
         return None
 
 
-def exec3(cities_config, driver, wait, downloads_folder, state):
+def exec3(cities_config, downloads_folder, state, progress_callback=None):
     for city in cities_config:
+        driver, wait = get_driver(downloads_folder, True)
+
         df_city_years = []
 
         url = city['url']
@@ -110,9 +110,6 @@ def exec3(cities_config, driver, wait, downloads_folder, state):
                     opcao.click()
                     entidade_encontrada = True
                     break 
-            
-            if not entidade_encontrada:
-                print(f"Nenhuma entidade com os termos {termos_busca} foi encontrada na lista.")
 
             years = city.get("years_list", [])
             for year in years:
@@ -159,14 +156,16 @@ def exec3(cities_config, driver, wait, downloads_folder, state):
                 io.save_consolidated_df(
                     df=df_final,
                     output_folder=output_dir,
-                    filename=f"{city['nome']}_CONSOLIDADO.csv"
+                    filename=f"{city['nome']}_CONSOLIDADO_3.csv"
                 )
 
-                state.add(city_config["nome"], year, "P0", status="OK", portal_type="3", detalhe=f"{len(df_final)} regs" )
+                io.clean_tmp_folder(downloads_folder)
 
+                if progress_callback:
+                    progress_callback()
 
+                state.add(city["nome"], year, "P0", status="OK", portal_type="3", detalhe=f"{len(df_final)} regs" )
                 
-
         except Exception as e:
             state.add(city["nome"], year, "P0", status="OK", portal_type="3", motivo="Sem dados ou erro download")
             raise e

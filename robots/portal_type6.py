@@ -2,6 +2,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+from .core.driver_setup import get_driver
+
 from .core import io
 
 import time
@@ -24,7 +26,6 @@ def click_export(driver):
     )
     driver.execute_script("arguments[0].click();", btn)
     
-
 def click_filter(driver):
     btn = WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable((By.XPATH, "/html/body/div[190]/div/div[3]/button[1]"))
@@ -43,10 +44,11 @@ def click_years(driver, i):
     )
     btn.click()
 
-def exec6(cities_config, driver, wait, downloads_folder, state):
+def exec6(cities_config, downloads_folder, state, progress_callback=None):
 
     for city in cities_config:
         try:
+            driver, wait = get_driver(downloads_folder, True)
 
             if state.is_ok(city["nome"], 0000, "P0"):
                 continue
@@ -78,9 +80,12 @@ def exec6(cities_config, driver, wait, downloads_folder, state):
                 filename=f"{city['nome']}_CONSOLIDADO_6.csv"
             )
 
-            state.add(city["nome"], 0000, "P0", status="OK", portal_type="10", detalhe=f"{len(df_city)} regs")
+            if progress_callback:
+                progress_callback()
+
+            io.clean_tmp_folder(downloads_folder)
+
+            state.add(city["nome"], 0000, "P0", status="OK", portal_type="6", detalhe=f"{len(df_city)} regs")
         
         except:
-            state.add(city["nome"], 0000, "P0", status="NO_DATA", portal_type="10", motivo="Sem dados ou erro download")
-
-    
+            state.add(city["nome"], 0000, "P0", status="NO_DATA", portal_type="6", motivo="Sem dados ou erro download")

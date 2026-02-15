@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import os
 
+from robots.processing.school_census import get_file
+
 # Colunas essenciais para o merge e novas tabelas.
 col_identify = ['NU_ANO_CENSO', 'CO_ENTIDADE']
 col_dict = ['id_atributo', 'variavel', 'descricao', 'tipo', 'tamanho', 'grupo']
@@ -9,7 +11,7 @@ col_dict = ['id_atributo', 'variavel', 'descricao', 'tipo', 'tamanho', 'grupo']
 # Diretorio atual
 dir_atual = os.path.dirname(os.path.abspath(__file__))
 
-def fix_dtypes(df_dict):
+def fix_dtypes(df_dict, df):
     
     # Adicionando num dicionario os valores corretos de cada tipo.
     school_schema = {}
@@ -25,14 +27,7 @@ def fix_dtypes(df_dict):
     # Renomeando os tipos de dados para o valor correto.
     df_dict.loc[(df_dict['tipo'] == 'Num') & (df_dict['tamanho'] == 1), 'tipo'] = 'Bool'
 
-    # Carregando o csv com os tipos corretos
-    data = pd.read_csv( 
-        os.path.join(dir_atual, "..", "microdados.csv"), 
-        encoding='ISO-8859-1', # encoding latin-1
-        sep=';', 
-        low_memory=False, 
-        dtype=school_schema
-    ).query("SG_UF == 'AL' and TP_DEPENDENCIA < 4").copy()  # Filtrando pela regiao de AL e escola não privadas.
+    data = df.query("SG_UF == 'AL' and TP_DEPENDENCIA < 4").copy()
 
     # Limpeza de strings para evitar espacoes e converter em nan.
     cols_object = data.select_dtypes(include=['object']).columns
@@ -54,14 +49,15 @@ def generate_optimized_tables(data, df_dict):
     col_present = [c for c in col_quant if c in data.columns]
 
     # Estamos descartando o 0 por nulo apenas para os valores quantitativos.
-    data.loc[:, col_present] = data[col_present].replace(0, pd.NA)
+    data[col_present] = data[col_present].replace(0, np.nan)
 
     return data
     
-def create_school_info(data, df_dict):
+def create_school_info(data, df_dict, year):
 
     col_adr = ['DS_ENDERECO', 'NU_ENDERECO', 'DS_COMPLEMENTO', 'NO_BAIRRO', 'CO_CEP']
     col_cellphone = ['NU_DDD', 'NU_TELEFONE']
+    unwanted_col = ['NO_UF', 'SG_UF', 'CO_UF']
 
 
     filtro_geral = df_dict[df_dict['area'] == 'GERAL']
@@ -70,6 +66,9 @@ def create_school_info(data, df_dict):
     # Trocando '' para 'NaN'
     for col in col_adr:
         school_info[col] = school_info[col].astype(str).replace('NaN', '').str.strip()
+
+    # Colocando o ano
+    school_info['ano'] = year
 
     # Agrupando as colunas_endereco em uma so para endereco.
     school_info['endereco'] = (
@@ -102,10 +101,12 @@ def create_school_info(data, df_dict):
 
     school_info = school_info.drop(columns=col_adr)
     school_info = school_info.drop(columns=col_cellphone)
+    school_info = school_info.drop(columns = unwanted_col)
 
+    path = os.path.join(dir_atual, "..", "data/Geral/school_info.csv")
+    save_incremental(school_info, path)
     
-    school_info.to_csv(os.path.join(dir_atual, "..", "data/Geral/school_info.csv"), index=False, encoding='utf-8-sig')
-    print("arquivo school_info criado com sucesso na pasta ""Geral/school_info.csv"" ! ")
+    return school_info
 
 def create_infrastructure(data, df_dict):
 
@@ -123,10 +124,11 @@ def create_infrastructure(data, df_dict):
 
     vars_infra = infra_dict_base['variavel'].tolist()
 
+    valid_vars_infra = [var for var in vars_infra if var in data.columns]
 
-    final_infra = data[col_identify + vars_infra].melt(
+    final_infra = data[col_identify + valid_vars_infra].melt(
         id_vars=col_identify, 
-        value_vars=vars_infra,
+        value_vars=valid_vars_infra,
         var_name='variavel', 
         value_name='valor'
     ).dropna(subset=['valor']) # Removendo as linhas marcadas por nulo (funcao optimized_tables)
@@ -141,12 +143,17 @@ def create_infrastructure(data, df_dict):
     # Criando Id unico
     final_infra['id'] = range(1, len(final_infra) + 1)
 
-    # Criando arquivo.
-    final_infra[['id', 'ano', 'id_escola', 'id_atributo', 'tipo_atributo', 'valor']].to_csv(
-        os.path.join(dir_atual, "..", "data/Infraestrutura/infrastructure_values.csv"), index=False, encoding='utf-8-sig'
-    )
-    
-    print("Arquivos de infraestrutura criados com sucesso! e adicionado na pasta de infraestrutura.")
+
+    path = os.path.join(dir_atual, "..", "data/Infraestrutura/infrastructure_values.csv")
+
+    path_dict = os.path.join(dir_atual, "..", "data/Infraestrutura/infrastructure_dict.csv")
+    if not os.path.exists(path_dict):
+        infra_metadata.to_csv(path_dict, index=False, encoding='utf-8-sig')
+
+    cols_to_save = ['id', 'ano', 'id_escola', 'id_atributo', 'tipo_atributo', 'valor']
+    save_incremental(final_infra[cols_to_save], path)
+
+    return final_infra
 
 def create_school_enrollment(data, df_dict):
 
@@ -162,10 +169,11 @@ def create_school_enrollment(data, df_dict):
 
     vars_enroll = enroll_dict_base['variavel'].tolist()
 
+    valid_vars_enroll = [var for var in vars_enroll if var in data.columns]
 
-    final_enroll = data[col_identify + vars_enroll].melt(
+    final_enroll = data[col_identify + valid_vars_enroll].melt(
         id_vars=col_identify, 
-        value_vars=vars_enroll,
+        value_vars=valid_vars_enroll,
         var_name='variavel', 
         value_name='valor'
     ).dropna(subset=['valor'])
@@ -176,11 +184,16 @@ def create_school_enrollment(data, df_dict):
    
     final_enroll['id'] = range(1, len(final_enroll) + 1)
 
-    final_enroll[['id', 'ano', 'id_escola', 'id_atributo', 'tipo_atributo', 'valor']].to_csv(
-        os.path.join(dir_atual, "..", "data/Matricula/enroll_values.csv"), index=False, encoding='utf-8-sig'
-    )
+    path = os.path.join(dir_atual, "..", "data/Matricula/enroll_values.csv")
     
-    print("Arquivos de matricula criados com sucesso! e adicionado na pasta de matricula.")    
+    path_dict = os.path.join(dir_atual, "..", "data/Matricula/enroll_dict.csv")
+    if not os.path.exists(path_dict):
+        enroll_metadata.to_csv(path_dict, index=False, encoding='utf-8-sig')
+
+    cols_to_save = ['id', 'ano', 'id_escola', 'id_atributo', 'tipo_atributo', 'valor']
+    save_incremental(final_enroll[cols_to_save], path)
+    
+    return final_enroll
 
 def get_acessible_rating(df_infra_wide, active_schools_ids):
     
@@ -195,11 +208,16 @@ def get_acessible_rating(df_infra_wide, active_schools_ids):
     ratings_map = {}
     
     for school_id in active_schools_ids:
+        if school_id not in df_infra_wide.index:
+            continue
+
         school_data = df_infra_wide.loc[school_id]
         
-        sum_acessibility = school_data[acessible_cols[2:]].sum()
-        qnt_room = school_data[acessible_cols[0]]
-        qnt_acessible_room = school_data[acessible_cols[1]]
+        
+        qnt_room = school_data.get(acessible_cols[0], 0)
+        qnt_acessible_room = school_data.get(acessible_cols[1], 0)
+
+        sum_acessibility = sum([school_data.get(col, 0) for col in acessible_cols[2:]])
         
         ratio_rooms = (qnt_acessible_room / qnt_room) if qnt_room > 0 else 0
         
@@ -221,14 +239,19 @@ def get_recreation_rating(df_infra_wide, active_schools_ids):
     ratings_map = {}
     
     for school_id in active_schools_ids:
+
+        if school_id not in df_infra_wide.index: 
+            continue
+
+        
         school_data = df_infra_wide.loc[school_id]
         
-        qnt_room = school_data[recreation_cols[0]]
-        qnt_air_conditioned_room = school_data[recreation_cols[1]]
+        qnt_room = school_data.get(recreation_cols[0], 0)
+        qnt_air_conditioned_room = school_data.get(recreation_cols[1], 0)
         
-        ration_room = qnt_air_conditioned_room/qnt_room
+        ration_room = (qnt_air_conditioned_room / qnt_room) if qnt_room > 0 else 0
         
-        sum_recreation = school_data[recreation_cols[2:]].sum() + ration_room
+        sum_recreation = sum([school_data.get(col, 0) for col in recreation_cols[2:]]) + ration_room
         
         rating = round(sum_recreation / len(recreation_cols), 2)
         
@@ -248,9 +271,16 @@ def get_wellbeing_rating(df_infra_wide, active_schools_ids):
     rating_maps = {}
     
     for school_id in active_schools_ids:
+
+        if school_id not in df_infra_wide.index: 
+            continue
+
+
         school_data = df_infra_wide.loc[school_id]
+
+        soma = sum([school_data.get(col, 0) for col in wellbeing_cols])
         
-        rating = school_data[wellbeing_cols].sum() / len(wellbeing_cols)
+        rating = soma / len(wellbeing_cols)
         
         rating_maps[school_id] = rating.round(2)
 
@@ -265,11 +295,18 @@ def get_human_support_rating(df_enroll_wide, active_schools_ids):
     rating_maps = {}
     
     for school_id in active_schools_ids:
+
+        if school_id not in df_enroll_wide.index: 
+            continue
+
+
         school_data = df_enroll_wide.loc[school_id]
+
+        soma = sum([school_data.get(col, 0) for col in support_staff_cols])
         
-        rating = school_data[support_staff_cols].sum() / len(support_staff_cols)
+        rating = soma / len(support_staff_cols)
         
-        rating_maps[school_id] = rating.round(2)
+        rating_maps[school_id] = round(rating, 2)
 
     return pd.Series(rating_maps)
 
@@ -279,11 +316,18 @@ def get_management_rating(df_enroll_wide, active_schools_ids):
     rating_maps = {}
     
     for school_id in active_schools_ids:
+
+        if school_id not in df_enroll_wide.index: 
+            continue
+
+
         school_data = df_enroll_wide.loc[school_id]
+
+        soma = sum([school_data.get(col, 0) for col in management_cols])
         
-        rating = school_data[management_cols].sum() / len(management_cols)
+        rating = soma / len(management_cols)
         
-        rating_maps[school_id] = rating.round(2)
+        rating_maps[school_id] = round(rating, 2)
 
     return pd.Series(rating_maps)
 
@@ -296,13 +340,23 @@ def get_age_grade_distortion(df_enroll_wide, active_schools_ids):
     rating_maps = {}
     
     for school_id in active_schools_ids:
+
+        if school_id not in df_enroll_wide.index: 
+            continue
+
+
         school_data = df_enroll_wide.loc[school_id]
         
-        total_15_17 = school_data[distortion_cols[0]]
+        total_15_17 = school_data.get(distortion_cols[0], 0)
+
+        soma_distortion = sum([school_data.get(col, 0) for col in distortion_cols[1:]])
+
+        if total_15_17 > 0:
+            rating = soma_distortion / total_15_17
+        else:
+            rating = 0
         
-        rating = school_data[distortion_cols[1:]].sum() / total_15_17
-        
-        rating_maps[school_id] = rating.round(2)
+        rating_maps[school_id] = round(rating, 2)
 
     return pd.Series(rating_maps)
 
@@ -316,77 +370,105 @@ def get_pedagogical_rating(df_infra_wide, active_schools_ids):
     rating_maps = {}
     
     for school_id in active_schools_ids:
+
+        if school_id not in df_infra_wide.index: 
+            continue
+
+
         school_data = df_infra_wide.loc[school_id]
+
+        soma = sum([school_data.get(col, 0) for col in pedagogical_cols])
         
-        rating = school_data[pedagogical_cols].sum() / len(pedagogical_cols)
+        rating = soma / len(pedagogical_cols)
         
-        rating_maps[school_id] = rating.round(2)
+        rating_maps[school_id] = round(rating, 2)
 
     return pd.Series(rating_maps)
 
-def create_rating_table(data, df_dict):
-    df_infra = pd.read_csv(os.path.join(dir_atual, "..", "data/Infraestrutura/infrastructure_values.csv"))
-    df_dict_infra = pd.read_csv(os.path.join(dir_atual, "..", "data/Infraestrutura/infrastructure_dict.csv"))
+def save_incremental(df, filepath):
+    file_exists = os.path.exists(filepath)
 
-    df_enroll = pd.read_csv(os.path.join(dir_atual, "..", "data/Matricula/enroll_values.csv"))
-    df_dict_enroll = pd.read_csv(os.path.join(dir_atual, "..", "data/Matricula/enroll_dict.csv"))
+    df.to_csv(filepath, mode='a', header=not file_exists, index=False, encoding='utf-8-sig')
 
-    df_school_info = pd.read_csv(os.path.join(dir_atual, "..", "data/Geral/school_info.csv"))
-    
+def create_rating_table(df_infra_long, df_enroll_long, df_school_info, df_dict, year):
+
     df_active = df_school_info[df_school_info['funcionamento'] == 1].copy()
     
     df_school_ratings = pd.DataFrame(index=df_active['id_escola'])
-    
-    df_school_ratings = pd.DataFrame(index=df_active['id_escola'])
-    df_school_ratings['ano'] = 2024
-    
+    df_school_ratings['ano'] = year
+
+    df_dict_infra = pd.read_csv(os.path.join(dir_atual, "..", "data/Infraestrutura/infrastructure_dict.csv"))
+    df_dict_enroll = pd.read_csv(os.path.join(dir_atual, "..", "data/Matricula/enroll_dict.csv"))
+
     map_infra_names = dict(zip(df_dict_infra['id_atributo'], df_dict_infra['variavel']))
-    df_infra_wide = df_infra.pivot(index='id_escola', columns='id_atributo', values='valor')
+
+    df_infra_wide = df_infra_long.pivot(index='id_escola', columns='id_atributo', values='valor')
     df_infra_wide.columns = df_infra_wide.columns.map(map_infra_names)
-        
     df_infra_wide = df_infra_wide.reindex(df_school_ratings.index).fillna(0)
-    
+
     map_enroll_names = dict(zip(df_dict_enroll['id_atributo'], df_dict_enroll['variavel']))
-    df_enroll_wide = df_enroll.pivot(index='id_escola', columns='id_atributo', values='valor')
+    df_enroll_wide = df_enroll_long.pivot(index='id_escola', columns='id_atributo', values='valor')
     df_enroll_wide.columns = df_enroll_wide.columns.map(map_enroll_names)
-    
     df_enroll_wide = df_enroll_wide.reindex(df_school_ratings.index).fillna(0)
-    
+
     df_school_ratings['acessibility_rating'] = get_acessible_rating(df_infra_wide, df_school_ratings.index)
-    
     df_school_ratings['recreation_rating'] = get_recreation_rating(df_infra_wide, df_school_ratings.index)
-    
     df_school_ratings['wellbeing_rating'] = get_wellbeing_rating(df_infra_wide, df_school_ratings.index)
-    
     df_school_ratings['human_support_rating'] = get_human_support_rating(df_enroll_wide, df_school_ratings.index)
-    
     df_school_ratings['management_rating'] = get_management_rating(df_enroll_wide, df_school_ratings.index)
-    
     df_school_ratings['age_grade_distortion_rating'] = get_age_grade_distortion(df_enroll_wide, df_school_ratings.index)
-    
     df_school_ratings['pedagogical_rating'] = get_pedagogical_rating(df_infra_wide, df_school_ratings.index)
-    
+
+    path_ratings = os.path.join(dir_atual, "..", "data/Geral/school_ratings.csv")
+    save_incremental(df_school_ratings.reset_index(), path_ratings)
     
     print(df_school_ratings.head(10))
 
+def remove_files():
+    output_files = [
+        "data/Geral/school_info.csv",
+        "data/Geral/school_ratings.csv",
+        "data/Infraestrutura/infrastructure_values.csv",
+        "data/Infraestrutura/infrastructure_dict.csv",
+        "data/Matricula/enroll_values.csv",
+        "data/Matricula/enroll_dict.csv"
+    ]
+
+    for f in output_files:
+        full_path = os.path.join(dir_atual, "..", f)
+        if os.path.exists(full_path):
+            os.remove(full_path)
+
 def exec_processing():
+
+    remove_files()
+
+    year = 2025
+    i = 1
+
     # Carregando o dicionario.
     df_dict = pd.read_csv(os.path.join(dir_atual, "..", "dicionario.csv"))
 
-    # Corrigindo os tipos de valores atraves do dicionario.csv e retornando o data limpo.
-    data = fix_dtypes(df_dict)
+    while i <= 8:
+        current_year = year - i
 
-    # Adicionando etiquetas para colunas quantitativas iguais a 0, evitando muitas linhas desnecessarias.
-    data = generate_optimized_tables(data, df_dict)
+        df = get_file(i)
 
-    # Criando csv para school_info.csv
-    create_school_info(data, df_dict)
+        # Corrigindo os tipos de valores atraves do dicionario.csv e retornando o data limpo.
+        data = fix_dtypes(df_dict, df)
 
-    # Criando csv para infrastructure e dict_infraestructure
-    create_infrastructure(data, df_dict)
+        # Adicionando etiquetas para colunas quantitativas iguais a 0, evitando muitas linhas desnecessarias.
+        data = generate_optimized_tables(data, df_dict)
 
-    # Criando csv para enrollment e dict_enrollment
-    create_school_enrollment(data, df_dict)
+        # Criando csv para school_info.csv
+        df_info = create_school_info(data, df_dict, current_year)
+        # Criando csv para infrastructure e dict_infraestructure
+        df_infra_long = create_infrastructure(data, df_dict)
 
-    # Criando csv para tabelas de rating.
-    create_rating_table(data, df_dict)
+        # Criando csv para enrollment e dict_enrollment
+        df_enroll_long = create_school_enrollment(data, df_dict)
+
+        # Criando csv para tabelas de rating.
+        create_rating_table(df_infra_long, df_enroll_long, df_info, df_dict, current_year)
+
+        i += 1
