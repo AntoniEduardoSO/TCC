@@ -103,9 +103,9 @@ def download_files_type_1(driver, wait, downloads_folder, i):
         return df_ano
 
 
-def get_file(i):
+def get_school_census_file(i):
     df = []
-
+    
     downloads_folder.mkdir(parents=True, exist_ok=True)
     driver, wait = get_driver(downloads_folder, True)
 

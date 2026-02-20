@@ -56,12 +56,12 @@ def exec1(cities_config, downloads_folder, state, progress_callback=None):
     
     df_cities_year = []
     
-    for city_config in cities_config:
+    for city in cities_config:
         driver, wait = get_driver(downloads_folder, True)
         
         try:
             
-            driver.get(city_config["url"]) # Vá ate o url.
+            driver.get(city["url"]) # Vá ate o url.
             
             element_year = wait.until(EC.presence_of_element_located((By.ID, "exercicio"))) # Procure o elemento pelo id exercicio.
             
@@ -69,8 +69,10 @@ def exec1(cities_config, downloads_folder, state, progress_callback=None):
             years_list = [opt.get_attribute("value") for opt in Select(element_year).options if opt.get_attribute("value") != ""]
 
             for year in years_list:
+                if state.is_ok(city["nome"], year, "P0"):
+                    continue
                 # Volta todo url do site para evitar que trave.
-                driver.get(city_config["url"])
+                driver.get(city["url"])
                 
                 select_year = Select(wait.until(EC.presence_of_element_located((By.ID, "exercicio"))))
                 select_year.select_by_value(year)
@@ -89,12 +91,12 @@ def exec1(cities_config, downloads_folder, state, progress_callback=None):
                     
                     if df_year is not None:
                         df_year['ano_referencia'] = year
-                        df_year['municipio_nome'] = city_config["nome"]
-                        df_year['codigo_ibge'] = city_config["codigo_ibge"]
+                        df_year['municipio_nome'] = city["nome"]
+                        df_year['codigo_ibge'] = city["codigo_ibge"]
                         df_cities_year.append(df_year)
-                        state.add(city_config["nome"], year, "P0", status="OK", portal_type="1", detalhe=f"{len(df_final)} regs" )
+                        state.add(city["nome"], year, "P0", status="OK", portal_type="1", detalhe=f"{len(df_year)} regs" )
                 else:
-                    state.add(city_config["nome"], year, "P0", status="NO_DATA", portal_type="1", motivo="Sem dados ou erro download")
+                    state.add(city["nome"], year, "P0", status="NO_DATA", portal_type="1", motivo="Sem dados ou erro download")
 
 
             if df_cities_year:
@@ -106,7 +108,7 @@ def exec1(cities_config, downloads_folder, state, progress_callback=None):
                 io.save_consolidated_df(
                     df=df_final,
                     output_folder=output_dir,
-                    filename=f"{city_config['nome']}_CONSOLIDADO_1.csv"
+                    filename=f"{city['nome']}_CONSOLIDADO_1.csv"
                 )
                 
             io.clean_tmp_folder(downloads_folder)
@@ -117,6 +119,6 @@ def exec1(cities_config, downloads_folder, state, progress_callback=None):
 
 
         except Exception as e:
-            state.add(city_config["nome"], year, "P0", status="NO_DATA", portal_type="1", motivo="Sem dados ou erro download" )
+            state.add(city["nome"], year, "P0", status="NO_DATA", portal_type="1", motivo=f"Sem dados ou erro download, {e}" )
     
     driver.quit()

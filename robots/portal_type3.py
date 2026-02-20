@@ -113,6 +113,8 @@ def exec3(cities_config, downloads_folder, state, progress_callback=None):
 
             years = city.get("years_list", [])
             for year in years:
+                if state.is_ok(city["nome"], year, "P0"):
+                    continue
                 
                 btn_ano = wait.until(EC.element_to_be_clickable((By.ID, "AnoId_B-1")))
                 driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn_ano)

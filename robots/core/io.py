@@ -70,7 +70,6 @@ def wait_and_read_csv(downloads_folder, max_wait_time=60):
 
 def save_consolidated_df(df, output_folder, filename):
     if df is None or df.empty:
-        print(f" [!] DataFrame vazio. Nada salvo para {filename}.")
         return False
 
     try:
@@ -80,7 +79,7 @@ def save_consolidated_df(df, output_folder, filename):
         
         df.to_csv(file_path, index=False, sep=';', encoding='utf-8-sig')
         
-        print(f" [ok] ARQUIVO SALVO: {file_path} com {len(df)} registros.")
+
         return True
         
     except Exception as e:
