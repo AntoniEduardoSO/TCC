@@ -20,7 +20,14 @@ downloads_folder_str = str(downloads_folder)
 
 
 def format_school_ideb(df, etapa_ensino ):
-    df = df.query("SG_UF == 'AL' ").copy()
+    
+    dep_col = 'Dependad' if 'Dependad' in df.columns else 'NO_DEPENDENCIA'
+
+    df[dep_col] = df[dep_col].astype(str).str.strip()
+
+    dependencias_desejadas = ['Municipal', 'Estadual', 'Federal']
+
+    df = df.query(f"SG_UF == 'AL' and {dep_col} in @dependencias_desejadas ").copy()
 
     df = df.dropna(subset=['ID_ESCOLA']).copy()
     df['ID_ESCOLA'] = df['ID_ESCOLA'].astype(float).astype(int).astype(str)
