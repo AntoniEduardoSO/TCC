@@ -19,15 +19,16 @@ downloads_folder = project_root / "data" / "raw"
 downloads_folder_str = str(downloads_folder)
 
 
-def format_school_ideb(df, etapa_ensino ):
+def format_school_ideb(df, etapa_ensino):
     
-    dep_col = 'Dependad' if 'Dependad' in df.columns else 'NO_DEPENDENCIA'
-
-    df[dep_col] = df[dep_col].astype(str).str.strip()
-
     dependencias_desejadas = ['Municipal', 'Estadual', 'Federal']
 
-    df = df.query(f"SG_UF == 'AL' and {dep_col} in @dependencias_desejadas ").copy()
+    if 'REDE' in df.columns:
+        df['REDE'] = df['REDE'].astype(str).str.strip()
+    
+        df = df.query("SG_UF == 'AL' and REDE in @dependencias_desejadas").copy()
+    else:
+        print("A coluna 'REDE' não existe no DataFrame!")
 
     df = df.dropna(subset=['ID_ESCOLA']).copy()
     df['ID_ESCOLA'] = df['ID_ESCOLA'].astype(float).astype(int).astype(str)
