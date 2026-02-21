@@ -5,6 +5,8 @@ import time
 from tqdm import tqdm
 import colorama
 
+from .core import io
+
 from .portal_type1 import exec1
 from .portal_type2 import exec2
 from .portal_type3 import exec3
@@ -82,4 +84,5 @@ def exec_robots():
 
     finally:
         print("\n")
+        io.clean_tmp_folder(downloads_folder)
 

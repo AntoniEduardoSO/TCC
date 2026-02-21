@@ -4,6 +4,7 @@ import os
 
 from robots.processing.school_census import get_school_census_file
 from robots.processing.school_perfomance_rate import get_school_perfomance_rate_file
+from robots.processing.school_ideb import get_school_ideb_file
 
 # Colunas essenciais para o merge e novas tabelas.
 col_identify = ['NU_ANO_CENSO', 'CO_ENTIDADE']
@@ -449,7 +450,9 @@ def exec_processing():
     remove_files()
 
     year = 2025
-    i = 1 
+    i = 1
+
+    get_school_ideb_file()
 
     # Carregando o dicionario.
     df_dict = pd.read_csv(os.path.join(dir_atual, "..", "dicionario.csv"))
@@ -457,9 +460,7 @@ def exec_processing():
     while i <= 8:
         current_year = year - i
 
-        create_school_perfomance_rate(get_school_perfomance_rate_file(i))
-
-        
+        # create_school_perfomance_rate(get_school_perfomance_rate_file(i))
 
         # df = get_school_census_file(i)
 
