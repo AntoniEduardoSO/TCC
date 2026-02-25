@@ -10,6 +10,7 @@ import pandas as pd
 
 from robots.core import io
 from robots.core.driver_setup import get_driver
+from .core import transform
 
 campos_relativos = {
     "descricao": ".//label[text()='Descrição:']/parent::div/following-sibling::div[1]/label",
@@ -187,29 +188,38 @@ def run_robot_for_year(year, city, downloads_folder, driver, wait, state):
 
     data_final = extract_data(driver, wait)
 
-    if data_final:
-        df = pd.DataFrame(data_final)
-        
-        if 'pago' in df.columns:
-            df['pago'] = df['pago'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
-            df['pago'] = pd.to_numeric(df['pago'], errors='coerce')
-        
-        df['ano_referencia'] = year
-        df['municipio_nome'] = city["nome"]
-        df['municipio_id'] = city["codigo_ibge"]
+    if not data_final:
+        state.add(city["nome"], year, "P0", status="NO_DATA", portal_type="8", motivo="Tabela vazia ou erro na extração")
+        return
 
-    output_dir = os.path.join("data", "Transparencia")
-    os.makedirs(output_dir, exist_ok=True)
 
-    io.save_consolidated_df(
-        df=df,
-        output_folder=output_dir,
-        filename=f"MACEIO_CONSOLIDADO_8_{year}.csv"
-    )
+    df = pd.DataFrame(data_final)
+    
+    if 'pago' in df.columns:
+        df['pago'] = df['pago'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
+        df['pago'] = pd.to_numeric(df['pago'], errors='coerce')
+    
+    df['ano_referencia'] = year
+    df['municipio_nome'] = city["nome"]
+    df['municipio_id'] = city["codigo_ibge"]
+
+
+    if df is not None and not df.empty:
+        output_dir = os.path.join("data", "Transparencia")
+        os.makedirs(output_dir, exist_ok=True)
+
+        io.save_consolidated_df(
+            df=df,
+            output_folder=output_dir,
+            filename=f"MACEIO_CONSOLIDADO_8_{year}.csv"
+        )
+        
+        state.add(city["nome"], year, "P0", status="OK", portal_type="8", detalhe=f"{len(df)} regs")
+    else:
+        state.add(city["nome"], year, "P0", status="FILTERED_EMPTY", portal_type="8", motivo="Sem registros de educação")
+    
 
     io.clean_tmp_folder(downloads_folder)
-
-    state.add(city["nome"], year, "P0", status="OK", portal_type="8", detalhe = f"{len(df)} regs")
     
     if driver:
         driver.quit()

@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
 from .core import io
+from .core import transform
 
 import pdfplumber
 import pandas as pd
@@ -39,7 +40,7 @@ def get_session():
 
 def etl_pdf(city, downloads_folder, state):
 
-    df = []
+    df_list = []
 
     for year in city['years_list']:
         if state.is_ok(city["nome"], year, "P0"):
@@ -47,14 +48,18 @@ def etl_pdf(city, downloads_folder, state):
 
         pdf_path = f"{downloads_folder}/despesa_{year}.pdf"
 
+        if not os.path.exists(pdf_path):
+            state.add(city["nome"], year, "P0", status="NO_DATA", portal_type="9", motivo="PDF não encontrado")
+            continue
+
+        achou_no_ano = False
+
         with pdfplumber.open(pdf_path) as pdf:
             
             for page in pdf.pages:
-                achou = False
-                df_per_year_len = 0
-            
-                dados_brutos = page.extract_table()
 
+                dados_brutos = page.extract_table()
+            
                 if not dados_brutos:
                     continue            
 
@@ -71,29 +76,40 @@ def etl_pdf(city, downloads_folder, state):
                         continue
                     
                     if len(linha_tratada) >= 8:
-                        df_per_year_len +=len(linha_tratada)
-                        achou = True
-                        df.append(linha_tratada[:8])
+                        achou_no_ano = True
+                        df_list.append(linha_tratada[:8])
 
-        if achou:
-            state.add(city["nome"], year, "P0", status="OK", portal_type="9", detalhe=f"{df_per_year_len} regs")
 
+    if not df_list:
+        return
 
     colunas = ["Registro", "Ano", "Cod_Acao", "Acao", "Cod_Despesa", "Despesa", "Valor_Orcado", "Valor_Atualizado"]
-    df = pd.DataFrame(df[1:], columns=colunas)
+    df = pd.DataFrame(df_list, columns=colunas)
 
     for col in ["Valor_Orcado", "Valor_Atualizado"]:
         df[col] = df[col].str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
         df[col] = pd.to_numeric(df[col], errors='coerce')
 
-    output_dir = os.path.join("data", "Transparencia")
-    os.makedirs(output_dir, exist_ok=True)
+    df['municipio_nome'] = city["nome"]
+    df['municipio_id'] = city["codigo_ibge"]
+    df['ano_referencia'] = df['Ano']
 
-    io.save_consolidated_df(
-        df=df,
-        output_folder=output_dir,
-        filename=f"{city['nome']}_CONSOLIDADO_9.csv"
-    )
+
+    if df is not None and not df.empty:
+        output_dir = os.path.join("data", "Transparencia")
+        os.makedirs(output_dir, exist_ok=True)
+
+        io.save_consolidated_df(
+            df=df,
+            output_folder=output_dir,
+            filename=f"{city['nome']}_CONSOLIDADO_9.csv"
+        )
+
+        state.add(city["nome"], 0000, "P0", status="OK", portal_type="9", detalhe=f"{len(df)} regs totais")
+
+    else:
+        state.add(city["nome"], 0000, "P0", status="FILTERED_EMPTY", portal_type="9", motivo="Sem registros de educação no PDF")
+
     io.clean_tmp_folder(downloads_folder)
 
 def find_and_download_files(links, city, downloads_folder, state, session):

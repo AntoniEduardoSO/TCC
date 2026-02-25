@@ -8,6 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from .core import io
 
 from .core.driver_setup import get_driver
+from .core import transform
 
 diretory_project = os.getcwd()
 downloads_folder = os.path.join(diretory_project, "data/raw")
@@ -54,9 +55,9 @@ def download_and_read_csv(driver, wait, downloads_folder):
 
 def exec1(cities_config, downloads_folder, state, progress_callback=None):
     
-    df_cities_year = []
-    
     for city in cities_config:
+        df_cities_year = []
+
         driver, wait = get_driver(downloads_folder, True)
         
         try:
@@ -93,14 +94,21 @@ def exec1(cities_config, downloads_folder, state, progress_callback=None):
                         df_year['ano_referencia'] = year
                         df_year['municipio_nome'] = city["nome"]
                         df_year['codigo_ibge'] = city["codigo_ibge"]
-                        df_cities_year.append(df_year)
-                        state.add(city["nome"], year, "P0", status="OK", portal_type="1", detalhe=f"{len(df_year)} regs" )
+
+                        if df_year is not None and not df_year.empty:
+                            df_cities_year.append(df_year)
+                            state.add(city["nome"], year, "P0", status="OK", portal_type="1", detalhe=f"{len(df_year)} regs")
+
+                        else:
+                            state.add(city["nome"], year, "P0", status="FILTERED_EMPTY", portal_type="1", motivo="Zero registros após filtro educação")
                 else:
                     state.add(city["nome"], year, "P0", status="NO_DATA", portal_type="1", motivo="Sem dados ou erro download")
 
 
             if df_cities_year:
                 df_final = pd.concat(df_cities_year, ignore_index=True)
+
+                df_final = df_final.drop_duplicates(ignore_index=True)
 
                 output_dir = os.path.join("data", "Transparencia")
                 os.makedirs(output_dir, exist_ok=True)

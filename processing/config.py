@@ -451,34 +451,33 @@ def exec_processing():
 
     year = 2025
     i = 1
-
-    get_school_ideb_file()
-
     # Carregando o dicionario.
     df_dict = pd.read_csv(os.path.join(dir_atual, "..", "dicionario.csv"))
 
     while i <= 8:
         current_year = year - i
 
-        # create_school_perfomance_rate(get_school_perfomance_rate_file(i))
+        create_school_perfomance_rate(get_school_perfomance_rate_file(i))
 
-        # df = get_school_census_file(i)
+        df = get_school_census_file(i)
 
-        # # Corrigindo os tipos de valores atraves do dicionario.csv e retornando o data limpo.
-        # data = fix_dtypes(df_dict, df)
+        # Corrigindo os tipos de valores atraves do dicionario.csv e retornando o data limpo.
+        data = fix_dtypes(df_dict, df)
 
-        # # Adicionando etiquetas para colunas quantitativas iguais a 0, evitando muitas linhas desnecessarias.
-        # data = generate_optimized_tables(data, df_dict)
+        # Adicionando etiquetas para colunas quantitativas iguais a 0, evitando muitas linhas desnecessarias.
+        data = generate_optimized_tables(data, df_dict)
 
-        # # Criando csv para school_info.csv
-        # df_info = create_school_info(data, df_dict, current_year)
-        # # Criando csv para infrastructure e dict_infraestructure
-        # df_infra_long = create_infrastructure(data, df_dict)
+        # Criando csv para school_info.csv
+        df_info = create_school_info(data, df_dict, current_year)
+        # Criando csv para infrastructure e dict_infraestructure
+        df_infra_long = create_infrastructure(data, df_dict)
 
-        # # Criando csv para enrollment e dict_enrollment
-        # df_enroll_long = create_school_enrollment(data, df_dict)
+        # Criando csv para enrollment e dict_enrollment
+        df_enroll_long = create_school_enrollment(data, df_dict)
 
-        # # Criando csv para tabelas de rating.
-        # create_rating_table(df_infra_long, df_enroll_long, df_info, df_dict, current_year)
+        # Criando csv para tabelas de rating.
+        create_rating_table(df_infra_long, df_enroll_long, df_info, df_dict, current_year)
 
         i += 1
+
+    get_school_ideb_file()

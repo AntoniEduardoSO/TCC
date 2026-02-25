@@ -60,3 +60,6 @@ class ScrapingState:
             )
             writer.writeheader()
             writer.writerows(self.rows)
+
+    def __len__(self):
+        return len(self.rows)

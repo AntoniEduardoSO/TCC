@@ -7,6 +7,7 @@ import pandas as pd
 
 from .core import io
 from .core.driver_setup import get_driver
+from .core import transform
 
 def limpar_pasta_temp(folder):
     files = glob.glob(os.path.join(folder, "*"))
@@ -14,7 +15,7 @@ def limpar_pasta_temp(folder):
         try: os.remove(f)
         except: pass
 
-def download_and_read_csv(driver, wait, downloads_folder):
+def download_and_read_csv(driver, wait, downloads_folder, state, year, city):
     limpar_pasta_temp(downloads_folder)
 
     try:
@@ -28,7 +29,7 @@ def download_and_read_csv(driver, wait, downloads_folder):
         driver.execute_script("arguments[0].click();", btn_csv)
 
     except Exception as e:
-        return None
+        state.add(city, year, "P0", status="ERROR", portal_type="3", motivo=f"{e}")
 
     max_tempo_espera = 60
     inicio = time.time()
@@ -43,7 +44,14 @@ def download_and_read_csv(driver, wait, downloads_folder):
             time.sleep(1)
             continue
         
-        nome_arquivo = arquivos_reais[0]
+        csv_files = [f for f in arquivos_reais if f.lower().endswith('.csv')]
+
+        if not csv_files:
+            time.sleep(1)
+            continue
+
+        nome_arquivo = csv_files[0]
+
         path_completo = os.path.join(downloads_folder, nome_arquivo)
         
         if nome_arquivo.endswith('.crdownload') or nome_arquivo.endswith('.tmp'):
@@ -64,14 +72,14 @@ def download_and_read_csv(driver, wait, downloads_folder):
     if arquivo_final:
         try:
             try:
-                df = pd.read_csv(arquivo_final, sep=None, engine='python', encoding='utf-8')
+                df = pd.read_csv(arquivo_final, sep=';', engine='python', encoding='utf-8')
             except:
                 df = pd.read_csv(arquivo_final, sep=None, engine='python', encoding='latin1')
             
             os.remove(arquivo_final)
             return df
         except Exception as e:
-            return None
+            state.add(city, year, "P0", status="ERROR", portal_type="3", motivo=f"{e}")
     else:
         return None
 
@@ -135,14 +143,18 @@ def exec3(cities_config, downloads_folder, state, progress_callback=None):
 
                 time.sleep(2)
 
-                df_year = download_and_read_csv(driver, wait, downloads_folder)
-
+                df_year = download_and_read_csv(driver, wait, downloads_folder, state, year, city["nome"])
 
                 if df_year is not None:
                     df_year['ano_referencia'] = year
                     df_year['municipio_nome'] = city["nome"]
-                    df_year['codigo_ibge'] = city["codigo_ibge"]
+                    df_year['municipio_id'] = city["codigo_ibge"]
+                   
                     df_city_years.append(df_year)
+                    state.add(city["nome"], year, "P0", status="OK", portal_type="3", detalhe=f"{len(df_year)} regs")
+                    
+                else:
+                    state.add(city["nome"], year, "P0", status="NO_DATA", portal_type="3", motivo=f"Sem dados ou erro no download, len = {df_year}")
 
                 
             
@@ -169,6 +181,6 @@ def exec3(cities_config, downloads_folder, state, progress_callback=None):
                 state.add(city["nome"], year, "P0", status="OK", portal_type="3", detalhe=f"{len(df_final)} regs" )
                 
         except Exception as e:
-            state.add(city["nome"], year, "P0", status="OK", portal_type="3", motivo="Sem dados ou erro download")
+            state.add(city["nome"], year, "P0", status="OK", portal_type="3", motivo=f"Sem dados ou erro download, {e}")
             raise e
 

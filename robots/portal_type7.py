@@ -4,6 +4,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 from .core import io
 from .core.driver_setup import get_driver
+from .core import transform
 
 import time
 import os
@@ -69,7 +70,8 @@ def select_year(driver, year):
 def exec7(cities_config, downloads_folder, state, progress_callback=None):
 
     for city in cities_config:
-        df_city = []
+        df_city_consolidado = []
+
         for year in city["years_list"]:
             if state.is_ok(city["nome"], year, "P0"):
                 continue
@@ -105,16 +107,20 @@ def exec7(cities_config, downloads_folder, state, progress_callback=None):
             df_city_per_year['municipio_nome'] = city["nome"]
             df_city_per_year['municipio_id'] = city["codigo_ibge"]
 
-            df_city.append(df_city_per_year)
-            state.add(city["nome"], year, "P0", status="OK", portal_type="7", detalhe = f"{len(df_city_per_year)} regs")
+            if df_city_per_year is not None and not df_city_per_year.empty:
+                    df_city_consolidado.append(df_city_per_year)
+                    state.add(city["nome"], year, "P0", status="OK", portal_type="7", detalhe=f"{len(df_city_per_year)} regs")
+            else:
+                state.add(city["nome"], year, "P0", status="FILTERED_EMPTY", portal_type="7", motivo="Nenhum dado retornado após filtro de educação")
+
             driver.delete_all_cookies()
             driver.quit()
 
         output_dir = os.path.join("data", "Transparencia")
         os.makedirs(output_dir, exist_ok=True)
 
-        if df_city and len(df_city) > 0:
-            final_df = pd.concat(df_city, ignore_index=True)
+        if df_city_consolidado and len(df_city_consolidado) > 0:
+            final_df = pd.concat(df_city_consolidado, ignore_index=True)
             
             io.save_consolidated_df(
                 df=final_df,

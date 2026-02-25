@@ -88,13 +88,13 @@ def exec_single_year(city, year, driver, wait, downloads_folder, state):
             state.add(city["nome"], year, periodo_label, status="YEAR_MISMATCH", portal_type="2", motivo=f"Anos {anos_encontrados}")
             continue
 
-        df_processed = transform.process_education_data(df)
+        df_processed = transform.process_portal_type2(df)
 
         if df_processed is not None and not df_processed.empty:
             df_city.append(df_processed)
             state.add(city["nome"], year, periodo_label, status="OK", portal_type="2", detalhe=f"{len(df_processed)} regs")
         else:
-             state.add(city["nome"], year, periodo_label, status="FILTERED_EMPTY", portal_type="2", detalhe="Zero registros após filtro educação")
+             state.add(city["nome"], year, periodo_label, status="FILTERED_EMPTY", portal_type="2", detalhe=f"Zero registros após filtro educação. len dos processados = {len(df_processed)}, len do df em si {len(df)}")
 
     return df_city
 

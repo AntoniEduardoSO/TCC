@@ -5,6 +5,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from .core.driver_setup import get_driver
 
 from .core import io
+from .core import transform
 
 import time
 import os
@@ -47,6 +48,8 @@ def click_years(driver, i):
 def exec6(cities_config, downloads_folder, state, progress_callback=None):
 
     for city in cities_config:
+        if state.is_ok(city["nome"], 0000, "P0"):
+            continue
         try:
             driver, wait = get_driver(downloads_folder, True)
 
@@ -68,24 +71,33 @@ def exec6(cities_config, downloads_folder, state, progress_callback=None):
 
             df_city = io.wait_and_read_csv(downloads_folder)
 
-            df_city['municipio_nome'] = city["nome"]
-            df_city['municipio_id'] = city["codigo_ibge"]
+            if df_city is not None and not df_city.empty:
 
-            output_dir = os.path.join("data", "Transparencia")
-            os.makedirs(output_dir, exist_ok=True)
+                df_city['ano_referencia'] = 0000 
+                df_city['municipio_nome'] = city["nome"]
+                df_city['municipio_id'] = city["codigo_ibge"]
 
-            io.save_consolidated_df(
-                df=df_city,
-                output_folder=output_dir,
-                filename=f"{city['nome']}_CONSOLIDADO_6.csv"
-            )
+                if df_city is not None and not df_city.empty:
+                    output_dir = os.path.join("data", "Transparencia")
+                    os.makedirs(output_dir, exist_ok=True)
+
+                    io.save_consolidated_df(
+                        df=df_city,
+                        output_folder=output_dir,
+                        filename=f"{city['nome']}_CONSOLIDADO_6.csv"
+                    )
+
+                    state.add(city["nome"], 0000, "P0", status="OK", portal_type="6", detalhe=f"{len(df_city)} regs")
+                
+                else:
+                    state.add(city["nome"], 0000, "P0", status="FILTERED_EMPTY", portal_type="6", motivo="Nenhum dado de educação encontrado")
+            else:
+                state.add(city["nome"], 0000, "P0", status="NO_DATA", portal_type="6", motivo="Arquivo vazio ou falha no download/leitura")
 
             if progress_callback:
                 progress_callback()
 
             io.clean_tmp_folder(downloads_folder)
-
-            state.add(city["nome"], 0000, "P0", status="OK", portal_type="6", detalhe=f"{len(df_city)} regs")
         
-        except:
-            state.add(city["nome"], 0000, "P0", status="NO_DATA", portal_type="6", motivo="Sem dados ou erro download")
+        except Exception as e:
+            state.add(city["nome"], 0000, "P0", status="NO_DATA", portal_type="6", motivo=f"Sem dados ou erro download, {e}")

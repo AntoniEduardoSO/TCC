@@ -1,6 +1,7 @@
 import os
 import glob
 import time
+import shutil
 import pandas as pd
 
 def clean_tmp_folder(folder):
@@ -8,13 +9,16 @@ def clean_tmp_folder(folder):
         os.makedirs(folder)
         return
         
-    files = glob.glob(os.path.join(folder, "*"))
-    for f in files:
+    items = glob.glob(os.path.join(folder, "*"))
+    
+    for item in items:
         try:
-            os.remove(f)
-        except Exception:
-            pass
-
+            if os.path.isfile(item) or os.path.islink(item):
+                os.remove(item)  # Remove arquivo ou link simbólico
+            elif os.path.isdir(item):
+                shutil.rmtree(item) # Remove a pasta e todo o conteúdo dela
+        except Exception as e:
+            print(f"Erro ao deletar {item}: {e}")
 def wait_and_read_csv(downloads_folder, max_wait_time=60):
     start = time.time()
 
@@ -37,7 +41,7 @@ def wait_and_read_csv(downloads_folder, max_wait_time=60):
             continue
 
         # Tenta ler com diferentes configurações
-        encodings = ['utf-8', 'latin-1', 'cp1252']
+        encodings = ['utf-8-sig', 'utf-8', 'latin-1', 'cp1252']
         seps = [';', ',', '\t']
 
         for enc in encodings:

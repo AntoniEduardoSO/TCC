@@ -6,6 +6,7 @@ from tqdm import tqdm
 import colorama
 
 from .core import io
+from .core import transform
 
 from .portal_type1 import exec1
 from .portal_type2 import exec2
@@ -57,32 +58,37 @@ def exec_robots():
 
     colorama.init()
 
-    try:
-        for type_id, city_list in cities_by_type.items():
-            executor_func = ROBOT_STRATEGIES.get(type_id)
+    if(len(state) >= 600):
+        transform.save_all_files()
 
-            desc_text = f"Tipo {type_id.ljust(2)}"
+    else:
+        try:
+            for type_id, city_list in cities_by_type.items():
+                executor_func = ROBOT_STRATEGIES.get(type_id)
 
-            with tqdm(total=len(city_list), desc=desc_text, unit="mun", colour="green", leave=True) as pbar:
+                desc_text = f"Tipo {type_id.ljust(2)}"
 
-                def update_progress():
-                    pbar.update(1)
+                with tqdm(total=len(city_list), desc=desc_text, unit="mun", colour="green", leave=True) as pbar:
 
-                try:
-                    executor_func(city_list, downloads_folder, state, progress_callback=update_progress)
-                    
-                    state.save_csv(state_path)
-                    
-                except KeyboardInterrupt:
-                    raise
-                except Exception as e:
-                    tqdm.write(f"Erro no Tipo {type_id}: {str(e)}")
+                    def update_progress():
+                        pbar.update(1)
+
+                    try:
+                        executor_func(city_list, downloads_folder, state, progress_callback=update_progress)
+                        
+                        state.save_csv(state_path)
+                        io.clean_tmp_folder(downloads_folder)
+                        
+                    except KeyboardInterrupt:
+                        raise
+                    except Exception as e:
+                        tqdm.write(f"Erro no Tipo {type_id}: {str(e)}")
 
 
-    except KeyboardInterrupt:
-        print("\n\nOperação interrompida pelo usuário.")
+        except KeyboardInterrupt:
+            print("\n\nOperação interrompida pelo usuário.")
 
-    finally:
-        print("\n")
-        io.clean_tmp_folder(downloads_folder)
+        finally:
+            print("\n")
+            io.clean_tmp_folder(downloads_folder)
 
