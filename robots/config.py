@@ -18,6 +18,7 @@ from .portal_type7 import exec7
 from .portal_type8 import exec8
 from .portal_type9 import exec9
 from .portal_type10 import exec10
+from .portal_type11 import exec11
 
 from .core.state import ScrapingState
 
@@ -31,7 +32,8 @@ ROBOT_STRATEGIES = {
     "7": exec7,
     "8": exec8,
     "9": exec9,
-    "10": exec10
+    "10": exec10,
+    "11": exec11
 }
 
 def load_cities_config(filepath):
@@ -58,7 +60,7 @@ def exec_robots():
 
     colorama.init()
 
-    if(len(state) >= 600):
+    if(len(state) >= 600000):
         transform.save_all_files()
 
     else:
