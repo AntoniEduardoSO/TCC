@@ -3,8 +3,10 @@ import os
 import glob
 import hashlib
 from .categories import categorize_cost
+import re
 
 import unicodedata
+from ..portal_type11 import classify
 
 def generate_centralized_id(row):
 
@@ -53,12 +55,25 @@ def transform_files_type_1(current_dir):
     for file in files:
         df = pd.read_csv(file, sep=';')
 
+        cols_texto = ['Função', 'Programa', 'Despesa', 'Histórico']
+
+        for col in cols_texto:
+            if col not in df.columns:
+                df[col] = ''
+
+        df['detalhe_enriquecido'] = (
+            df['Função'].astype(str).fillna('') + " | " +
+            df['Programa'].astype(str).fillna('') + " | " +
+            df['Despesa'].astype(str).fillna('') + " | " +
+            df['Histórico'].astype(str).fillna('')
+        )
+
         rename_map = {
             'Data': 'data',
             'Valor': 'valor',
             'Projeto Atividade': 'elemento_despesa',
             'Credor': 'credor',
-            'Histórico': 'detalhe',
+            'detalhe_enriquecido': 'detalhe',
             'municipio_nome': 'municipio_nome',
             'codigo_ibge': 'municipio_id'
         }
@@ -98,12 +113,22 @@ def transform_files_type_2(current_dir):
     for file in files:
         df = pd.read_csv(file, sep=';')
 
+        cols_texto = ['Elemento', 'Descrição']
+        for col in cols_texto:
+            if col not in df.columns:
+                df[col] = ''
+        
+        df['detalhe_enriquecido'] = (
+            df['Elemento'].astype(str).fillna('') + " | " +
+            df['Descrição'].astype(str).fillna('')
+        )
+
         rename_map = {
             'Data': 'data',
             'Credor': 'credor',
             'Valor': 'valor',
             'Elemento': 'elemento_despesa',
-            'Descrição': 'detalhe',
+            'detalhe_enriquecido': 'detalhe',
             'Municipio_nome': 'municipio_nome',
             'municipio_id': 'municipio_id'
         }
@@ -130,7 +155,9 @@ def transform_files_type_2(current_dir):
 
         final_df = final_df[cols_final]
 
-    return all_dataframes
+        return final_df
+
+    return pd.DataFrame()
 
 def transform_files_type_3(current_dir):
     all_dataframes = []
@@ -143,12 +170,23 @@ def transform_files_type_3(current_dir):
 
         if 'Valor Pago' in df.columns:
             df['Valor Pago'] = df['Valor Pago'].apply(clean_money)
+
+        cols_texto = ['Ação', 'Fonte de Recurso', 'Despesa']
+        for col in cols_texto:
+            if col not in df.columns:
+                df[col] = ''
+
+        df['detalhe_enriquecido'] = (
+            df['Ação'].astype(str).fillna('') + " | " +
+            df['Fonte de Recurso'].astype(str).fillna('') + " | " +
+            df['Despesa'].astype(str).fillna('')
+        )
         
         rename_map = {
             'Data': 'data',
             'Valor Pago': 'valor', 
             'Ação': 'elemento_despesa',
-            'Despesa': 'detalhe',
+            'detalhe_enriquecido': 'detalhe',
             'municipio_nome': 'municipio_nome',
             'municipio_id': 'municipio_id'
         }
@@ -185,8 +223,15 @@ def transform_files_type_6(current_dir):
     for file in files:
         df = pd.read_csv(file, sep=';')
 
+        df.columns = [str(col).strip().lower() for col in df.columns]
+
         if 'Valor Pago' in df.columns:
-            df['Valor Pago'] = df['Valor Pago'].apply(clean_money)
+            df['valor pago r$'] = df['valor pago r$'].apply(clean_money)
+
+        if 'Histórico do empenho' not in df.columns:
+            df['Histórico do empenho'] = ''
+
+        df['detalhe_enriquecido'] = df['Histórico do empenho'].astype(str).fillna('').str.strip()
 
         rename_map = {
             'Data': 'data',
@@ -209,7 +254,10 @@ def transform_files_type_6(current_dir):
     if all_dataframes:
         final_df = pd.concat(all_dataframes, ignore_index=True)
         
-        final_df['data'] = pd.to_datetime(final_df['data'], dayfirst=True, errors='coerce')
+        if 'data' in final_df.columns:
+            final_df['data'] = pd.to_datetime(final_df['data'], dayfirst=True, errors='coerce')
+        else:
+            final_df['data'] = pd.NaT
         
         cols_order = ['id', 'municipio_id', 'municipio_nome', 'data', 'valor', 'credor', 'elemento_despesa', 'detalhe', 'portal_origem']
         cols_final = [c for c in cols_order if c in final_df.columns]
@@ -235,10 +283,21 @@ def transform_files_type_7(current_dir):
         else:
             df['data_construida'] = pd.NaT
 
+        if 'Código' not in df.columns:
+            df['Código'] = ''
+        if 'Descrição' not in df.columns:
+            df['Descrição'] = ''
+
+        df['detalhe_enriquecido'] = (
+            df['Código'].astype(str).fillna('') + " | " +
+            df['Descrição'].astype(str).fillna('')
+        )
+
         rename_map = {
             'data_construida': 'data',  
             'Valor Pago': 'valor',
-            'Descrição': 'detalhe',    
+            'Código': 'elemento_despesa',
+            'detalhe_enriquecido': 'detalhe',  
             'municipio_nome': 'municipio_nome',
             'municipio_id': 'municipio_id'
         }
@@ -282,11 +341,23 @@ def transform_files_type_8(current_dir):
     for file in files:
         df = pd.read_csv(file, sep=';')
 
+        df.columns = [col.strip() for col in df.columns]
+
+        cols_texto = ['acao', 'descricao']
+        for col in cols_texto:
+            if col not in df.columns:
+                df[col] = ''
+
+        df['detalhe_enriquecido'] = (
+            df['acao'].astype(str).fillna('') + " | " +
+            df['descricao'].astype(str).fillna('')
+        )
+
         rename_map = {
             'data': 'data',
             'pago': 'valor',
             'acao': 'elemento_despesa', 
-            'descricao': 'detalhe',     
+            'detalhe_enriquecido': 'detalhe',   
             'credor': 'credor',        
             'municipio_nome': 'municipio_nome',
             'municipio_id': 'municipio_id'
@@ -328,6 +399,16 @@ def transform_files_type_9(current_dir):
             df['data_construida'] = df['Ano'].astype(str) + '-01-01'
         else:
             df['data_construida'] = pd.NaT
+
+        if 'Acao' not in df.columns:
+            df['Acao'] = ''
+        if 'Despesa' not in df.columns:
+            df['Despesa'] = ''
+
+        df['detalhe_enriquecido'] = (
+            df['Acao'].astype(str).fillna('') + " | " +
+            df['Despesa'].astype(str).fillna('')
+        )
 
         rename_map = {
             'data_construida': 'data',
@@ -371,6 +452,18 @@ def transform_files_type_10(current_dir):
     for file in files:
         df = pd.read_csv(file, sep=';')
 
+        df.columns = [col.strip() for col in df.columns]
+
+        if 'acao' not in df.columns:
+            df['acao'] = ''
+        if 'detalhes' not in df.columns:
+            df['detalhes'] = ''
+
+        df['detalhe_enriquecido'] = (
+            df['acao'].astype(str).fillna('') + " | " +
+            df['detalhes'].astype(str).fillna('')
+        )
+
         rename_map = {
             'data': 'data',
             'valor': 'valor',
@@ -405,6 +498,124 @@ def transform_files_type_10(current_dir):
         return final_df
     return pd.DataFrame()
 
+def transform_files_type_11(current_dir):
+    all_dataframes = []
+
+    path_pattern = os.path.join(current_dir, '..', '..', 'data', 'Transparencia', '*_11.csv')
+    
+    files = glob.glob(path_pattern)
+
+    for file in files:
+        df = pd.read_csv(file, sep=';')
+
+        df.columns = [col.strip() for col in df.columns]
+
+        meses_bimestre = {1: '02-28', 2: '04-30', 3: '06-30', 4: '08-31', 5: '10-31', 6: '12-31'}
+        
+        def make_date(row):
+            try:
+                ano = str(int(row['NUM_ANO']))
+                peri = int(row['NUM_PERI'])
+                mes_dia = meses_bimestre.get(peri, '12-31') 
+                return f"{ano}-{mes_dia}"
+            except:
+                return pd.NaT
+        
+        if 'NUM_ANO' in df.columns and 'NUM_PERI' in df.columns:
+            df['data'] = df.apply(make_date, axis=1)
+        else:
+            df['data'] = pd.NaT
+
+        if 'COD_EXIB_FORMATADO' not in df.columns: df['COD_EXIB_FORMATADO'] = ''
+        if 'NOM_ITEM' not in df.columns: df['NOM_ITEM'] = ''
+        
+        df['detalhe_enriquecido'] = (
+            df['COD_EXIB_FORMATADO'].astype(str).fillna('') + " | " +
+            df['NOM_ITEM'].astype(str).fillna('')
+        )
+
+        rename_map = {
+            'COD_MUNI': 'municipio_id',
+            'NOM_MUNI': 'municipio_nome',
+            'VALOR_REAL_BIMESTRE': 'valor',
+            'NOM_ITEM': 'elemento_despesa',
+            'detalhe_enriquecido': 'detalhe',
+            'EIXO': 'eixo',
+            'MACRO': 'macro',
+            'MICRO': 'micro'
+        }
+        
+        cols_to_keep = [col for col in rename_map.keys() if col in df.columns] + ['data']
+        df = df[[c for c in df.columns if c in cols_to_keep]]
+        df = df.rename(columns=rename_map)
+        
+
+        df['credor'] = None 
+        df['portal_origem'] = '11' 
+        
+        if 'valor' in df.columns:
+            df['valor'] = pd.to_numeric(df['valor'], errors='coerce').fillna(0.0)
+
+        all_dataframes.append(df)
+
+    if all_dataframes:
+        final_df = pd.concat(all_dataframes, ignore_index=True)
+        
+        final_df['data'] = pd.to_datetime(final_df['data'], errors='coerce')
+
+        cols_order = ['id', 'municipio_id', 'municipio_nome', 'data', 'valor', 'credor', 'elemento_despesa', 'detalhe', 'eixo', 'macro', 'micro', 'portal_origem']
+        cols_final = [c for c in cols_order if c in final_df.columns]
+        final_df = final_df[cols_final]
+        
+        return final_df
+    return pd.DataFrame()
+
+
+def aplicar_classificacao(df):
+
+    def classificar_linha(row):
+
+        pasta = str(row['elemento_despesa'])
+        item = str(row['detalhe'])
+
+        eixo, macro, micro = classify(pasta, item)
+
+        return pd.Series({
+            'eixo': eixo,
+            'macro': macro,
+            'micro': micro
+        })
+
+    mask = df['portal_origem'] != 11
+
+    df.loc[mask, ['eixo','macro','micro']] = (
+        df[mask]
+        .apply(classificar_linha, axis=1)
+    )
+
+    return df
+
+
+def calcular_dv_ibge(codigo_6_digitos):
+    codigo = str(codigo_6_digitos).strip()[:6]
+    
+    if len(codigo) != 6 or not codigo.isdigit():
+        return codigo_6_digitos 
+        
+    pesos = [1, 2, 1, 2, 1, 2]
+    soma = 0
+    
+    for i in range(6):
+        valor = int(codigo[i]) * pesos[i]
+        if valor > 9:
+            soma += (valor // 10) + (valor % 10)
+        else:
+            soma += valor
+            
+    resto = soma % 10
+    dv = 0 if resto == 0 else 10 - resto
+    
+    return f"{codigo}{dv}"
 
 def save_all_files():
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -419,7 +630,8 @@ def save_all_files():
         transform_files_type_7,
         transform_files_type_8,
         transform_files_type_9,
-        transform_files_type_10
+        transform_files_type_10,
+        transform_files_type_11
     ]
 
     for func in funcs_to_run:
@@ -440,7 +652,21 @@ def save_all_files():
     if all_dataframes:
         master_df = pd.concat(all_dataframes, ignore_index=True)
 
+        if 'municipio_id' in master_df.columns:
+            master_df['municipio_id'] = master_df['municipio_id'].astype(str).str.replace(r'\.0$', '', regex=True)
+            
+            def fix_ibge(cod):
+                cod = str(cod).strip()
+                if len(cod) == 6:
+                    return calcular_dv_ibge(cod)
+                elif len(cod) > 7:
+                    return cod[:7]
+                return cod
+                
+            master_df['municipio_id'] = master_df['municipio_id'].apply(fix_ibge)
+
         cols_para_hash = ['municipio_id', 'data', 'valor', 'credor', 'detalhe']
+
         for col in cols_para_hash:
             if col not in master_df.columns:
                 master_df[col] = None
@@ -454,14 +680,18 @@ def save_all_files():
         if 'data' in master_df.columns:
             master_df['data'] = master_df['data'].dt.strftime('%d/%m/%Y')
 
-        cols_order = ['id', 'municipio_id', 'municipio_nome', 'data', 'valor', 'credor', 'elemento_despesa', 'detalhe', 'portal_origem']
+        master_df['detalhe'] = master_df['detalhe'].fillna('').astype(str)
+        master_df['elemento_despesa'] = master_df['elemento_despesa'].fillna('').astype(str)
+
+        master_df = aplicar_classificacao(master_df)
+
+        cols_order = ['id', 'municipio_id', 'municipio_nome', 'data', 'valor', 'credor', 'elemento_despesa', 'detalhe', 'eixo', 'macro', 'micro', 'portal_origem']
         cols_final = [c for c in cols_order if c in master_df.columns]
         master_df = master_df[cols_final]
 
         output_path = os.path.join(current_dir, '..', '..', 'data', 'CONSOLIDADO_GERAL_FINAL.csv')
         
         master_df.to_csv(output_path, index=False, encoding='utf-8-sig')
-
 
 
 def process_portal_type2(df):

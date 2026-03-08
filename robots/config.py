@@ -60,7 +60,7 @@ def exec_robots():
 
     colorama.init()
 
-    if(len(state) >= 600000):
+    if(len(state) >= 60):
         transform.save_all_files()
 
     else:
