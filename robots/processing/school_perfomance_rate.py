@@ -188,9 +188,6 @@ def download_school_perfomance_rate(i, driver, wait):
         )
         driver.execute_script("arguments[0].click();", btn)
 
-    # //*[@id="content-core"]/div[1]/div[1]/div[2]/a
-    # //*[@id="content-core"]/div[1]/div[1]/div[3]/a
-
     btn = wait.until(
         EC.element_to_be_clickable((By.XPATH, f"//*[@id='content-core']/div[1]/div[1]/div[{i}]/a"))
     )

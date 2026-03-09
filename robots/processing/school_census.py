@@ -86,11 +86,14 @@ def download_files_type_2(driver, wait, downloads_folder, i):
         return df_ano
 
 def download_files_type_1(driver, wait, downloads_folder, i):
+
     year = 2025 - i
+
+    i+=1
 
     btn = wait.until(
         EC.element_to_be_clickable((By.XPATH, f"//*[@id='parent-fieldname-text']/ul[{i}]/li/a"))
-    )
+    ) # //*[@id="parent-fieldname-text"]/ul[3]/li/a
     driver.execute_script("arguments[0].click();", btn)
 
     zip_file = wait_and_read_csv(downloads_folder)

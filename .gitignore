@@ -8,3 +8,5 @@ data/Infraestrutura/
 data/Matricula/
 .vscode
 .venv
+database.sql
+data/CONSOLIDADO_GERAL_FINAL.csv

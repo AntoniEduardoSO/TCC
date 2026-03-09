@@ -33,129 +33,63 @@ def classify(nom_pasta, nom_item):
 
     texto = f"{pasta} {item}"
 
-    # --------------------
+    # -------------------------------------------------
     # EXCLUSÕES / INDICADORES
-    # --------------------
+    # -------------------------------------------------
 
     if "total das despesas" in texto:
         return ("EXCLUIR", "FUNDEB", "Indicador")
-
+    
     # --------------------
-    # PESSOAL (REGRAS FORTES)
-    # --------------------
+# FOLHA DE PAGAMENTO (REGRA PRIORITÁRIA)
+# --------------------
 
     if any(k in texto for k in [
-        "contratacao por tempo determinado",
-        "contrato temporario",
-        "tempo determinado",
-        "substituicoes",
-        "substituicao",
-        "substituto",
-        "contrato temporario",
-        "tempo determinado",
-        "temporario",
-    ]):
-        return ("Pessoal", "Magistério/Docentes", "Contrato Temporário")
-
-    if any(k in texto for k in [
+        "folha de pagamento",
+        "folha de pessoal",
+        "vencimentos e vantagens fixas",
         "vencimentos",
-        "salario",
-        "gratificacao",
-        "vantagens",
-        "abono",
-        "13",
-        "adicional"
-    ]):
-        if "folha" in texto and any(k in texto for k in [
-            "professor",
-            "professores",
-            "coordenador",
-            "coordenadores"
-            "ensino",
-            "semed",
-            "educacao",
-        ]):
-            return ("Pessoal", "Magistério/Docentes", "Remuneração")
-
-    if "fundeb 60" in texto and "folha" in texto:
-        return ("Pessoal", "Magistério/Docentes", "Remuneração")
-
-    if any(k in texto for k in [
-        "inss",
-        "obrigacoes patronais",
-        "previdenciarias",
-        "contribuicoes previdenciarias",
-        "previdenciaria",
-        "guia de recolhimento",
-        "inss",
-        "previdenci",
-        "iprev",
-        "fupre",
-        "parte patronal",
-        "contribuicao patronal"
-    ]):
-        return ("Pessoal", "Magistério/Docentes", "Encargos")
-    
-    if any(k in texto for k in [
-        "hora aula",
-        "hora-aula",
-        "complemento de hora",
-        "carencia real"
+        "remuneracao",
+        "1/3 de ferias",
+        "ferias",
+        "decimo terceiro",
+        "13 salario",
+        "fundeb 60"
     ]):
         return ("Pessoal", "Magistério/Docentes", "Remuneração")
 
-    # --------------------
-    # ALIMENTAÇÃO ESCOLAR
-    # --------------------
+
+    # -------------------------------------------------
+    # INFRAESTRUTURA ESCOLAR (UTILIDADES PRIMEIRO)
+    # -------------------------------------------------
 
     if any(k in texto for k in [
-        "merenda",
-        "alimentacao escolar",
-        "generos alimenticios",
-        "generos de alimentacao"
+        "agua",
+        "saneamento",
+        "esgoto",
+        "casal companhia de saneamento"
     ]):
-        return ("Alimentação Escolar", "Consumo", "Alimentos")
+        return ("Infraestrutura Escolar", "Utilidades", "Água e Esgoto")
 
-    if "alimentacao" in item and "difusao cultural" in pasta:
-        return ("Eventos Educacionais", "Eventos", "Alimentação em Eventos")
-    
-    if "evento" in texto and any(k in texto for k in [
-        "lanche",
-        "alimentacao",
-        "coffee break"
-    ]):
-        return ("Eventos Educacionais", "Eventos", "Alimentação em Eventos")
+    if "energia" in texto:
+        return ("Infraestrutura Escolar", "Utilidades", "Energia")
 
-    # --------------------
-    # TRANSPORTE ESCOLAR
-    # --------------------
+    if "gas" in texto:
+        return ("Infraestrutura Escolar", "Utilidades", "Gás")
 
-    if "transporte escolar" in texto:
-        return ("Transporte Escolar", "Operação", "Serviços de Transporte")
+
+    # -------------------------------------------------
+    # INFRAESTRUTURA (MANUTENÇÃO / OBRAS)
+    # -------------------------------------------------
 
     if any(k in texto for k in [
-        "combustivel",
-        "lubrificante"
+        "material de construcao",
+        "alvenaria",
+        "cimento",
+        "tijolo",
+        "areia"
     ]):
-        return ("Transporte Escolar", "Operação", "Combustível")
-
-    if "veiculo" in texto:
-        return ("Transporte Escolar", "Manutenção", "Veículos")
-
-    if "seguro" in texto and "transporte" in texto:
-        return ("Transporte Escolar", "Operação", "Seguros")
-    
-    if any(k in texto for k in [
-        "motorista",
-        "motoristas",
-        "condutores de veiculos",
-        "condutor de veiculo"
-    ]):
-        return ("Transporte Escolar", "Operação", "Motoristas")
-
-    # --------------------
-    # INFRAESTRUTURA ESCOLAR
-    # --------------------
+        return ("Infraestrutura Escolar", "Manutenção", "Material de Construção")
 
     if any(k in texto for k in [
         "manutencao",
@@ -176,18 +110,9 @@ def classify(nom_pasta, nom_item):
     if "mobiliario" in texto:
         return ("Infraestrutura Escolar", "Equipamentos", "Mobiliário")
 
-    if "energia" in texto:
-        return ("Infraestrutura Escolar", "Utilidades", "Energia")
-
-    if any(k in texto for k in ["agua", "esgoto"]):
-        return ("Infraestrutura Escolar", "Utilidades", "Água e Esgoto")
-
-    if "gas" in texto:
-        return ("Infraestrutura Escolar", "Utilidades", "Gás")
-
     if "instalac" in texto:
         return ("Infraestrutura Escolar", "Infraestrutura Física", "Instalações")
-    
+
     if "locacao" in texto and any(k in texto for k in [
         "imovel",
         "escola",
@@ -195,9 +120,58 @@ def classify(nom_pasta, nom_item):
     ]):
         return ("Infraestrutura Escolar", "Infraestrutura Física", "Locação de Imóveis")
 
-    # --------------------
+
+    # -------------------------------------------------
+    # TRANSPORTE ESCOLAR
+    # -------------------------------------------------
+
+    if "transporte escolar" in texto:
+        return ("Transporte Escolar", "Operação", "Serviços de Transporte")
+
+    if any(k in texto for k in [
+        "combustivel",
+        "lubrificante"
+    ]):
+        return ("Transporte Escolar", "Operação", "Combustível")
+
+    if "veiculo" in texto:
+        return ("Transporte Escolar", "Manutenção", "Veículos")
+
+    if "seguro" in texto and "transporte" in texto:
+        return ("Transporte Escolar", "Operação", "Seguros")
+
+    if any(k in texto for k in [
+        "motorista",
+        "motoristas",
+        "condutor de veiculo",
+        "condutores de veiculos"
+    ]):
+        return ("Transporte Escolar", "Operação", "Motoristas")
+
+
+    # -------------------------------------------------
+    # ALIMENTAÇÃO ESCOLAR
+    # -------------------------------------------------
+
+    if any(k in texto for k in [
+        "merenda",
+        "alimentacao escolar",
+        "generos alimenticios",
+        "generos de alimentacao"
+    ]):
+        return ("Alimentação Escolar", "Consumo", "Alimentos")
+
+    if "evento" in texto and any(k in texto for k in [
+        "lanche",
+        "alimentacao",
+        "coffee break"
+    ]):
+        return ("Eventos Educacionais", "Eventos", "Alimentação em Eventos")
+
+
+    # -------------------------------------------------
     # TECNOLOGIA
-    # --------------------
+    # -------------------------------------------------
 
     if "material de processamento de dados" in texto:
         return ("Infraestrutura Escolar", "Tecnologia Educacional", "Suprimentos de TI")
@@ -205,12 +179,31 @@ def classify(nom_pasta, nom_item):
     if "processamento de dados" in texto:
         return ("Infraestrutura Escolar", "Tecnologia Educacional", "Manutenção de TI")
 
-    if any(k in texto for k in ["informatica", "computador"]):
+    if any(k in texto for k in [
+        "informatica",
+        "computador"
+    ]):
         return ("Infraestrutura Escolar", "Equipamentos", "Tecnologia da Informação")
 
-    # --------------------
+    if any(k in texto for k in [
+        "eletrodomestico",
+        "freezer",
+        "geladeira",
+        "microondas",
+        "micro-ondas",
+        "fogao",
+        "bebedouro",
+        "liquidificador",
+        "ventilador",
+        "ar condicionado",
+        "ar-condicionado"
+    ]):
+        return ("Infraestrutura Escolar", "Equipamentos", "Eletrodomésticos")
+
+
+    # -------------------------------------------------
     # RECURSOS PEDAGÓGICOS
-    # --------------------
+    # -------------------------------------------------
 
     if any(k in texto for k in [
         "uniformes",
@@ -221,9 +214,10 @@ def classify(nom_pasta, nom_item):
     if "esportivo" in texto:
         return ("Recursos Pedagógicos", "Material Educacional", "Material Esportivo")
 
-    # --------------------
+
+    # -------------------------------------------------
     # SERVIÇOS OPERACIONAIS
-    # --------------------
+    # -------------------------------------------------
 
     if "servicos bancarios" in texto or "tarifas bancarias" in texto:
         return ("Serviços e Operação", "Financeiro", "Serviços Bancários")
@@ -234,9 +228,10 @@ def classify(nom_pasta, nom_item):
     if "locacao" in texto:
         return ("Serviços e Operação", "Locação", "Bens")
 
-    # --------------------
+
+    # -------------------------------------------------
     # ADMINISTRAÇÃO
-    # --------------------
+    # -------------------------------------------------
 
     if any(k in texto for k in [
         "material de expediente",
@@ -277,13 +272,63 @@ def classify(nom_pasta, nom_item):
         "pensao"
     ]):
         return ("Gestão e Administração", "Transferências", "Benefícios")
-    
+
     if "estagiario" in texto or "estagiarios" in texto:
         return ("Pessoal Administrativo", "Pessoal", "Estagiários")
 
-    # --------------------
+
+    # -------------------------------------------------
+    # PESSOAL (POR ÚLTIMO)
+    # -------------------------------------------------
+
+    if any(k in texto for k in [
+        "contratacao por tempo determinado",
+        "contrato temporario",
+        "substituicao",
+        "substituto",
+        "temporario"
+    ]):
+        return ("Pessoal", "Magistério/Docentes", "Contrato Temporário")
+
+    if ("fundeb 60" in texto or "fundeb" in texto) and "folha" in texto:
+        return ("Pessoal", "Magistério/Docentes", "Remuneração")
+
+    if any(k in texto for k in [
+        "vencimentos",
+        "salario",
+        "gratificacao",
+        "vantagens",
+        "abono",
+        "adicional",
+        "13º",
+        "13o",
+        "salário",
+        "Vencimentos",
+        "FÉRIAS",
+        "ferias",
+        "férias"
+    ]) and "folha" in texto:
+        return ("Pessoal", "Magistério/Docentes", "Remuneração")
+
+    if any(k in texto for k in [
+        "inss",
+        "previdenciaria",
+        "contribuicao patronal",
+        "parte patronal"
+    ]):
+        return ("Pessoal", "Magistério/Docentes", "Encargos")
+
+    if any(k in texto for k in [
+        "hora aula",
+        "hora-aula",
+        "complemento de hora"
+    ]):
+        return ("Pessoal", "Magistério/Docentes", "Remuneração")
+
+
+    # -------------------------------------------------
     # FALLBACK
-    # --------------------
+    # -------------------------------------------------
 
     return ("Gestão e Administração", "Administrativo", "Outros")
 
