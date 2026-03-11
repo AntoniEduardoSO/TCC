@@ -107,6 +107,10 @@ def download_files_type_1(driver, wait, downloads_folder, i):
 
 
 def get_school_census_file(i):
+
+    output_dir = os.path.join("data", "Geral")
+    os.makedirs(output_dir, exist_ok=True)
+
     df = []
     
     downloads_folder.mkdir(parents=True, exist_ok=True)

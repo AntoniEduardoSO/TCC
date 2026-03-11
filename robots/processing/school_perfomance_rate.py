@@ -210,6 +210,9 @@ def download_school_perfomance_rate(i, driver, wait):
 
 def get_school_perfomance_rate_file(i):
 
+    output_dir = os.path.join("data", "Matricula")
+    os.makedirs(output_dir, exist_ok=True)
+
     downloads_folder.mkdir(parents=True, exist_ok=True)
 
     driver, wait = get_driver(downloads_folder, True)

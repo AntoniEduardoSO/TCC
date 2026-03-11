@@ -60,6 +60,9 @@ def generate_optimized_tables(data, df_dict):
     return data
 
 def create_school_perfomance_rate(df):
+    output_dir = os.path.join("..", "data", "Matricula")
+    os.makedirs(output_dir, exist_ok=True)
+
     path = os.path.join(dir_atual, "..", "data/Matricula/school_perfomance_rate.csv")
     save_incremental(df, path)
 
@@ -120,6 +123,9 @@ def create_school_info(data, df_dict, year):
 
 def create_infrastructure(data, df_dict):
 
+    output_dir = os.path.join("data", "Infraestrutura")
+    os.makedirs(output_dir, exist_ok=True)
+
     # Carregando o dicionario para infraestrutura.
     infra_dict_base = df_dict[df_dict['area'] == 'INFRAESTRUTURA'].copy()
 
@@ -166,6 +172,7 @@ def create_infrastructure(data, df_dict):
     return final_infra
 
 def create_school_enrollment(data, df_dict):
+
 
     # Repeteco da funcao infraestructure, leia ele primeiro.
 
