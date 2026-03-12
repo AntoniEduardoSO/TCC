@@ -4,7 +4,7 @@ import os
 
 from robots.core import io
 
-from .ratings import create_rating_table
+from .ratings import create_rating_table, enrich_ratings_with_learning_metrics
 
 from robots.processing.school_census import get_school_census_file
 from robots.processing.school_perfomance_rate import get_school_perfomance_rate_file
@@ -101,7 +101,7 @@ def create_school_info(data, df_dict, year):
         'NO_ENTIDADE' : 'nome_escola',
         'CO_ENTIDADE' : 'id_escola',
         'NO_MUNICIPIO' : 'nome_municipio',
-        'CO_MUNICIPIO' : 'id_municipio',
+        'CO_MUNICIPIO' : 'municipio_id',
         'NO_MESORREGIAO' : 'nome_mesorregiao',
         'CO_MESORREGIAO' : 'id_mesorregiao',
         'TP_DEPENDENCIA' : 'dependencia',
@@ -235,10 +235,16 @@ def remove_files():
 
 def exec_processing():
 
+    base_dir = os.getcwd()
+
+    downloads_folder = os.path.join(base_dir, "data", "raw")
+
     remove_files()
+    io.clean_tmp_folder(downloads_folder)
 
     year = 2025
     i = 1
+
     # Carregando o dicionario.
     df_dict = pd.read_csv(os.path.join(dir_atual, "..", "dicionario.csv"))
 
@@ -268,8 +274,8 @@ def exec_processing():
 
         i += 1
 
-        base_dir = os.getcwd()
-        downloads_folder = os.path.join(base_dir, "data", "raw")
         io.clean_tmp_folder(downloads_folder) 
 
     get_school_ideb_file()
+
+    enrich_ratings_with_learning_metrics()
