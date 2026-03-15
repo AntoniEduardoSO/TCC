@@ -1,5 +1,6 @@
 web-scraping/__pycache__/
 web-scraping/.DS_Store
+.DS_Store
 web-scraping/data/raw/
 web-scraping/data/Transparencia/
 web-scraping/data/state/
