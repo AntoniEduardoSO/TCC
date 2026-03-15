@@ -983,7 +983,7 @@ def create_rating_table(df_infra_long, df_enroll_long, df_school_info, df_dict, 
     df_school_ratings['spending_per_student'] = get_spending_per_student(df_school_ratings.index, df_fin_city, students_by_school, df_enroll_wide, year)
     df_school_ratings['spending_per_teacher'] = get_spending_per_teacher(df_enroll_wide, df_school_ratings.index, df_fin_city, students_by_school, year)
     df_school_ratings['pedagogical_spending_per_student'] = get_pedagogical_spending_per_student(df_school_ratings.index,df_fin_city,students_by_school, df_enroll_wide, year)
-    df_school_ratings['infraestructure_speding_per_student'] = get_infrastructure_spending_per_student(df_school_ratings.index,df_fin_city,students_by_school, df_enroll_wide, year)
+    df_school_ratings['infrastructure_spending_per_student'] = get_infrastructure_spending_per_student(df_school_ratings.index,df_fin_city,students_by_school, df_enroll_wide, year)
     df_school_ratings['meal_spending_per_student'] = get_school_meal_spending_per_student(df_school_ratings.index,df_fin_city,students_by_school,df_enroll_wide,year)
     df_school_ratings['transport_spending_per_student'] = get_transport_spending_per_student(df_school_ratings.index,df_fin_city,students_by_school,df_enroll_wide,year)
     df_school_ratings["approval_rate"] = approval.clip(0,1)

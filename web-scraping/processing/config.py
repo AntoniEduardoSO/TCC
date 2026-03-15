@@ -94,7 +94,7 @@ def create_school_info(data, df_dict, year):
     
     school_info['telefone'] = (
         school_info['NU_DDD'] + school_info['NU_TELEFONE']
-    )
+    ).astype(str)
 
     # Renomeando as colunas.
     school_info = school_info.rename(columns={
@@ -104,6 +104,8 @@ def create_school_info(data, df_dict, year):
         'CO_MUNICIPIO' : 'municipio_id',
         'NO_MESORREGIAO' : 'nome_mesorregiao',
         'CO_MESORREGIAO' : 'id_mesorregiao',
+        'NO_MICRORREGIAO': 'nome_microrregiao',
+        'CO_MICRORREGIAO': 'id_microrregiao',
         'TP_DEPENDENCIA' : 'dependencia',
         'TP_LOCALIZACAO' : 'localizacao',
         'TP_SITUACAO_FUNCIONAMENTO' : 'funcionamento',
@@ -115,6 +117,8 @@ def create_school_info(data, df_dict, year):
     school_info = school_info.drop(columns=col_adr)
     school_info = school_info.drop(columns=col_cellphone)
     school_info = school_info.drop(columns = unwanted_col)
+    school_info['alocacao'] = school_info['alocacao'].astype(int)
+    school_info['ocupacao'] = school_info['ocupacao'].astype(int)
 
     path = os.path.join(dir_atual, "..", "data/Geral/school_info.csv")
     save_incremental(school_info, path)
@@ -211,7 +215,6 @@ def create_school_enrollment(data, df_dict):
     save_incremental(final_enroll[cols_to_save], path)
     
     return final_enroll
-
 
 def save_incremental(df, filepath):
     file_exists = os.path.exists(filepath)

@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Arkhos.Api/Arkhos.Api.csproj" />
+  <Project Path="Arkhos.Core/Arkhos.Core.csproj" />
+</Solution>

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Arkhos.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8634cf860dd0588e9211cd59caf43eac067c80dd")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+969d40984cbf2efae62eee429fd076bbc56a4530")]
 [assembly: System.Reflection.AssemblyProductAttribute("Arkhos.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Arkhos.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
