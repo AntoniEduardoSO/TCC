@@ -990,7 +990,8 @@ def create_rating_table(df_infra_long, df_enroll_long, df_school_info, df_dict, 
     df_school_ratings["failure_rate"] = failure.clip(0,1)
     df_school_ratings["dropout_rate"] = dropout.clip(0,1)
 
+
+    df_school_ratings.index.name = "id_school_fk"
+
     path_ratings = os.path.join(dir_atual, "..", "data/Geral/school_ratings.csv")
     save_incremental(df_school_ratings.reset_index(), path_ratings)
-    
-    print(df_school_ratings.head(10))

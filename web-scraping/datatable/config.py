@@ -8,10 +8,10 @@ DATASETS = [
 
     # MUNICIPIOS
     {
-        "table": "municipios",
+        "table": "city_info",
         "path": "data/Geral/school_info.csv",
         "columns": [
-            "municipio_id",
+            "Id",
             "nome_municipio",
             "nome_mesorregiao",
             "id_mesorregiao",
@@ -23,17 +23,16 @@ DATASETS = [
 
     # ESCOLAS
     {
-        "table": "schools",
+        "table": "school_info",
         "path": "data/Geral/school_info.csv",
         "rename": {
-            "id_escola": "school_id"
+            "id_escola": "Id"
         },
         "columns": [
-            "school_id",
-            "municipio_id",
-            "nome_escola",
-            "dependencia",
-            "localizacao",
+            "Id",
+            "nome_escola"
+            "id_municipio_fk",
+            "depedencia",
             "funcionamento",
             "sede",
             "alocacao",
@@ -46,10 +45,10 @@ DATASETS = [
 
     # RATINGS GERADOS
     {
-        "table": "school_ratings",
+        "table": "school_rating",
         "path": "data/Geral/school_ratings.csv",
         "rename": {
-            "id_escola": "school_id"
+            "id_escola": "id_school_fk"
         }
     },
 

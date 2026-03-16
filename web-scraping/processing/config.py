@@ -60,8 +60,6 @@ def generate_optimized_tables(data, df_dict):
     return data
 
 def create_school_perfomance_rate(df):
-    output_dir = os.path.join("..", "data", "Matricula")
-    os.makedirs(output_dir, exist_ok=True)
 
     path = os.path.join(dir_atual, "..", "data/Matricula/school_perfomance_rate.csv")
     save_incremental(df, path)
@@ -117,8 +115,11 @@ def create_school_info(data, df_dict, year):
     school_info = school_info.drop(columns=col_adr)
     school_info = school_info.drop(columns=col_cellphone)
     school_info = school_info.drop(columns = unwanted_col)
-    school_info['alocacao'] = school_info['alocacao'].astype(int)
-    school_info['ocupacao'] = school_info['ocupacao'].astype(int)
+    school_info['alocacao'] = pd.to_numeric(school_info['alocacao'], errors='coerce')
+    school_info['alocacao'] = school_info['alocacao'].fillna(0).astype(int)
+
+    school_info['ocupacao'] = pd.to_numeric(school_info['ocupacao'], errors='coerce')
+    school_info['ocupacao'] = school_info['ocupacao'].fillna(0).astype(int)
 
     path = os.path.join(dir_atual, "..", "data/Geral/school_info.csv")
     save_incremental(school_info, path)
