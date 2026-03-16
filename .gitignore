@@ -9,5 +9,9 @@ web-scraping/data/Infraestrutura/
 web-scraping/data/Matricula/
 web-scraping/.vscode
 web-scraping/.venv
+web-scraping/venv
 web-scraping/database.sql
 web-scraping/data/CONSOLIDADO_GERAL_FINAL.csv
+web-scraping/processing/__pycache__/
+Arkhos.Api/obj/Debug
+Arkhos.Core/obj/Debug

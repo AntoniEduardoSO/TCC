@@ -13,4 +13,6 @@ public class CityInfo
     public string NomeMicrorregiao {get;set;} = string.Empty;
 
     public long IdMicrorregiao {get;set;}
+
+    public ICollection<SchoolInfo> SchoolInfos {get;} = [];
 }

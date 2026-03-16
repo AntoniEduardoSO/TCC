@@ -12,7 +12,7 @@ public class SchoolInfo
 
     public short Funcionamento {get;set;}
 
-    public short Sede {get;set;}
+    public int? Sede {get;set;}
 
     public short Alocacao {get;set;}
 
@@ -23,5 +23,10 @@ public class SchoolInfo
     public string Endereco {get;set;} = string.Empty;
 
     public string Telefone {get;set;} = string.Empty;
+
+    public SchoolRating SchoolRating {get;set;} = null!;
+    public long CityInfoId {get;set;}
+    public CityInfo CityInfo {get;set;} = null!;
+
   
 }

@@ -1,30 +1,28 @@
-using Microsoft.OpenApi;
+using Arkhos.Api.Common.Api;
+using Arkhos.Api.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddOpenApi();
+var cnnStr = builder
+    .Configuration
+    .GetConnectionString("DefaultConnection") ?? string.Empty;
 
-builder.Services.AddSwaggerGen(x =>
-{
-    x.SwaggerDoc("v1", new OpenApiInfo
+builder.Services.AddDbContext<AppDbContext>(
+    x =>
     {
-        Version = "v1",
-        Title = "ToDo Arkhos Api ",
-        Description = "Um sistema para criação de dashboards para ajuda a gestão educacional com ML preditivos-prescritivos.",
-        Contact = new OpenApiContact
-        {
-            Name = "Codigo Fonte - Github",
-            Url = new Uri("https://github.com/AntoniEduardoSO/TCC")
-        },
-    });
+        x.UseNpgsql(cnnStr);
+    }
+);
 
-    x.CustomSchemaIds(n => n.FullName);
-});
+builder.AddDocumentation();
+
 
 var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI();
+app.InitWebScrapingEnviroment();
+app.InitArkhosDatabase();
+app.ConfigureDevEnvironment();
 
 app.MapGet("/", () => "Hello World!");
 
