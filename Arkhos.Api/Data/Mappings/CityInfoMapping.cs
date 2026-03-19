@@ -10,7 +10,17 @@ public class CityInfoMapping : IEntityTypeConfiguration<CityInfo>
     {
         builder.ToTable("city_info");
 
-        builder.HasKey(x => x.Id);
+        builder.HasAlternateKey(x => new { x.MunicipioId, x.Ano });
+
+        builder.Property(x => x.Ano)
+        .HasColumnName("ano")
+        .HasColumnType("bigint")
+        .IsRequired();
+
+        builder.Property(x => x.MunicipioId)
+       .HasColumnName("municipio_id")
+       .HasColumnType("bigint") 
+       .IsRequired();
 
         builder.Property
         (x => x.NomeMunicipio)
@@ -26,7 +36,7 @@ public class CityInfoMapping : IEntityTypeConfiguration<CityInfo>
 
         builder.Property
         (x => x.IdMesorregiao)
-        .HasColumnName("id_messorregiao")
+        .HasColumnName("id_mesorregiao")
         .HasColumnType("bigint")
         .IsRequired();
 
@@ -37,14 +47,35 @@ public class CityInfoMapping : IEntityTypeConfiguration<CityInfo>
         .IsRequired();
 
         builder.Property
-        (x => x.IdMesorregiao)
+        (x => x.IdMicrorregiao)
         .HasColumnName("id_microrregiao")
         .HasColumnType("bigint")
         .IsRequired();
 
+        builder.Property
+        (x => x.AreaTerritorial)
+        .HasColumnName("area_territorial")
+        .HasColumnType("bigint")
+        .IsRequired();
+
+        builder.Property
+        (x => x.PopulacaoTotal)
+        .HasColumnName("populacao_total")
+        .HasColumnType("bigint")
+        .IsRequired();
+
+        builder.Property
+        (x => x.DensidadeDemografica)
+        .HasColumnName("densidade_demografica")
+        .HasColumnType("numeric(5,2)")
+        .IsRequired();
+
         builder.HasMany(x => x.SchoolInfos)
         .WithOne(x => x.CityInfo)
-        .HasForeignKey(x => x.CityInfoId)
+        // Colunas na tabela de Escola:
+        .HasForeignKey(x => new { x.CityInfoId, x.Ano }) 
+        // Colunas na tabela de Cidade:
+        .HasPrincipalKey(x => new { x.MunicipioId, x.Ano }) 
         .IsRequired();
     }
 }

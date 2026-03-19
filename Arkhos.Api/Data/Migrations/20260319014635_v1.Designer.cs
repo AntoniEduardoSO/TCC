@@ -2,6 +2,7 @@
 using Arkhos.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -10,9 +11,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Arkhos.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260319014635_v1")]
+    partial class v1
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -29,12 +32,29 @@ namespace Arkhos.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<long>("Ano")
+                        .HasColumnType("bigint")
+                        .HasColumnName("ano");
+
+                    b.Property<long>("AreaTerritorial")
+                        .HasColumnType("bigint")
+                        .HasColumnName("area_territorial");
+
+                    b.Property<double>("DensidadeDemografica")
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("densidade_demografica");
+
                     b.Property<long>("IdMesorregiao")
+                        .HasColumnType("bigint")
+                        .HasColumnName("id_mesorregiao");
+
+                    b.Property<long>("IdMicrorregiao")
                         .HasColumnType("bigint")
                         .HasColumnName("id_microrregiao");
 
-                    b.Property<long>("IdMicrorregiao")
-                        .HasColumnType("bigint");
+                    b.Property<long>("MunicipioId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("municipio_id");
 
                     b.Property<string>("NomeMesorregiao")
                         .IsRequired()
@@ -50,6 +70,10 @@ namespace Arkhos.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("nome_municipio");
+
+                    b.Property<long>("PopulacaoTotal")
+                        .HasColumnType("bigint")
+                        .HasColumnName("populacao_total");
 
                     b.HasKey("Id");
 
@@ -68,17 +92,17 @@ namespace Arkhos.Api.Migrations
                         .HasColumnType("smallint")
                         .HasColumnName("alocacao");
 
-                    b.Property<int>("Ano")
-                        .HasColumnType("int")
+                    b.Property<long>("Ano")
+                        .HasColumnType("bigint")
                         .HasColumnName("ano");
 
                     b.Property<long>("CityInfoId")
                         .HasColumnType("bigint")
                         .HasColumnName("id_municipio_fk");
 
-                    b.Property<short>("Depedencia")
+                    b.Property<short>("Dependencia")
                         .HasColumnType("smallint")
-                        .HasColumnName("depedencia");
+                        .HasColumnName("dependencia");
 
                     b.Property<string>("Endereco")
                         .IsRequired()
@@ -89,7 +113,11 @@ namespace Arkhos.Api.Migrations
                         .HasColumnType("smallint")
                         .HasColumnName("funcionamento");
 
-                    b.Property<short>("Localizacao")
+                    b.Property<long>("IdEscola")
+                        .HasColumnType("bigint")
+                        .HasColumnName("escola_id");
+
+                    b.Property<short?>("Localizacao")
                         .HasColumnType("smallint");
 
                     b.Property<string>("NomeEscola")
@@ -112,7 +140,7 @@ namespace Arkhos.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CityInfoId");
+                    b.HasIndex("CityInfoId", "Ano");
 
                     b.ToTable("school_info", (string)null);
                 });
@@ -127,39 +155,39 @@ namespace Arkhos.Api.Migrations
                     NpgsqlPropertyBuilderExtensions.HasIdentityOptions(b.Property<long>("Id"), 1L, null, null, null, null, null);
 
                     b.Property<double>("AcessibilityRating")
-                        .HasColumnType("numeric(5,4)")
+                        .HasColumnType("numeric(7,4)")
                         .HasColumnName("acessibility_rating");
 
                     b.Property<double>("AdministrativeBurdenRating")
-                        .HasColumnType("numeric(5,4)")
+                        .HasColumnType("numeric(7,4)")
                         .HasColumnName("administrative_burden_rating");
 
                     b.Property<double>("AgeGradeDistortionRating")
-                        .HasColumnType("numeric(5,4)")
+                        .HasColumnType("numeric(7,4)")
                         .HasColumnName("age_grade_distortion_rating");
 
-                    b.Property<int>("Ano")
-                        .HasColumnType("int")
+                    b.Property<long>("Ano")
+                        .HasColumnType("bigint")
                         .HasColumnName("ano");
 
-                    b.Property<double>("ApprovalRate")
-                        .HasColumnType("numeric(5,4)")
+                    b.Property<double?>("ApprovalRate")
+                        .HasColumnType("numeric(7,4)")
                         .HasColumnName("approval_rate");
 
-                    b.Property<double>("DropoutRate")
-                        .HasColumnType("numeric(5,4)")
+                    b.Property<double?>("DropoutRate")
+                        .HasColumnType("numeric(7,4)")
                         .HasColumnName("dropout_rate");
 
-                    b.Property<double>("FailureRate")
-                        .HasColumnType("numeric(5,4)")
+                    b.Property<double?>("FailureRate")
+                        .HasColumnType("numeric(7,4)")
                         .HasColumnName("failure_rate");
 
                     b.Property<double>("HumanSupportRating")
-                        .HasColumnType("numeric(5,4)")
+                        .HasColumnType("numeric(7,4)")
                         .HasColumnName("human_support_rating");
 
-                    b.Property<double>("IdebRating")
-                        .HasColumnType("numeric(5,4)")
+                    b.Property<double?>("IdebRating")
+                        .HasColumnType("numeric(7,4)")
                         .HasColumnName("ideb_rating");
 
                     b.Property<double>("InfrastructureSpendingPerStudent")
@@ -167,7 +195,7 @@ namespace Arkhos.Api.Migrations
                         .HasColumnName("infrastructure_spending_per_student");
 
                     b.Property<double>("ManagementRating")
-                        .HasColumnType("numeric(5,4)")
+                        .HasColumnType("numeric(7,4)")
                         .HasColumnName("management_rating");
 
                     b.Property<double>("MealSpendingPerStudent")
@@ -175,7 +203,7 @@ namespace Arkhos.Api.Migrations
                         .HasColumnName("meal_spending_per_student");
 
                     b.Property<double>("PedagogicalRating")
-                        .HasColumnType("numeric(5,4)")
+                        .HasColumnType("numeric(7,4)")
                         .HasColumnName("pedagogical_rating");
 
                     b.Property<double>("PedagogicalSpendingPerStudent")
@@ -183,16 +211,16 @@ namespace Arkhos.Api.Migrations
                         .HasColumnName("pedagogical_spending_per_student");
 
                     b.Property<double>("RecreationRating")
-                        .HasColumnType("numeric(5,4)")
+                        .HasColumnType("numeric(7,4)")
                         .HasColumnName("recreation_rating");
 
-                    b.Property<double>("SaebRating")
-                        .HasColumnType("numeric(5,4)")
+                    b.Property<double?>("SaebRating")
+                        .HasColumnType("numeric(7,4)")
                         .HasColumnName("saeb_rating");
 
                     b.Property<long>("SchoolInfoId")
                         .HasColumnType("bigint")
-                        .HasColumnName("id_school_fk");
+                        .HasColumnName("id_escola_fk");
 
                     b.Property<double>("SpendingPerStudent")
                         .HasColumnType("numeric(14,4)")
@@ -203,11 +231,11 @@ namespace Arkhos.Api.Migrations
                         .HasColumnName("spending_per_teacher");
 
                     b.Property<double>("TeacherInstabilityRating")
-                        .HasColumnType("numeric(5,4)")
+                        .HasColumnType("numeric(7,4)")
                         .HasColumnName("teacher_instability_rating");
 
                     b.Property<double>("TeacherStressRating")
-                        .HasColumnType("numeric(5,4)")
+                        .HasColumnType("numeric(7,4)")
                         .HasColumnName("teacher_stress_rating");
 
                     b.Property<double>("TransportSpendingPerStudent")
@@ -215,12 +243,12 @@ namespace Arkhos.Api.Migrations
                         .HasColumnName("transport_spending_per_student");
 
                     b.Property<double>("WellbeingRating")
-                        .HasColumnType("numeric(5,4)")
+                        .HasColumnType("numeric(7,4)")
                         .HasColumnName("wellbeing_rating");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SchoolInfoId")
+                    b.HasIndex("SchoolInfoId", "Ano")
                         .IsUnique();
 
                     b.ToTable("school_rating", (string)null);
@@ -230,7 +258,8 @@ namespace Arkhos.Api.Migrations
                 {
                     b.HasOne("Arkhos.Core.Models.CityInfo", "CityInfo")
                         .WithMany("SchoolInfos")
-                        .HasForeignKey("CityInfoId")
+                        .HasForeignKey("CityInfoId", "Ano")
+                        .HasPrincipalKey("MunicipioId", "Ano")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -241,7 +270,8 @@ namespace Arkhos.Api.Migrations
                 {
                     b.HasOne("Arkhos.Core.Models.SchoolInfo", "SchoolInfo")
                         .WithOne("SchoolRating")
-                        .HasForeignKey("Arkhos.Core.Models.SchoolRating", "SchoolInfoId")
+                        .HasForeignKey("Arkhos.Core.Models.SchoolRating", "SchoolInfoId", "Ano")
+                        .HasPrincipalKey("Arkhos.Core.Models.SchoolInfo", "IdEscola", "Ano")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

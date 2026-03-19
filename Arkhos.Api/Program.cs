@@ -20,7 +20,6 @@ builder.AddDocumentation();
 
 var app = builder.Build();
 
-app.InitWebScrapingEnviroment();
 app.InitArkhosDatabase();
 app.ConfigureDevEnvironment();
 

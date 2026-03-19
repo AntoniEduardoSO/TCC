@@ -17,15 +17,21 @@ namespace Arkhos.Api.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    municipio_id = table.Column<long>(type: "bigint", nullable: false),
                     nome_municipio = table.Column<string>(type: "text", nullable: false),
+                    ano = table.Column<long>(type: "bigint", nullable: false),
                     nome_mesorregiao = table.Column<string>(type: "text", nullable: false),
-                    id_microrregiao = table.Column<long>(type: "bigint", nullable: false),
+                    id_mesorregiao = table.Column<long>(type: "bigint", nullable: false),
                     nome_microrregiao = table.Column<string>(type: "text", nullable: false),
-                    IdMicrorregiao = table.Column<long>(type: "bigint", nullable: false)
+                    id_microrregiao = table.Column<long>(type: "bigint", nullable: false),
+                    area_territorial = table.Column<long>(type: "bigint", nullable: false),
+                    populacao_total = table.Column<long>(type: "bigint", nullable: false),
+                    densidade_demografica = table.Column<double>(type: "numeric(5,2)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_city_info", x => x.Id);
+                    table.UniqueConstraint("AK_city_info_municipio_id_ano", x => new { x.municipio_id, x.ano });
                 });
 
             migrationBuilder.CreateTable(
@@ -34,14 +40,15 @@ namespace Arkhos.Api.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    escola_id = table.Column<long>(type: "bigint", nullable: false),
                     nome_escola = table.Column<string>(type: "text", nullable: false),
-                    depedencia = table.Column<short>(type: "smallint", nullable: false),
-                    Localizacao = table.Column<short>(type: "smallint", nullable: false),
+                    dependencia = table.Column<short>(type: "smallint", nullable: false),
+                    Localizacao = table.Column<short>(type: "smallint", nullable: true),
                     funcionamento = table.Column<short>(type: "smallint", nullable: false),
                     sede = table.Column<int>(type: "int", nullable: true),
                     alocacao = table.Column<short>(type: "smallint", nullable: false),
                     ocupacao = table.Column<short>(type: "smallint", nullable: false),
-                    ano = table.Column<int>(type: "int", nullable: false),
+                    ano = table.Column<long>(type: "bigint", nullable: false),
                     endereco = table.Column<string>(type: "text", nullable: false),
                     telefone = table.Column<string>(type: "text", nullable: false),
                     id_municipio_fk = table.Column<long>(type: "bigint", nullable: false)
@@ -49,11 +56,12 @@ namespace Arkhos.Api.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_school_info", x => x.Id);
+                    table.UniqueConstraint("AK_school_info_escola_id_ano", x => new { x.escola_id, x.ano });
                     table.ForeignKey(
-                        name: "FK_school_info_city_info_id_municipio_fk",
-                        column: x => x.id_municipio_fk,
+                        name: "FK_school_info_city_info_id_municipio_fk_ano",
+                        columns: x => new { x.id_municipio_fk, x.ano },
                         principalTable: "city_info",
-                        principalColumn: "Id",
+                        principalColumns: new[] { "municipio_id", "ano" },
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -64,50 +72,50 @@ namespace Arkhos.Api.Migrations
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:IdentitySequenceOptions", "'1', '1', '', '', 'False', '1'")
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    id_school_fk = table.Column<long>(type: "bigint", nullable: false),
-                    ano = table.Column<int>(type: "int", nullable: false),
-                    acessibility_rating = table.Column<double>(type: "numeric(5,4)", nullable: false),
-                    recreation_rating = table.Column<double>(type: "numeric(5,4)", nullable: false),
-                    wellbeing_rating = table.Column<double>(type: "numeric(5,4)", nullable: false),
-                    human_support_rating = table.Column<double>(type: "numeric(5,4)", nullable: false),
-                    management_rating = table.Column<double>(type: "numeric(5,4)", nullable: false),
-                    age_grade_distortion_rating = table.Column<double>(type: "numeric(5,4)", nullable: false),
-                    pedagogical_rating = table.Column<double>(type: "numeric(5,4)", nullable: false),
-                    teacher_stress_rating = table.Column<double>(type: "numeric(5,4)", nullable: false),
-                    teacher_instability_rating = table.Column<double>(type: "numeric(5,4)", nullable: false),
-                    administrative_burden_rating = table.Column<double>(type: "numeric(5,4)", nullable: false),
+                    id_escola_fk = table.Column<long>(type: "bigint", nullable: false),
+                    ano = table.Column<long>(type: "bigint", nullable: false),
+                    acessibility_rating = table.Column<double>(type: "numeric(7,4)", nullable: false),
+                    recreation_rating = table.Column<double>(type: "numeric(7,4)", nullable: false),
+                    wellbeing_rating = table.Column<double>(type: "numeric(7,4)", nullable: false),
+                    human_support_rating = table.Column<double>(type: "numeric(7,4)", nullable: false),
+                    management_rating = table.Column<double>(type: "numeric(7,4)", nullable: false),
+                    age_grade_distortion_rating = table.Column<double>(type: "numeric(7,4)", nullable: false),
+                    pedagogical_rating = table.Column<double>(type: "numeric(7,4)", nullable: false),
+                    teacher_stress_rating = table.Column<double>(type: "numeric(7,4)", nullable: false),
+                    teacher_instability_rating = table.Column<double>(type: "numeric(7,4)", nullable: false),
+                    administrative_burden_rating = table.Column<double>(type: "numeric(7,4)", nullable: false),
                     spending_per_student = table.Column<double>(type: "numeric(14,4)", nullable: false),
                     spending_per_teacher = table.Column<double>(type: "numeric(14,4)", nullable: false),
                     pedagogical_spending_per_student = table.Column<double>(type: "numeric(14,4)", nullable: false),
                     infrastructure_spending_per_student = table.Column<double>(type: "numeric(14,4)", nullable: false),
                     meal_spending_per_student = table.Column<double>(type: "numeric(14,4)", nullable: false),
                     transport_spending_per_student = table.Column<double>(type: "numeric(14,4)", nullable: false),
-                    approval_rate = table.Column<double>(type: "numeric(5,4)", nullable: false),
-                    failure_rate = table.Column<double>(type: "numeric(5,4)", nullable: false),
-                    dropout_rate = table.Column<double>(type: "numeric(5,4)", nullable: false),
-                    ideb_rating = table.Column<double>(type: "numeric(5,4)", nullable: false),
-                    saeb_rating = table.Column<double>(type: "numeric(5,4)", nullable: false)
+                    approval_rate = table.Column<double>(type: "numeric(7,4)", nullable: true),
+                    failure_rate = table.Column<double>(type: "numeric(7,4)", nullable: true),
+                    dropout_rate = table.Column<double>(type: "numeric(7,4)", nullable: true),
+                    ideb_rating = table.Column<double>(type: "numeric(7,4)", nullable: true),
+                    saeb_rating = table.Column<double>(type: "numeric(7,4)", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_school_rating", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_school_rating_school_info_id_school_fk",
-                        column: x => x.id_school_fk,
+                        name: "FK_school_rating_school_info_id_escola_fk_ano",
+                        columns: x => new { x.id_escola_fk, x.ano },
                         principalTable: "school_info",
-                        principalColumn: "Id",
+                        principalColumns: new[] { "escola_id", "ano" },
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_school_info_id_municipio_fk",
+                name: "IX_school_info_id_municipio_fk_ano",
                 table: "school_info",
-                column: "id_municipio_fk");
+                columns: new[] { "id_municipio_fk", "ano" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_school_rating_id_school_fk",
+                name: "IX_school_rating_id_escola_fk_ano",
                 table: "school_rating",
-                column: "id_school_fk",
+                columns: new[] { "id_escola_fk", "ano" },
                 unique: true);
         }
 

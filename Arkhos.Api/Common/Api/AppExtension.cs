@@ -6,94 +6,73 @@ using Microsoft.EntityFrameworkCore;
 
 public static class AppExtension
 {
-    public static void InitWebScrapingEnviroment(this WebApplication app)
+    private static void RunWebScraping()
     {
-        string baseDir = Directory.GetCurrentDirectory();
-        string sqlFilePath = Path.Combine(baseDir, "..", "web-scraping", "database.sql");
-        string pythonScriptPath = Path.Combine(baseDir, "..", "web-scraping", "main.py");
-        
-        if (File.Exists(sqlFilePath))
+        try
         {
-            Console.WriteLine("To aqui.");
-        }
-        else
-        {
-            try
+            var basePath = Directory.GetCurrentDirectory();
+
+            var scriptPath = Path.GetFullPath(Path.Combine(basePath,"..", "web-scraping", "main.py"));
+
+            if (!File.Exists(scriptPath))
             {
-                var processInfo = new ProcessStartInfo
+                Console.WriteLine($"Erro: Script não encontrado no caminho {scriptPath}");
+                return;
+            }
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "python",
+                Arguments = $"\"{scriptPath}\"",
+                WorkingDirectory = Path.GetDirectoryName(scriptPath),
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(startInfo);
+            if (process != null)
+            {
+                process.WaitForExit(); // Aguarda o Python terminar de salvar no banco
+
+                var output = process.StandardOutput.ReadToEnd();
+                var error = process.StandardError.ReadToEnd();
+
+                if (process.ExitCode == 0)
                 {
-                    FileName = "python",
-                    Arguments = $"\"{pythonScriptPath}\"",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true  
-                };
-
-                using var process = Process.Start(processInfo);
-
-                if(process != null)
+                    Console.WriteLine("Web-scraping executado com sucesso!");
+                    Console.WriteLine(output);
+                }
+                else
                 {
-                    string output = process.StandardOutput.ReadToEnd();
-                    string errors = process.StandardError.ReadToEnd();
-
-                    process.WaitForExit();
-
-                    Console.WriteLine($"[Arkhos Init] Web Scraping finalizado. Saída do Python:\n{output}");
-
-                    if (!string.IsNullOrEmpty(errors))
-                    {
-                        Console.WriteLine($"[Arkhos Init] Avisos/Erros do Python:\n{errors}");
-                    }
+                    Console.WriteLine("Erro na execução do script Python:");
+                    Console.WriteLine(error);
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[Arkhos Init - ERRO CRÍTICO] Falha ao executar o script Python: {ex.Message}");
-            }
+        }
+        catch(Exception ex)
+        {
+            Console.WriteLine($"Falha ao tentar executar o processo Python: {ex.Message}");
         }
     }
+
     public static void InitArkhosDatabase(this WebApplication app)
     {
         using var scope = app.Services.CreateScope();
 
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        db.Database.Migrate();
+        context.Database.Migrate();
 
-        if (!db.CityInfos.Any())
+        if(!context.CityInfos.Any())
         {
-            Console.WriteLine("[Arkhos Init] Banco de dados limpo. Iniciando inserção de dados base...");
-
-            string baseDir = Directory.GetCurrentDirectory();
-
-            string sqlFilePath = Path.Combine(baseDir, "..", "web-scraping", "database.sql");
-
-            if (File.Exists(sqlFilePath))
-            {
-                try
-                {
-                    string rawSql = File.ReadAllText(sqlFilePath);
-
-                    using var command = db.Database.GetDbConnection().CreateCommand();
-                    command.CommandText = rawSql;
-                    command.CommandType = System.Data.CommandType.Text;
-
-                    db.Database.OpenConnection();
-                    command.ExecuteNonQuery();
-                    db.Database.CloseConnection();
-                    Console.WriteLine("[Arkhos Init] Carga de dados finalizada com sucesso!");
-                }
-                catch(Exception ex)
-                {
-                    Console.WriteLine($"[Arkhos Init - ERRO] Falha ao executar o script SQL: {ex.Message}");
-                }
-            }
-
+            Console.WriteLine("Tabela city_info vazia. Iniciando web-scraping...");
+            RunWebScraping();
         }
         else
         {
-            Console.WriteLine("[Arkhos Init] O banco de dados já possui registros. Pulando a carga inicial.");
+            Console.WriteLine("Banco de dados ja populado.");
         }
     }
     public static void ConfigureDevEnvironment(this WebApplication app)

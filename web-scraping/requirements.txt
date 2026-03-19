@@ -7,3 +7,5 @@ tqdm
 colorama
 openpyxl
 unidecode
+psycopg2-binary
+sqlalchemy

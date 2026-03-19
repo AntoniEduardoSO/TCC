@@ -12,6 +12,12 @@ public class SchoolInfoMapping : IEntityTypeConfiguration<SchoolInfo>
 
         builder.HasKey(x => x.Id);
 
+        builder.HasAlternateKey(x => new { x.IdEscola, x.Ano });
+
+        builder.Property(x => x.IdEscola)
+        .HasColumnType("bigint")
+        .HasColumnName("escola_id")
+        .IsRequired();
 
         builder.Property(x => x.NomeEscola)
         .HasColumnType("text")
@@ -19,11 +25,13 @@ public class SchoolInfoMapping : IEntityTypeConfiguration<SchoolInfo>
         .IsRequired();
 
         builder.Property(x => x.CityInfoId)
-        .HasColumnName("id_municipio_fk");
+        .HasColumnName("id_municipio_fk")
+        .HasColumnType("bigint")
+        .IsRequired();
 
-        builder.Property(x => x.Depedencia)
+        builder.Property(x => x.Dependencia)
         .HasColumnType("smallint")
-        .HasColumnName("depedencia")
+        .HasColumnName("dependencia")
         .IsRequired();
 
 
@@ -39,8 +47,7 @@ public class SchoolInfoMapping : IEntityTypeConfiguration<SchoolInfo>
 
         builder.Property(x => x.Alocacao)
         .HasColumnType("smallint")
-        .HasColumnName("alocacao")
-        .IsRequired();
+        .HasColumnName("alocacao");
 
         builder.Property(x => x.Ocupacao)
         .HasColumnType("smallint")
@@ -48,7 +55,7 @@ public class SchoolInfoMapping : IEntityTypeConfiguration<SchoolInfo>
         .IsRequired();
 
         builder.Property(x => x.Ano)
-        .HasColumnType("int")
+        .HasColumnType("bigint")
         .HasColumnName("ano")
         .IsRequired();
 
@@ -63,8 +70,11 @@ public class SchoolInfoMapping : IEntityTypeConfiguration<SchoolInfo>
         .IsRequired();
 
         builder.HasOne(x => x.SchoolRating)
-        .WithOne(x => x.SchoolInfo)
-        .HasForeignKey<SchoolRating>(x => x.SchoolInfoId)
-        .IsRequired();
+               .WithOne(x => x.SchoolInfo)
+               // Colunas na tabela SchoolRating (A ponta da chave estrangeira)
+               .HasForeignKey<SchoolRating>(x => new { x.SchoolInfoId, x.Ano })
+               // Colunas na tabela SchoolInfo (A ponta principal)
+               .HasPrincipalKey<SchoolInfo>(x => new { x.IdEscola, x.Ano })
+               .IsRequired();
     }
 }

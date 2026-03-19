@@ -1,199 +1,195 @@
+import csv
 import pandas as pd
-import os
+from sqlalchemy import create_engine
+import psycopg2
 
-import pandas as pd
-import os
+DB_HOST = 'localhost'
+DB_NAME = 'arkhos'
+DB_USER = 'postgres'
+DB_PASSWORD = '311200'
+DB_PORT = '5432'
 
-DATASETS = [
+STRING_CONEXAO = 'postgresql://postgres:311200@localhost:5432/arkhos'
 
-    # MUNICIPIOS
-    {
-        "table": "city_info",
-        "path": "data/Geral/school_info.csv",
-        "columns": [
-            "Id",
-            "nome_municipio",
-            "nome_mesorregiao",
-            "id_mesorregiao",
-            "nome_microrregiao",
-            "id_microrregiao"
-        ],
-        "deduplicate": "municipio_id"
-    },
+def connect_to_db():
+    return psycopg2.connect(
+        host = DB_HOST,
+        database=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        port=DB_PORT
+    )
 
-    # ESCOLAS
-    {
-        "table": "school_info",
-        "path": "data/Geral/school_info.csv",
-        "rename": {
-            "id_escola": "Id"
-        },
-        "columns": [
-            "Id",
-            "nome_escola"
-            "id_municipio_fk",
-            "depedencia",
-            "funcionamento",
-            "sede",
-            "alocacao",
-            "ocupacao",
-            "ano",
-            "endereco",
-            "telefone"
-        ]
-    },
+def exec_school_rating(conn, cur):
 
-    # RATINGS GERADOS
-    {
-        "table": "school_rating",
-        "path": "data/Geral/school_ratings.csv",
-        "rename": {
-            "id_escola": "id_school_fk"
-        }
-    },
-
-    # INFRAESTRUTURA
-    {
-        "table": "infrastructure_attributes",
-        "path": "data/Infraestrutura/infrastructure_dict.csv"
-    },
-
-    {
-        "table": "infrastructure_values",
-        "path": "data/Infraestrutura/infrastructure_values.csv",
-        "rename": {
-            "id_escola": "school_id"
-        }
-    },
-
-    # MATRICULA
-    {
-        "table": "enroll_attributes",
-        "path": "data/Matricula/enroll_dict.csv"
-    },
-
-    {
-        "table": "enroll_values",
-        "path": "data/Matricula/enroll_values.csv",
-        "rename": {
-            "id_escola": "school_id"
-        }
-    },
-
-    # IDEB
-    {
-        "table": "school_ideb",
-        "path": "data/Matricula/school_ideb.csv"
-    },
-
-    # PERFORMANCE
-    {
-        "table": "school_performance_rate",
-        "path": "data/Matricula/school_perfomance_rate.csv"
-    },
-
-    # SAEB
-    {
-        "table": "school_saeb",
-        "path": "data/Matricula/school_saeb.csv"
-    },
-
-    # TRANSPARENCIA
-    {
-        "table": "transparencia_despesa",
-        "path": "data/CONSOLIDADO_GERAL_FINAL.csv",
-        "drop_columns": ["municipio_nome"],
-        "parse_dates": ["data"]
-    }
-
-]
-
-OUTPUT_SQL = "database.sql"
-
-def sql_value(v):
-
-    if pd.isna(v):
-        return "NULL"
-
-    if isinstance(v, str):
-        v = v.replace("'", "''")
-        return f"'{v}'"
-
-    if isinstance(v, float):
-        if v.is_integer():
-            return str(int(v))
-        return str(v)
-
-    return str(v)
-
-
-def generate_insert(table, df, batch_size=1000):
-
-    columns = ",".join(df.columns)
-    inserts = []
-
-    for i in range(0, len(df), batch_size):
-
-        batch = df.iloc[i:i+batch_size]
-
-        values_rows = []
-
-        for row in batch.itertuples(index=False):
-
-            values = ",".join(sql_value(v) for v in row)
-
-            values_rows.append(f"({values})")
-
-        values_sql = ",\n".join(values_rows)
-
-        inserts.append(
-            f"INSERT INTO {table} ({columns}) VALUES\n{values_sql};"
+    query = """
+        INSERT INTO school_rating (
+            id_escola_fk, ano, acessibility_rating, recreation_rating, 
+            wellbeing_rating, human_support_rating, management_rating, 
+            age_grade_distortion_rating, pedagogical_rating, teacher_stress_rating, 
+            teacher_instability_rating, administrative_burden_rating, 
+            spending_per_student, spending_per_teacher, pedagogical_spending_per_student, 
+            infrastructure_spending_per_student, meal_spending_per_student, 
+            transport_spending_per_student, approval_rate, failure_rate, 
+            dropout_rate, ideb_rating, saeb_rating
+        ) VALUES (
+            %(id_escola)s, %(ano)s, %(acessibility_rating)s, %(recreation_rating)s,
+            %(wellbeing_rating)s, %(human_support_rating)s, %(management_rating)s,
+            %(age_grade_distortion_rating)s, %(pedagogical_rating)s, %(teacher_stress_rating)s,
+            %(teacher_instability_rating)s, %(administrative_burden_rating)s,
+            %(spending_per_student)s, %(spending_per_teacher)s, %(pedagogical_spending_per_student)s,
+            %(infrastructure_spending_per_student)s, %(meal_spending_per_student)s,
+            %(transport_spending_per_student)s, %(approval_rate)s, %(failure_rate)s,
+            %(dropout_rate)s, %(ideb_rating)s, %(saeb_rating)s
         )
+    """
 
-    return inserts
+    lote_dados = []
 
-def load_dataset(config):
+    with open('data/Geral/school_ratings.csv', 'r', encoding='utf-8') as file:
+        data_reader = csv.DictReader(file)
 
-    path = config["path"]
+        for row in data_reader:
 
-    print("Processing:", path)
+            for key, value in row.items():
+                if value is None or value.strip() == "":
+                    row[key] = None
 
-    inserts = []
+            if row.get('id_escola') is not None:
+                row['id_escola'] = int(float(row['id_escola'].strip()))
+                
+            if row.get('ano') is not None:
+                row['ano'] = int(float(row['ano'].strip()))
 
-    for chunk in pd.read_csv(path, encoding="utf-8", low_memory=False, chunksize=50000):
+            lote_dados.append(row)
 
-        # rename columns
-        if "rename" in config:
-            chunk = chunk.rename(columns=config["rename"])
+            if len(lote_dados) == 5000:
+                cur.executemany(query, lote_dados)
+                lote_dados = [] 
 
-        # drop columns
-        if "drop_columns" in config:
-            chunk = chunk.drop(columns=config["drop_columns"], errors="ignore")
+        if lote_dados:
+            cur.executemany(query, lote_dados)
+    
+    conn.commit()
 
-        # select columns
-        if "columns" in config:
-            chunk = chunk[config["columns"]]
+def exec_school_info( conn, cur):
 
-        # deduplicate
-        if "deduplicate" in config:
-            chunk = chunk.drop_duplicates(subset=[config["deduplicate"]])
+    query = """
+        INSERT INTO school_info (
+            escola_id, nome_escola, id_municipio_fk,
+            dependencia, funcionamento, sede,
+            alocacao, ocupacao, ano,
+            endereco, telefone
+        ) VALUES (
+            %(id_escola)s, %(nome_escola)s, %(municipio_id)s,
+            %(dependencia)s, %(funcionamento)s, %(sede)s,
+            %(alocacao)s, %(ocupacao)s, %(ano)s,
+            %(endereco)s, %(telefone)s
+        )
+    """
 
-        # parse dates
-        if "parse_dates" in config:
-            for col in config["parse_dates"]:
-                chunk[col] = pd.to_datetime(chunk[col], dayfirst=True).dt.strftime("%Y-%m-%d")
+    lote_dados = []
 
-        inserts.extend(generate_insert(config["table"], chunk))
+    with open('data/Geral/school_info.csv', 'r', encoding='utf-8') as file:
+        data_reader = csv.DictReader(file)
 
-    return inserts
+        for row in data_reader:
+
+            for key, value in row.items():
+                if value is None or value.strip() == "":
+                    row[key] = None
+
+                elif isinstance(value, str) and value.endswith('.0'):
+                    row[key] = value[:-2]
+
+            if row.get('municipio_id') is not None:
+                row['municipio_id'] = int(str(row['municipio_id']).strip())
+
+            lote_dados.append(row)
+
+            if len(lote_dados) == 5000:
+                    cur.executemany(query, lote_dados)
+                    lote_dados = [] # Limpa a lista para o próximo lote
+        
+        if lote_dados:
+            cur.executemany(query, lote_dados)
+    
+    conn.commit()
+
+def exec_city_info(conn, cur):
+    cols = [
+        'municipio_id', 'ano', 'nome_municipio',
+        'id_mesorregiao','nome_mesorregiao', 'id_microrregiao',
+        'nome_microrregiao'
+    ]
+
+    df_cities = pd.read_csv("data/Geral/school_info.csv", encoding='utf-8')
+    df_pop_cities = pd.read_csv("data/pop_municipios.csv", encoding='utf-8')
+    df_territory = pd.read_csv("data/area_territorial_municipios.csv", sep=';', encoding='utf-8')
+
+    # Limpeza de caracteres '', ' ' e afins para evitar erro.
+    df_cities['municipio_id'] = df_cities['municipio_id'].astype(str).str.strip()
+    df_territory['municipio_id'] = df_territory['municipio_id'].astype(str).str.strip()
+    df_pop_cities['municipio_id'] = df_pop_cities['municipio_id'].astype(str).str.strip()
+
+    # Limpeza de tipos errados.
+    df_cities['municipio_id'] = pd.to_numeric(df_cities['municipio_id'], errors='coerce')
+    df_territory['municipio_id'] = pd.to_numeric(df_territory['municipio_id'], errors='coerce')
+    df_pop_cities['municipio_id'] = pd.to_numeric(df_pop_cities['municipio_id'], errors='coerce')
+
+    # Limpeza de dados.
+    df_cities = df_cities.drop_duplicates(subset=['municipio_id', 'ano'])
+    df_cities = df_cities[cols]
+
+    # Map de municipio_id -> area, com isso colocar de maneira correta.
+    map_areas = df_territory.set_index('municipio_id')['area']
+    df_cities['area_territorial'] = df_cities['municipio_id'].map(map_areas)
+
+    df_cities = df_cities.merge(
+        df_pop_cities[['municipio_id', 'ano', 'pop']], # Pegamos so as colunas que importam
+        on=['municipio_id', 'ano'],                    # As duas chaves de ligacao
+        how='left'                                     # Mantem todas as cidades, mesmo sem populacao
+    )
+    
+    df_cities = df_cities.rename(columns={'pop': 'populacao_total'})
+
+    # Limpeza de erros.
+    df_cities['populacao_total'] = pd.to_numeric(df_cities['populacao_total'], errors='coerce')
+    df_cities['area_territorial'] = pd.to_numeric(df_cities['area_territorial'], errors='coerce')
+
+    # Sim, essa densidade pode e deve ser maior no centro da cidade, mas uma boa margem ja esta feito, podemos colocar peso de acordo com o
+    # total de pessoas pelo espaco central das escolas, mas esta maneira ja esta Ok
+    df_cities['densidade_demografica'] = df_cities['populacao_total'] / df_cities['area_territorial']
+
+    df_cities['densidade_demografica'] = df_cities['densidade_demografica'].round(2)
+
+    query = """
+        INSERT INTO city_info (
+            municipio_id, ano, nome_municipio,
+            id_mesorregiao, nome_mesorregiao,
+            id_microrregiao, nome_microrregiao,
+            area_territorial, populacao_total, densidade_demografica
+        ) VALUES (
+            %(municipio_id)s, %(ano)s, %(nome_municipio)s,
+            %(id_mesorregiao)s, %(nome_mesorregiao)s,
+            %(id_microrregiao)s, %(nome_microrregiao)s,
+            %(area_territorial)s, %(populacao_total)s, %(densidade_demografica)s
+        )
+    """
+
+    lote_dados = df_cities.to_dict('records')
+    
+    cur.executemany(query, lote_dados)
+
+    conn.commit()
 
 def exec_datatables():
 
-    with open(OUTPUT_SQL, "w", encoding="utf8") as f:
+    conn = connect_to_db()
+    cur = conn.cursor()
 
-        for dataset in DATASETS:
+    exec_city_info( conn, cur)
+    exec_school_info( conn, cur)
+    exec_school_rating(conn, cur)
 
-            inserts = load_dataset(dataset)
-
-            for line in inserts:
-                f.write(line + "\n")
+    conn.commit()

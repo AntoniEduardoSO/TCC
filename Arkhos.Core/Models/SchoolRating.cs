@@ -7,7 +7,7 @@ public class SchoolRating
     public long SchoolInfoId { get; set; }
     public SchoolInfo SchoolInfo {get;set;} = null!;
 
-    public int Ano {get;set;}
+    public long Ano {get;set;}
 
     public double AcessibilityRating { get; set; }
 
@@ -41,13 +41,13 @@ public class SchoolRating
 
     public double TransportSpendingPerStudent {get;set;}
 
-    public double ApprovalRate {get;set;}
+    public double? ApprovalRate {get;set;}
 
-    public double FailureRate {get;set;}
+    public double? FailureRate {get;set;}
 
-    public double DropoutRate {get;set;}
+    public double? DropoutRate {get;set;}
 
-    public double IdebRating { get; set; }
+    public double? IdebRating { get; set; }
 
-    public double SaebRating { get; set; }
+    public double? SaebRating { get; set; }
 }
