@@ -1,3 +1,5 @@
+using Arkhos.Api.Handlers;
+using Arkhos.Core.Handlers;
 using Microsoft.OpenApi;
 
 namespace Arkhos.Api.Common.Api;
@@ -23,7 +25,14 @@ public static class BuilderExtension
 
             x.CustomSchemaIds(n => n.FullName);
         });
-    }    
+    }
+
+    public static void AddServices(this WebApplicationBuilder builder)
+    {
+        builder
+            .Services
+            .AddTransient<ISchoolInfosHandler, SchoolInfosHandler>();
+    }
 }
 
 
