@@ -4,6 +4,7 @@ __pycache__/
 web-scraping/data/*
 !web-scraping/data/area_territorial_municipios.csv
 !web-scraping/data/pop_municipios.csv
+!web-scraping/data/localizacao_escolas.csv
 .venv/
 venv/
 .vscode/

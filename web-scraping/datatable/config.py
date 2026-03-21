@@ -74,17 +74,33 @@ def exec_school_rating(conn, cur):
 
 def exec_school_info( conn, cur):
 
+    coords = {}
+
+    with open('data/localizacao_escolas.csv', 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+
+        for r in reader:
+            try:
+                coords[int(r["id_escola"])] = {
+                    "lat": float(r["lat"]) if r["lat"] else None,
+                    "lon": float(r["lon"]) if r["lon"] else None
+                }
+            except:
+                continue
+
     query = """
         INSERT INTO school_info (
             escola_id, nome_escola, id_municipio_fk,
             dependencia, funcionamento, sede,
             alocacao, ocupacao, ano,
-            endereco, telefone
+            endereco, telefone,
+            lat, lon
         ) VALUES (
             %(id_escola)s, %(nome_escola)s, %(municipio_id)s,
             %(dependencia)s, %(funcionamento)s, %(sede)s,
             %(alocacao)s, %(ocupacao)s, %(ano)s,
-            %(endereco)s, %(telefone)s
+            %(endereco)s, %(telefone)s,
+            %(lat)s, %(lon)s
         )
     """
 
@@ -104,6 +120,19 @@ def exec_school_info( conn, cur):
 
             if row.get('municipio_id') is not None:
                 row['municipio_id'] = int(str(row['municipio_id']).strip())
+
+            try:
+                id_escola = int(row["id_escola"])
+
+                if id_escola in coords:
+                    row["lat"] = coords[id_escola]["lat"]
+                    row["lon"] = coords[id_escola]["lon"]
+                else:
+                    row["lat"] = None
+                    row["lon"] = None
+            except:
+                row["lat"] = None
+                row["lon"] = None
 
             lote_dados.append(row)
 

@@ -15,14 +15,18 @@ public class SchoolRatingMapping : IEntityTypeConfiguration<SchoolRating>
         builder.Property(x =>x.Id)
         .HasIdentityOptions(startValue:1, incrementBy:1);
 
+        builder.HasIndex(x => new { x.SchoolInfoId, x.Ano });
+        builder.HasIndex(x => x.Ano);
+
+
         builder.Property(x => x.SchoolInfoId)
         .HasColumnName("id_escola_fk")
-        .HasColumnType("bigint")
+        .HasColumnType("int")
         .IsRequired();
 
         builder.Property(x => x.Ano)
         .HasColumnName("ano")
-        .HasColumnType("bigint")
+        .HasColumnType("int")
         .IsRequired();
 
         builder.Property(x => x.AcessibilityRating)
@@ -109,6 +113,12 @@ public class SchoolRatingMapping : IEntityTypeConfiguration<SchoolRating>
         builder.Property(x => x.TransportSpendingPerStudent)
             .HasColumnType("numeric(14,4)")
             .HasColumnName("transport_spending_per_student");
+
+
+        builder.HasOne(x => x.SchoolInfo)
+       .WithOne(x => x.SchoolRating)
+       .HasForeignKey<SchoolRating>(x => new { x.SchoolInfoId, x.Ano })
+       .HasPrincipalKey<SchoolInfo>(x => new { x.IdEscola, x.Ano });
 
     }
 }

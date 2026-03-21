@@ -2,12 +2,12 @@ namespace Arkhos.Core.Models;
 
 public class SchoolRating
 {
-    public long Id { get; set; }
+    public int Id { get; set; }
 
-    public long SchoolInfoId { get; set; }
+    public int SchoolInfoId { get; set; }
     public SchoolInfo SchoolInfo {get;set;} = null!;
 
-    public long Ano {get;set;}
+    public int Ano {get;set;}
 
     public double AcessibilityRating { get; set; }
 

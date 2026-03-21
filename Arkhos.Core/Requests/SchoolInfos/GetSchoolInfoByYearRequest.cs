@@ -1,5 +1,5 @@
 namespace Arkhos.Core.Requests.SchoolInfos;
 public class GetSchoolInfoByYearRequest : Request
 {
-    public long Year { get; set; }
+    public int Year { get; set; }
 }

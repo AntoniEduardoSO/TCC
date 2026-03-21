@@ -12,10 +12,11 @@ public class SchoolInfoMapping : IEntityTypeConfiguration<SchoolInfo>
 
         builder.HasKey(x => x.Id);
 
-        builder.HasAlternateKey(x => new { x.IdEscola, x.Ano });
+        builder.HasIndex(x => new { x.IdEscola, x.Ano });
+        builder.HasIndex(x => x.Ano);
 
         builder.Property(x => x.IdEscola)
-        .HasColumnType("bigint")
+        .HasColumnType("int")
         .HasColumnName("escola_id")
         .IsRequired();
 
@@ -26,7 +27,7 @@ public class SchoolInfoMapping : IEntityTypeConfiguration<SchoolInfo>
 
         builder.Property(x => x.CityInfoId)
         .HasColumnName("id_municipio_fk")
-        .HasColumnType("bigint")
+        .HasColumnType("int")
         .IsRequired();
 
         builder.Property(x => x.Dependencia)
@@ -55,7 +56,7 @@ public class SchoolInfoMapping : IEntityTypeConfiguration<SchoolInfo>
         .IsRequired();
 
         builder.Property(x => x.Ano)
-        .HasColumnType("bigint")
+        .HasColumnType("int")
         .HasColumnName("ano")
         .IsRequired();
 
@@ -69,12 +70,18 @@ public class SchoolInfoMapping : IEntityTypeConfiguration<SchoolInfo>
         .HasColumnName("telefone")
         .IsRequired();
 
-        builder.HasOne(x => x.SchoolRating)
-               .WithOne(x => x.SchoolInfo)
-               // Colunas na tabela SchoolRating (A ponta da chave estrangeira)
-               .HasForeignKey<SchoolRating>(x => new { x.SchoolInfoId, x.Ano })
-               // Colunas na tabela SchoolInfo (A ponta principal)
-               .HasPrincipalKey<SchoolInfo>(x => new { x.IdEscola, x.Ano })
-               .IsRequired();
+        builder.Property(x => x.Lat)
+        .HasColumnType("numeric(9,6)")
+        .HasColumnName("lat");
+
+        builder.Property(x => x.Lon)
+        .HasColumnType("numeric(9,6)")
+        .HasColumnName("lon");
+
+        builder.HasOne(x => x.CityInfo)
+       .WithMany(x => x.SchoolInfos)
+       .HasForeignKey(x => new { x.CityInfoId, x.Ano })
+       .HasPrincipalKey(x => new { x.MunicipioId, x.Ano });
+
     }
 }

@@ -15,17 +15,17 @@ namespace Arkhos.Api.Migrations
                 name: "city_info",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    municipio_id = table.Column<long>(type: "bigint", nullable: false),
+                    municipio_id = table.Column<int>(type: "int", nullable: false),
                     nome_municipio = table.Column<string>(type: "text", nullable: false),
-                    ano = table.Column<long>(type: "bigint", nullable: false),
+                    ano = table.Column<int>(type: "int", nullable: false),
                     nome_mesorregiao = table.Column<string>(type: "text", nullable: false),
-                    id_mesorregiao = table.Column<long>(type: "bigint", nullable: false),
+                    id_mesorregiao = table.Column<int>(type: "int", nullable: false),
                     nome_microrregiao = table.Column<string>(type: "text", nullable: false),
-                    id_microrregiao = table.Column<long>(type: "bigint", nullable: false),
-                    area_territorial = table.Column<long>(type: "bigint", nullable: false),
-                    populacao_total = table.Column<long>(type: "bigint", nullable: false),
+                    id_microrregiao = table.Column<int>(type: "int", nullable: false),
+                    area_territorial = table.Column<int>(type: "int", nullable: false),
+                    populacao_total = table.Column<int>(type: "int", nullable: false),
                     densidade_demografica = table.Column<double>(type: "numeric(5,2)", nullable: false)
                 },
                 constraints: table =>
@@ -38,9 +38,9 @@ namespace Arkhos.Api.Migrations
                 name: "school_info",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    escola_id = table.Column<long>(type: "bigint", nullable: false),
+                    escola_id = table.Column<int>(type: "int", nullable: false),
                     nome_escola = table.Column<string>(type: "text", nullable: false),
                     dependencia = table.Column<short>(type: "smallint", nullable: false),
                     Localizacao = table.Column<short>(type: "smallint", nullable: true),
@@ -48,10 +48,12 @@ namespace Arkhos.Api.Migrations
                     sede = table.Column<int>(type: "int", nullable: true),
                     alocacao = table.Column<short>(type: "smallint", nullable: false),
                     ocupacao = table.Column<short>(type: "smallint", nullable: false),
-                    ano = table.Column<long>(type: "bigint", nullable: false),
+                    ano = table.Column<int>(type: "int", nullable: false),
                     endereco = table.Column<string>(type: "text", nullable: false),
                     telefone = table.Column<string>(type: "text", nullable: false),
-                    id_municipio_fk = table.Column<long>(type: "bigint", nullable: false)
+                    lat = table.Column<double>(type: "numeric(9,6)", nullable: true),
+                    lon = table.Column<double>(type: "numeric(9,6)", nullable: true),
+                    id_municipio_fk = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -69,11 +71,11 @@ namespace Arkhos.Api.Migrations
                 name: "school_rating",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:IdentitySequenceOptions", "'1', '1', '', '', 'False', '1'")
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    id_escola_fk = table.Column<long>(type: "bigint", nullable: false),
-                    ano = table.Column<long>(type: "bigint", nullable: false),
+                    id_escola_fk = table.Column<int>(type: "int", nullable: false),
+                    ano = table.Column<int>(type: "int", nullable: false),
                     acessibility_rating = table.Column<double>(type: "numeric(7,4)", nullable: false),
                     recreation_rating = table.Column<double>(type: "numeric(7,4)", nullable: false),
                     wellbeing_rating = table.Column<double>(type: "numeric(7,4)", nullable: false),
@@ -108,9 +110,29 @@ namespace Arkhos.Api.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_city_info_municipio_id_ano",
+                table: "city_info",
+                columns: new[] { "municipio_id", "ano" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_school_info_ano",
+                table: "school_info",
+                column: "ano");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_school_info_escola_id_ano",
+                table: "school_info",
+                columns: new[] { "escola_id", "ano" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_school_info_id_municipio_fk_ano",
                 table: "school_info",
                 columns: new[] { "id_municipio_fk", "ano" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_school_rating_ano",
+                table: "school_rating",
+                column: "ano");
 
             migrationBuilder.CreateIndex(
                 name: "IX_school_rating_id_escola_fk_ano",

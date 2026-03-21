@@ -1,5 +1,7 @@
+using Arkhos.Api.Data;
 using Arkhos.Api.Handlers;
 using Arkhos.Core.Handlers;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 
 namespace Arkhos.Api.Common.Api;
@@ -32,6 +34,20 @@ public static class BuilderExtension
         builder
             .Services
             .AddTransient<ISchoolInfosHandler, SchoolInfosHandler>();
+    }
+
+    public static void AddDataContexts(this WebApplicationBuilder builder)
+    {
+        var cnnStr = builder
+            .Configuration
+            .GetConnectionString("DefaultConnection") ?? string.Empty;
+
+        builder.Services.AddDbContext<AppDbContext>(
+            x =>
+            {
+                x.UseNpgsql(cnnStr);
+            }
+        );
     }
 }
 

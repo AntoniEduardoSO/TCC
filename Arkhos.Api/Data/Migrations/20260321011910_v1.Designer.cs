@@ -11,7 +11,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Arkhos.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260319014635_v1")]
+    [Migration("20260321011910_v1")]
     partial class v1
     {
         /// <inheritdoc />
@@ -26,34 +26,34 @@ namespace Arkhos.Api.Migrations
 
             modelBuilder.Entity("Arkhos.Core.Models.CityInfo", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
+                        .HasColumnType("integer");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<long>("Ano")
-                        .HasColumnType("bigint")
+                    b.Property<int>("Ano")
+                        .HasColumnType("int")
                         .HasColumnName("ano");
 
-                    b.Property<long>("AreaTerritorial")
-                        .HasColumnType("bigint")
+                    b.Property<int>("AreaTerritorial")
+                        .HasColumnType("int")
                         .HasColumnName("area_territorial");
 
                     b.Property<double>("DensidadeDemografica")
                         .HasColumnType("numeric(5,2)")
                         .HasColumnName("densidade_demografica");
 
-                    b.Property<long>("IdMesorregiao")
-                        .HasColumnType("bigint")
+                    b.Property<int>("IdMesorregiao")
+                        .HasColumnType("int")
                         .HasColumnName("id_mesorregiao");
 
-                    b.Property<long>("IdMicrorregiao")
-                        .HasColumnType("bigint")
+                    b.Property<int>("IdMicrorregiao")
+                        .HasColumnType("int")
                         .HasColumnName("id_microrregiao");
 
-                    b.Property<long>("MunicipioId")
-                        .HasColumnType("bigint")
+                    b.Property<int>("MunicipioId")
+                        .HasColumnType("int")
                         .HasColumnName("municipio_id");
 
                     b.Property<string>("NomeMesorregiao")
@@ -71,33 +71,35 @@ namespace Arkhos.Api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("nome_municipio");
 
-                    b.Property<long>("PopulacaoTotal")
-                        .HasColumnType("bigint")
+                    b.Property<int>("PopulacaoTotal")
+                        .HasColumnType("int")
                         .HasColumnName("populacao_total");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MunicipioId", "Ano");
 
                     b.ToTable("city_info", (string)null);
                 });
 
             modelBuilder.Entity("Arkhos.Core.Models.SchoolInfo", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
+                        .HasColumnType("integer");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<short>("Alocacao")
                         .HasColumnType("smallint")
                         .HasColumnName("alocacao");
 
-                    b.Property<long>("Ano")
-                        .HasColumnType("bigint")
+                    b.Property<int>("Ano")
+                        .HasColumnType("int")
                         .HasColumnName("ano");
 
-                    b.Property<long>("CityInfoId")
-                        .HasColumnType("bigint")
+                    b.Property<int>("CityInfoId")
+                        .HasColumnType("int")
                         .HasColumnName("id_municipio_fk");
 
                     b.Property<short>("Dependencia")
@@ -113,12 +115,20 @@ namespace Arkhos.Api.Migrations
                         .HasColumnType("smallint")
                         .HasColumnName("funcionamento");
 
-                    b.Property<long>("IdEscola")
-                        .HasColumnType("bigint")
+                    b.Property<int>("IdEscola")
+                        .HasColumnType("int")
                         .HasColumnName("escola_id");
+
+                    b.Property<double?>("Lat")
+                        .HasColumnType("numeric(9,6)")
+                        .HasColumnName("lat");
 
                     b.Property<short?>("Localizacao")
                         .HasColumnType("smallint");
+
+                    b.Property<double?>("Lon")
+                        .HasColumnType("numeric(9,6)")
+                        .HasColumnName("lon");
 
                     b.Property<string>("NomeEscola")
                         .IsRequired()
@@ -140,19 +150,23 @@ namespace Arkhos.Api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Ano");
+
                     b.HasIndex("CityInfoId", "Ano");
+
+                    b.HasIndex("IdEscola", "Ano");
 
                     b.ToTable("school_info", (string)null);
                 });
 
             modelBuilder.Entity("Arkhos.Core.Models.SchoolRating", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
+                        .HasColumnType("integer");
 
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-                    NpgsqlPropertyBuilderExtensions.HasIdentityOptions(b.Property<long>("Id"), 1L, null, null, null, null, null);
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.HasIdentityOptions(b.Property<int>("Id"), 1L, null, null, null, null, null);
 
                     b.Property<double>("AcessibilityRating")
                         .HasColumnType("numeric(7,4)")
@@ -166,8 +180,8 @@ namespace Arkhos.Api.Migrations
                         .HasColumnType("numeric(7,4)")
                         .HasColumnName("age_grade_distortion_rating");
 
-                    b.Property<long>("Ano")
-                        .HasColumnType("bigint")
+                    b.Property<int>("Ano")
+                        .HasColumnType("int")
                         .HasColumnName("ano");
 
                     b.Property<double?>("ApprovalRate")
@@ -218,8 +232,8 @@ namespace Arkhos.Api.Migrations
                         .HasColumnType("numeric(7,4)")
                         .HasColumnName("saeb_rating");
 
-                    b.Property<long>("SchoolInfoId")
-                        .HasColumnType("bigint")
+                    b.Property<int>("SchoolInfoId")
+                        .HasColumnType("int")
                         .HasColumnName("id_escola_fk");
 
                     b.Property<double>("SpendingPerStudent")
@@ -247,6 +261,8 @@ namespace Arkhos.Api.Migrations
                         .HasColumnName("wellbeing_rating");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Ano");
 
                     b.HasIndex("SchoolInfoId", "Ano")
                         .IsUnique();
