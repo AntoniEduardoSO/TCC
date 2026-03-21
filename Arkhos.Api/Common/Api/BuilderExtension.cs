@@ -1,5 +1,6 @@
 using Arkhos.Api.Data;
 using Arkhos.Api.Handlers;
+using Arkhos.Core;
 using Arkhos.Core.Handlers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
@@ -8,6 +9,17 @@ namespace Arkhos.Api.Common.Api;
 
 public static class BuilderExtension
 {
+    public static void AddConfiguration(this WebApplicationBuilder builder)
+    {
+        Configuration.ConnectionString = 
+            builder
+            .Configuration
+            .GetConnectionString("DefaultConnection")
+        ?? string.Empty;
+
+        Configuration.BackendUrl = builder.Configuration.GetValue<string>("BackendUrl") ?? string.Empty;
+        Configuration.FrontendUrl = builder.Configuration.GetValue<string>("FrontendUrl") ?? string.Empty;
+    }
     public static void AddDocumentation(this WebApplicationBuilder builder)
     {
         builder.Services.AddOpenApi();
@@ -38,17 +50,30 @@ public static class BuilderExtension
 
     public static void AddDataContexts(this WebApplicationBuilder builder)
     {
-        var cnnStr = builder
-            .Configuration
-            .GetConnectionString("DefaultConnection") ?? string.Empty;
 
         builder.Services.AddDbContext<AppDbContext>(
             x =>
             {
-                x.UseNpgsql(cnnStr);
+                x.UseNpgsql(Configuration.ConnectionString);
             }
         );
     }
+
+    public static void AddCrossOrigin(this WebApplicationBuilder builder)
+    {
+        builder.Services.AddCors(
+            options => options.AddPolicy(
+                ApiConfiguration.CorsPolicyName,
+                policy => policy
+                    .WithOrigins([
+                        Configuration.BackendUrl,
+                        Configuration.FrontendUrl
+                    ])
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .AllowCredentials()
+            )
+        );
+    }
+
 }
-
-

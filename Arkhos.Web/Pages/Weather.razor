@@ -1,0 +1,41 @@
+﻿@page "/schoolinfo-test"
+@using Arkhos.Core.Handlers
+@using Arkhos.Core.Models.Dto
+@using Arkhos.Core.Requests.SchoolInfos
+@using Arkhos.Core.Responses
+@inject ISchoolInfosHandler Handler
+
+<PageTitle>SchoolInfo Test</PageTitle>
+
+<h1>SchoolInfo (Debug)</h1>
+
+@if (response == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <pre>@json</pre>
+}
+
+@code {
+    private Response<ICollection<SchoolInfoMapDto>>? response;
+    private string? json;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var request = new GetSchoolInfoByYearRequest
+        {
+            Year = 2024 // ajusta conforme necessário
+        };
+
+        response = await Handler.GetByYearAsync(request);
+
+        json = System.Text.Json.JsonSerializer.Serialize(
+            response,
+            new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+    }
+}

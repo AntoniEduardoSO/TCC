@@ -11,3 +11,6 @@ venv/
 web-scraping/database.sql
 Arkhos.Api/obj/
 Arkhos.Core/obj/
+Arkhos.Web/obj/
+Arkhos.Web/bin/
+Arkhos.Web/wwwroot/lib/
