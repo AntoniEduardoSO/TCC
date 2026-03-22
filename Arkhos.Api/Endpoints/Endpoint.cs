@@ -1,5 +1,6 @@
 using Arkhos.Api.Common.Api;
 using Arkhos.Api.Endpoints.SchoolInfos;
+using Arkhos.Api.Endpoints.SchoolRatings;
 
 namespace Arkhos.Api.Endpoints;
 public static class Endpoint
@@ -15,6 +16,9 @@ public static class Endpoint
 
         endpoints.MapGroup("v1/schoolinfo")
             .MapEndpoint<GetSchoolInfoByYearEndpoint>();
+
+        endpoints.MapGroup("v1/schoolrating")
+            .MapEndpoint<GetSchoolRatingByYearEndpoint>();
     }
 
     private static IEndpointRouteBuilder MapEndpoint<TEndpoint>(this IEndpointRouteBuilder app)

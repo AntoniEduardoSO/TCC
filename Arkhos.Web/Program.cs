@@ -20,6 +20,7 @@ builder.Services.AddHttpClient(Configuration.HttpClientName, options =>
 });
 
 builder.Services.AddTransient<ISchoolInfosHandler, SchoolInfoHandler>();
+builder.Services.AddTransient<ISchoolRatingsHandler, SchoolRatingHandler>();
 
 
 await builder.Build().RunAsync();

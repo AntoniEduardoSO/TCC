@@ -1,0 +1,60 @@
+﻿@page "/schoolinfo-test"
+@using Arkhos.Core.Handlers
+@using Arkhos.Core.Models.Dto
+@using Arkhos.Core.Requests.SchoolInfos
+@using Arkhos.Core.Requests.SchoolRatings
+@using Arkhos.Core.Responses
+@inject ISchoolInfosHandler Handler
+@inject IJSRuntime JS
+@inject ISchoolRatingsHandler RatingHandler
+
+<PageTitle>SchoolInfo Test</PageTitle>
+
+<h1>Mapa das escolas</h1>
+
+<div id = "map" style="height: 1000px"></div>
+
+@if (response == null)
+{
+    <p><em>Loading...</em></p>
+}
+
+<button @onclick="GoBack">Voltar</button>
+
+@code {
+    private Response<ICollection<SchoolInfoMapDto>>? response;
+    private Response<ICollection<SchoolRatingSpendingDto>>? ratings;
+    private bool _mapRendered = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var request = new GetSchoolInfoByYearRequest
+        {
+            Year = 2024
+        };
+
+        response = await Handler.GetByYearAsync(request);
+        
+        var ratingRequest = new GetSchoolRatingByYearRequest { Year = 2024 };
+        ratings = await RatingHandler.GetByYearAsync(ratingRequest);
+    }
+
+    private async Task GoBack()
+    {
+        await JS.InvokeVoidAsync("goBack");
+    }
+
+    // OnAfterRenderAsync roda apos renderizar tudo, Porem, a Api pode vem depois ou antes dele renderizar, precisamos garantir isso.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        
+        if (!_mapRendered && response?.Data != null)
+        {
+            _mapRendered = true;
+
+            await JS.InvokeVoidAsync("initMap", "municipios.json");
+            await JS.InvokeVoidAsync("updateMarkers", response.Data);
+            await JS.InvokeVoidAsync("setSpendingData", ratings?.Data);
+        }
+    }
+}

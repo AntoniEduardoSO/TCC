@@ -46,6 +46,10 @@ public static class BuilderExtension
         builder
             .Services
             .AddTransient<ISchoolInfosHandler, SchoolInfosHandler>();
+
+         builder
+            .Services
+            .AddTransient<ISchoolRatingsHandler, SchoolRatingsHandler>();
     }
 
     public static void AddDataContexts(this WebApplicationBuilder builder)

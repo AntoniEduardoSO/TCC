@@ -1,13 +1,16 @@
-﻿@page "/schoolinfo-test"
+@page "/schoolrating-test"
 @using Arkhos.Core.Handlers
 @using Arkhos.Core.Models.Dto
-@using Arkhos.Core.Requests.SchoolInfos
+@using Arkhos.Core.Requests.SchoolRatings
 @using Arkhos.Core.Responses
-@inject ISchoolInfosHandler Handler
 
-<PageTitle>SchoolInfo Test</PageTitle>
+@inject ISchoolRatingsHandler Handler
 
-<h1>SchoolInfo (Debug)</h1>
+
+<PageTitle>SchoolRating Test</PageTitle>
+
+
+<h1>SchoolRating (Debug)</h1>
 
 @if (response == null)
 {
@@ -18,13 +21,14 @@ else
     <pre>@json</pre>
 }
 
-@code {
-    private Response<ICollection<SchoolInfoMapDto>>? response;
+@code
+{
+    private Response<ICollection<SchoolRatingSpendingDto>>? response;
     private string? json;
 
     protected override async Task OnInitializedAsync()
     {
-        var request = new GetSchoolInfoByYearRequest
+        var request = new GetSchoolRatingByYearRequest
         {
             Year = 2024 // ajusta conforme necessário
         };

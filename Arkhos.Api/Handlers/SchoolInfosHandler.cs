@@ -18,7 +18,7 @@ public class SchoolInfosHandler(AppDbContext context) : ISchoolInfosHandler
         {
             var swDb = Stopwatch.StartNew();
             
-            var schoolinfos = await context.SchoolInfos
+            var query = context.SchoolInfos
                 .AsNoTracking()
                 .Where(x => x.Ano == request.Year)
                 .Select(x => new SchoolInfoMapDto
@@ -27,10 +27,19 @@ public class SchoolInfosHandler(AppDbContext context) : ISchoolInfosHandler
                     NomeEscola = x.NomeEscola,
                     Endereco = x.Endereco,
                     Ano = x.Ano,
+                    MunicipioId = x.CityInfoId,
                     Lat = x.Lat,
-                    Lon = x.Lon
-                })
-            .ToListAsync();
+                    Lon = x.Lon,
+                    MicrorregiaoId = x.CityInfo.IdMicrorregiao,
+                    MesorregiaoId = x.CityInfo.IdMesorregiao
+                });
+
+            if (request.Limit.HasValue)
+            {
+                query = query.Take(request.Limit.Value);
+            }
+
+            var schoolinfos = await query.ToListAsync();
 
             swDb.Stop();
 

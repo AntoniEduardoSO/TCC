@@ -186,6 +186,10 @@ def exec_city_info(conn, cur):
     df_cities['populacao_total'] = pd.to_numeric(df_cities['populacao_total'], errors='coerce')
     df_cities['area_territorial'] = pd.to_numeric(df_cities['area_territorial'], errors='coerce')
 
+    # Padronizar os anos em que o id_mesorregiao e micro tem valores de 27001, virar o padrao mais recente (1)
+    df_cities['id_mesorregiao'] = df_cities['id_mesorregiao'].apply(lambda x: int(x) % 100 if pd.notnull(x) and int(x) > 100 else x)
+    df_cities['id_microrregiao'] = df_cities['id_microrregiao'].apply(lambda x: int(x) % 1000 if pd.notnull(x) and int(x) > 1000 else x)
+
     # Sim, essa densidade pode e deve ser maior no centro da cidade, mas uma boa margem ja esta feito, podemos colocar peso de acordo com o
     # total de pessoas pelo espaco central das escolas, mas esta maneira ja esta Ok
     df_cities['densidade_demografica'] = df_cities['populacao_total'] / df_cities['area_territorial']

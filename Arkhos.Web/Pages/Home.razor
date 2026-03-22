@@ -1,7 +1,140 @@
 ﻿@page "/"
+@using Arkhos.Core.Handlers
+@using Arkhos.Core.Models.Dto
+@using Arkhos.Core.Requests.SchoolInfos
+@using Arkhos.Core.Requests.SchoolRatings
+@using Arkhos.Core.Responses
 
-<PageTitle>Home</PageTitle>
+@inject ISchoolInfosHandler Handler
+@inject ISchoolRatingsHandler RatingHandler
+@inject IJSRuntime JS
 
-<h1>Hello, world!</h1>
+<PageTitle>Dashboard</PageTitle>
 
-Welcome to your new app.
+<h1>Rede de Ensino</h1>
+
+
+<div id="map" style="height: 500px; margin-bottom:20px;"></div>
+
+@if (ratings == null)
+{
+    <p><em>Carregando...</em></p>
+}
+else
+{
+    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px;">
+
+        <div class="card">
+            <h3>Gasto por Aluno</h3>
+            <p>@AvgSpendingPerStudent.ToString("F2")</p>
+        </div>
+
+        <div class="card">
+            <h3>Gasto por Professor</h3>
+            <p>@AvgSpendingPerTeacher.ToString("F2")</p>
+        </div>
+
+        <div class="card">
+            <h3>Infraestrutura</h3>
+            <p>@AvgInfrastructure.ToString("F2")</p>
+        </div>
+
+        <div class="card">
+            <h3>Transporte</h3>
+            <p>@AvgTransport.ToString("F2")</p>
+        </div>
+
+    </div>
+
+    
+}
+
+<button @onclick="GoBack">Voltar</button>
+
+<style>
+.card {
+    padding: 15px;
+    background: #1e293b;
+    color: white;
+    border-radius: 10px;
+}
+</style>
+
+@code {
+    private Response<ICollection<SchoolInfoMapDto>>? response;
+    private Response<ICollection<SchoolRatingSpendingDto>>? ratings;
+    private bool _mapRendered = false;
+
+    private DotNetObjectReference<Home>? _objRef;
+
+    private string? _currentLevel;
+    private int? _currentId;
+        
+
+    protected override async Task OnInitializedAsync()
+    {
+        _objRef = DotNetObjectReference.Create(this);
+
+        var request = new GetSchoolInfoByYearRequest { Year = 2024 };
+        response = await Handler.GetByYearAsync(request);
+
+        var ratingRequest = new GetSchoolRatingByYearRequest { Year = 2024 };
+        ratings = await RatingHandler.GetByYearAsync(ratingRequest);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_mapRendered && response?.Data != null)
+        {
+            _mapRendered = true;
+
+            await JS.InvokeVoidAsync("initMap", "municipios.json", _objRef);
+            await JS.InvokeVoidAsync("updateMarkers", response.Data);
+        }
+    }
+
+    private async Task GoBack()
+    {
+        await JS.InvokeVoidAsync("goBack");
+    }
+
+    [JSInvokable]
+    public void ApplyFilter(string? level, int? id)
+    {
+        _currentLevel = level;
+        _currentId = id;
+        StateHasChanged(); // Força a atualização dos cards
+    }
+
+    private IEnumerable<SchoolRatingSpendingDto> GetFilteredRatings()
+    {
+        if (ratings?.Data == null) return Enumerable.Empty<SchoolRatingSpendingDto>();
+
+        if (_currentId == null) return ratings.Data;
+
+        return _currentLevel switch
+        {
+            "meso" => ratings.Data.Where(x => x.MesorregiaoId == _currentId),
+            "micro" => ratings.Data.Where(x => x.MicrorregiaoId == _currentId),
+            "municipio" => ratings.Data.Where(x => x.MunicipioId == _currentId),
+            _ => ratings.Data
+        };
+    }
+
+    private double AvgSpendingPerStudent =>
+        GetFilteredRatings().Any() ? GetFilteredRatings().Average(x => x.SpendingPerStudent) : 0;
+
+    private double AvgSpendingPerTeacher =>
+        GetFilteredRatings().Any() ? GetFilteredRatings().Average(x => x.SpendingPerTeacher) : 0;
+
+    private double AvgInfrastructure =>
+        GetFilteredRatings().Any() ? GetFilteredRatings().Average(x => x.InfrastructureSpendingPerStudent) : 0;
+
+    private double AvgTransport =>
+        GetFilteredRatings().Any() ? GetFilteredRatings().Average(x => x.TransportSpendingPerStudent) : 0;
+
+    public void Dispose()
+    {
+        _objRef?.Dispose();
+    }
+}
