@@ -1,5 +1,6 @@
 namespace Arkhos.Api.Common.Api;
 
+using System.Runtime.InteropServices;
 using System.Diagnostics;
 using Arkhos.Api.Data;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +11,7 @@ public static class AppExtension
     {
         try
         {
+            var comandoPython = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "python" : "python3";
             var basePath = Directory.GetCurrentDirectory();
 
             var scriptPath = Path.GetFullPath(Path.Combine(basePath,"..", "web-scraping", "main.py"));
@@ -22,7 +24,7 @@ public static class AppExtension
 
             var startInfo = new ProcessStartInfo
             {
-                FileName = "python",
+                FileName = comandoPython,
                 Arguments = $"\"{scriptPath}\"",
                 WorkingDirectory = Path.GetDirectoryName(scriptPath),
                 RedirectStandardOutput = true,

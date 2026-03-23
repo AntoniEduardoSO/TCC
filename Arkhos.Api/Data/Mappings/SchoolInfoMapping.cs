@@ -68,7 +68,7 @@ public class SchoolInfoMapping : IEntityTypeConfiguration<SchoolInfo>
         builder.Property(x => x.Telefone)
         .HasColumnType("text")
         .HasColumnName("telefone")
-        .IsRequired();
+        .IsRequired(false);
 
         builder.Property(x => x.Lat)
         .HasColumnType("numeric(9,6)")

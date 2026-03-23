@@ -218,7 +218,6 @@ namespace Arkhos.Api.Migrations
                         .HasColumnName("sede");
 
                     b.Property<string>("Telefone")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("telefone");
 

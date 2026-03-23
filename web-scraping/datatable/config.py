@@ -30,7 +30,7 @@ def exec_school_infra_values(conn, cur):
     """
     lote_dados = []
 
-    with open('data/Infraestrutura/infrastructure_values.csv', 'r', encoding='utf-8') as file:
+    with open('data/Infraestrutura/infrastructure_values.csv', 'r', encoding='utf-8-sig') as file:
         data_reader = csv.DictReader(file)
 
         for row in data_reader:
@@ -147,7 +147,7 @@ def exec_school_enroll_values(conn, cur):
 
     lote_dados = []
 
-    with open('data/Matricula/enroll_values.csv', 'r', encoding='utf-8') as file:
+    with open('data/Matricula/enroll_values.csv', 'r', encoding='utf-8-sig') as file:
         data_reader = csv.DictReader(file)
 
         for row in data_reader:
@@ -189,7 +189,7 @@ def exec_school_rating(conn, cur):
             spending_per_student, spending_per_teacher, pedagogical_spending_per_student, 
             infrastructure_spending_per_student, meal_spending_per_student, 
             transport_spending_per_student, approval_rate, failure_rate, 
-            dropout_rate, ideb_rating, saeb_rating
+            dropout_rate
         ) VALUES (
             %(id_escola)s, %(ano)s, %(acessibility_rating)s, %(recreation_rating)s,
             %(wellbeing_rating)s, %(human_support_rating)s, %(management_rating)s,
@@ -198,13 +198,13 @@ def exec_school_rating(conn, cur):
             %(spending_per_student)s, %(spending_per_teacher)s, %(pedagogical_spending_per_student)s,
             %(infrastructure_spending_per_student)s, %(meal_spending_per_student)s,
             %(transport_spending_per_student)s, %(approval_rate)s, %(failure_rate)s,
-            %(dropout_rate)s, %(ideb_rating)s, %(saeb_rating)s
+            %(dropout_rate)s
         )
     """
 
     lote_dados = []
 
-    with open('data/Geral/school_ratings.csv', 'r', encoding='utf-8') as file:
+    with open('data/Geral/school_ratings.csv', 'r', encoding='utf-8-sig') as file:
         data_reader = csv.DictReader(file)
 
         for row in data_reader:
@@ -234,7 +234,7 @@ def exec_school_info( conn, cur):
 
     coords = {}
 
-    with open('data/localizacao_escolas.csv', 'r', encoding='utf-8') as f:
+    with open('data/localizacao_escolas.csv', 'r', encoding='utf-8-sig') as f:
         reader = csv.DictReader(f)
 
         for r in reader:
@@ -264,7 +264,7 @@ def exec_school_info( conn, cur):
 
     lote_dados = []
 
-    with open('data/Geral/school_info.csv', 'r', encoding='utf-8') as file:
+    with open('data/Geral/school_info.csv', 'r', encoding='utf-8-sig') as file:
         data_reader = csv.DictReader(file)
 
         for row in data_reader:
@@ -310,9 +310,9 @@ def exec_city_info(conn, cur):
         'nome_microrregiao'
     ]
 
-    df_cities = pd.read_csv("data/Geral/school_info.csv", encoding='utf-8')
-    df_pop_cities = pd.read_csv("data/pop_municipios.csv", encoding='utf-8')
-    df_territory = pd.read_csv("data/area_territorial_municipios.csv", sep=';', encoding='utf-8')
+    df_cities = pd.read_csv("data/Geral/school_info.csv", encoding='utf-8-sig')
+    df_pop_cities = pd.read_csv("data/pop_municipios.csv", encoding='utf-8-sig')
+    df_territory = pd.read_csv("data/area_territorial_municipios.csv", sep=';', encoding='utf-8-sig')
 
     # Limpeza de caracteres '', ' ' e afins para evitar erro.
     df_cities['municipio_id'] = df_cities['municipio_id'].astype(str).str.strip()
