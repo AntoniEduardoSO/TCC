@@ -13,6 +13,10 @@ public class AppDbContext(DbContextOptions options)
 
     public DbSet<SchoolRating> SchoolRatings {get;set;} = null!;
 
+    public DbSet<SchoolEnrollDict> SchoolEnrollDicts {get;set;} = null!;
+
+    public DbSet<SchoolEnrollValues> SchoolEnrollValues {get;set;} = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());

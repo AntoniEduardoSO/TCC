@@ -19,7 +19,14 @@ public class SchoolInfo
 
     public double? Lon {get;set;}
 
+    // SchoolRating fk
     public SchoolRating SchoolRating {get;set;} = null!;
+
+    // CityInfo fk
     public int CityInfoId {get;set;}
     public CityInfo CityInfo {get;set;} = null!;
+
+
+    // School_enroll_fk
+    public ICollection<SchoolEnrollValues> SchoolEnrollValues {get;set;} = null!;
 }

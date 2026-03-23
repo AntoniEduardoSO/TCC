@@ -11,7 +11,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Arkhos.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260321011910_v1")]
+    [Migration("20260322214907_v1")]
     partial class v1
     {
         /// <inheritdoc />
@@ -80,6 +80,83 @@ namespace Arkhos.Api.Migrations
                     b.HasIndex("MunicipioId", "Ano");
 
                     b.ToTable("city_info", (string)null);
+                });
+
+            modelBuilder.Entity("Arkhos.Core.Models.SchoolEnrollDict", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Descricao")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("descricao");
+
+                    b.Property<string>("Grupo")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("grupo");
+
+                    b.Property<string>("Tamanho")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tamanho");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tipo");
+
+                    b.Property<string>("Variavel")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("variavel");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("school_enroll_dict", (string)null);
+                });
+
+            modelBuilder.Entity("Arkhos.Core.Models.SchoolEnrollValues", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Ano")
+                        .HasColumnType("int")
+                        .HasColumnName("ano");
+
+                    b.Property<int>("AtributoId")
+                        .HasColumnType("int")
+                        .HasColumnName("id_atributo");
+
+                    b.Property<int>("IdEscolaValues")
+                        .HasColumnType("int")
+                        .HasColumnName("id_escola_fk");
+
+                    b.Property<string>("TipoAtributo")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tipo_atributo");
+
+                    b.Property<double>("Valor")
+                        .HasColumnType("numeric(10,1)")
+                        .HasColumnName("valor");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AtributoId");
+
+                    b.HasIndex("IdEscolaValues", "Ano");
+
+                    b.ToTable("school_enroll_values", (string)null);
                 });
 
             modelBuilder.Entity("Arkhos.Core.Models.SchoolInfo", b =>
@@ -270,6 +347,26 @@ namespace Arkhos.Api.Migrations
                     b.ToTable("school_rating", (string)null);
                 });
 
+            modelBuilder.Entity("Arkhos.Core.Models.SchoolEnrollValues", b =>
+                {
+                    b.HasOne("Arkhos.Core.Models.SchoolEnrollDict", "SchoolEnrollDict")
+                        .WithMany("SchoolEnrollValues")
+                        .HasForeignKey("AtributoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Arkhos.Core.Models.SchoolInfo", "SchoolInfo")
+                        .WithMany("SchoolEnrollValues")
+                        .HasForeignKey("IdEscolaValues", "Ano")
+                        .HasPrincipalKey("IdEscola", "Ano")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SchoolEnrollDict");
+
+                    b.Navigation("SchoolInfo");
+                });
+
             modelBuilder.Entity("Arkhos.Core.Models.SchoolInfo", b =>
                 {
                     b.HasOne("Arkhos.Core.Models.CityInfo", "CityInfo")
@@ -299,8 +396,15 @@ namespace Arkhos.Api.Migrations
                     b.Navigation("SchoolInfos");
                 });
 
+            modelBuilder.Entity("Arkhos.Core.Models.SchoolEnrollDict", b =>
+                {
+                    b.Navigation("SchoolEnrollValues");
+                });
+
             modelBuilder.Entity("Arkhos.Core.Models.SchoolInfo", b =>
                 {
+                    b.Navigation("SchoolEnrollValues");
+
                     b.Navigation("SchoolRating")
                         .IsRequired();
                 });

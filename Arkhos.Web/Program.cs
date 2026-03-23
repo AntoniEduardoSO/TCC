@@ -19,8 +19,9 @@ builder.Services.AddHttpClient(Configuration.HttpClientName, options =>
     options.BaseAddress = new Uri(Configuration.BackendUrl);
 });
 
-builder.Services.AddTransient<ISchoolInfosHandler, SchoolInfoHandler>();
-builder.Services.AddTransient<ISchoolRatingsHandler, SchoolRatingHandler>();
+builder.Services.AddScoped<ISchoolInfosHandler, SchoolInfoHandler>();
+builder.Services.AddScoped<ISchoolRatingsHandler, SchoolRatingHandler>();
+builder.Services.AddScoped<ISchoolEnrollValuesHandler, SchoolEnrollValuesHandler>();
 
 
 await builder.Build().RunAsync();

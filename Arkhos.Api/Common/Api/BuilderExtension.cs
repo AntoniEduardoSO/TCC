@@ -45,11 +45,15 @@ public static class BuilderExtension
     {
         builder
             .Services
-            .AddTransient<ISchoolInfosHandler, SchoolInfosHandler>();
+            .AddScoped<ISchoolInfosHandler, SchoolInfosHandler>();
 
-         builder
+        builder
             .Services
-            .AddTransient<ISchoolRatingsHandler, SchoolRatingsHandler>();
+            .AddScoped<ISchoolRatingsHandler, SchoolRatingsHandler>();
+
+        builder
+            .Services
+            .AddScoped<ISchoolEnrollValuesHandler, SchoolEnrollValuesHandler>();
     }
 
     public static void AddDataContexts(this WebApplicationBuilder builder)

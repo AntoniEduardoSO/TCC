@@ -1,75 +1,63 @@
 ﻿@page "/"
 @using Arkhos.Core.Handlers
 @using Arkhos.Core.Models.Dto
+@using Arkhos.Core.Requests.SchoolEnrollValues
 @using Arkhos.Core.Requests.SchoolInfos
 @using Arkhos.Core.Requests.SchoolRatings
 @using Arkhos.Core.Responses
+@using Arkhos.Web.Components.Dashboards.Cards
 
 @inject ISchoolInfosHandler Handler
 @inject ISchoolRatingsHandler RatingHandler
+@inject ISchoolEnrollValuesHandler EnrollHandler
 @inject IJSRuntime JS
 
 <PageTitle>Dashboard</PageTitle>
 
-<h1>Rede de Ensino</h1>
 
+<MudText Typo="Typo.h3" Class="mb-4">Rede de Ensino</MudText>
 
-<div id="map" style="height: 500px; margin-bottom:20px;"></div>
+<MudGrid>
+    @* Mapa *@
+    <MudItem xs="12" md="7">
+        <MudPaper Elevation="3" Class="d-flex align-center justify-center mud-width-full" Style="height: 500px">
+            <div id="map" style="height:100%; width:100%; border-radius: 8px;"></div>
+        </MudPaper>
+    </MudItem>
 
-@if (ratings == null)
-{
-    <p><em>Carregando...</em></p>
-}
-else
-{
-    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px;">
+    <MudItem xs="12" md="5" Style="height: 430px">
+        <EnrollmentOverviewCard
+            Ano="2024"
+            TotalCreche="@TotalCreche" 
+            TotalPreEscola="@TotalPreEscola" 
+            TotalFundIniciais="@TotalFundIniciais" 
+            TotalFundFinais="@TotalFundFinais" 
+            TotalMedio="@TotalMedio" />
+    </MudItem>
 
-        <div class="card">
-            <h3>Gasto por Aluno</h3>
-            <p>@AvgSpendingPerStudent.ToString("F2")</p>
-        </div>
-
-        <div class="card">
-            <h3>Gasto por Professor</h3>
-            <p>@AvgSpendingPerTeacher.ToString("F2")</p>
-        </div>
-
-        <div class="card">
-            <h3>Infraestrutura</h3>
-            <p>@AvgInfrastructure.ToString("F2")</p>
-        </div>
-
-        <div class="card">
-            <h3>Transporte</h3>
-            <p>@AvgTransport.ToString("F2")</p>
-        </div>
-
-    </div>
-
-    
-}
-
-<button @onclick="GoBack">Voltar</button>
-
-<style>
-.card {
-    padding: 15px;
-    background: #1e293b;
-    color: white;
-    border-radius: 10px;
-}
-</style>
+    <MudItem xs="12" md="7">
+        <FinancialOverviewCard 
+            AvgStudent="@AvgSpendingPerStudent" 
+            AvgTeacher="@AvgSpendingPerTeacher" 
+            AvgInfra="@AvgInfrastructure" 
+            AvgTransport="@AvgTransport" 
+            AvgMeal="@AvgMeal" />
+    </MudItem>
+</MudGrid>
 
 @code {
     private Response<ICollection<SchoolInfoMapDto>>? response;
     private Response<ICollection<SchoolRatingSpendingDto>>? ratings;
+    private Response<ICollection<SchoolEnrollValuesStudentsDto>>? enrollments;
     private bool _mapRendered = false;
+    private IEnumerable<SchoolRatingSpendingDto> Filtered => GetFilteredRatings();
+    private IEnumerable<SchoolEnrollValuesStudentsDto> FilteredEnrollments => GetFilteredEnrollments();
 
     private DotNetObjectReference<Home>? _objRef;
 
     private string? _currentLevel;
     private int? _currentId;
-        
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -80,6 +68,10 @@ else
 
         var ratingRequest = new GetSchoolRatingByYearRequest { Year = 2024 };
         ratings = await RatingHandler.GetByYearAsync(ratingRequest);
+
+        var enrollmentRequest = new GetStudentsWithSeriesByYearRequest {Year = 2024};
+        enrollments = await EnrollHandler.GetStudentsWithSeriesByYearAsync(enrollmentRequest);
+
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -121,17 +113,40 @@ else
         };
     }
 
+    private IEnumerable<SchoolEnrollValuesStudentsDto> GetFilteredEnrollments()
+    {
+        if (enrollments?.Data == null) return Enumerable.Empty<SchoolEnrollValuesStudentsDto>();
+        if (_currentId == null) return enrollments.Data;
+
+        return _currentLevel switch
+        {
+            "meso" => enrollments.Data.Where(x => x.MesorregiaoId == _currentId),
+            "micro" => enrollments.Data.Where(x => x.MicrorregiaoId == _currentId),
+            "municipio" => enrollments.Data.Where(x => x.MunicipioId == _currentId),
+            _ => enrollments.Data
+        };
+    }
+
     private double AvgSpendingPerStudent =>
-        GetFilteredRatings().Any() ? GetFilteredRatings().Average(x => x.SpendingPerStudent) : 0;
+        Filtered.Any() ? Filtered.Average(x => x.SpendingPerStudent) : 0;
 
     private double AvgSpendingPerTeacher =>
-        GetFilteredRatings().Any() ? GetFilteredRatings().Average(x => x.SpendingPerTeacher) : 0;
+        Filtered.Any() ? Filtered.Average(x => x.SpendingPerTeacher) : 0;
 
     private double AvgInfrastructure =>
-        GetFilteredRatings().Any() ? GetFilteredRatings().Average(x => x.InfrastructureSpendingPerStudent) : 0;
+       Filtered.Any() ? Filtered.Average(x => x.InfrastructureSpendingPerStudent) : 0;
 
     private double AvgTransport =>
-        GetFilteredRatings().Any() ? GetFilteredRatings().Average(x => x.TransportSpendingPerStudent) : 0;
+        Filtered.Any() ? Filtered.Average(x => x.TransportSpendingPerStudent) : 0;
+
+    private double AvgMeal =>
+        Filtered.Any() ? Filtered.Average(x => x.MealSpendingPerStudent) : 0;
+
+    private double TotalCreche => FilteredEnrollments.Sum(x => x.MatriculaCreche);
+    private double TotalPreEscola => FilteredEnrollments.Sum(x => x.MatriculaPreEscola);
+    private double TotalFundIniciais => FilteredEnrollments.Sum(x => x.Matricula1Ano + x.Matricula2Ano + x.Matricula3Ano + x.Matricula4Ano + x.Matricula5Ano);
+    private double TotalFundFinais => FilteredEnrollments.Sum(x => x.Matricula6Ano + x.Matricula7Ano + x.Matricula8Ano + x.Matricula9Ano);
+    private double TotalMedio => FilteredEnrollments.Sum(x => x.MatriculaMedio1Ano + x.MatriculaMedio2Ano + x.MatriculaMedio3Ano);
 
     public void Dispose()
     {
