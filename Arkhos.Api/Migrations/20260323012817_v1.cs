@@ -52,6 +52,23 @@ namespace Arkhos.Api.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "school_infra_dict",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    variavel = table.Column<string>(type: "text", nullable: false),
+                    descricao = table.Column<string>(type: "text", nullable: false),
+                    tipo = table.Column<string>(type: "text", nullable: false),
+                    tamanho = table.Column<string>(type: "text", nullable: false),
+                    grupo = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_school_infra_dict", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "school_info",
                 columns: table => new
                 {
@@ -110,6 +127,35 @@ namespace Arkhos.Api.Migrations
                         columns: x => new { x.id_escola_fk, x.ano },
                         principalTable: "school_info",
                         principalColumns: new[] { "escola_id", "ano" },
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "school_infra_values",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ano = table.Column<int>(type: "int", nullable: false),
+                    id_escola_fk = table.Column<int>(type: "int", nullable: false),
+                    id_atributo = table.Column<int>(type: "int", nullable: false),
+                    tipo_atributo = table.Column<string>(type: "text", nullable: false),
+                    valor = table.Column<double>(type: "numeric(10,1)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_school_infra_values", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_school_infra_values_school_info_id_escola_fk_ano",
+                        columns: x => new { x.id_escola_fk, x.ano },
+                        principalTable: "school_info",
+                        principalColumns: new[] { "escola_id", "ano" },
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_school_infra_values_school_infra_dict_id_atributo",
+                        column: x => x.id_atributo,
+                        principalTable: "school_infra_dict",
+                        principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -186,6 +232,16 @@ namespace Arkhos.Api.Migrations
                 columns: new[] { "id_municipio_fk", "ano" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_school_infra_values_id_atributo",
+                table: "school_infra_values",
+                column: "id_atributo");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_school_infra_values_id_escola_fk_ano",
+                table: "school_infra_values",
+                columns: new[] { "id_escola_fk", "ano" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_school_rating_ano",
                 table: "school_rating",
                 column: "ano");
@@ -204,10 +260,16 @@ namespace Arkhos.Api.Migrations
                 name: "school_enroll_values");
 
             migrationBuilder.DropTable(
+                name: "school_infra_values");
+
+            migrationBuilder.DropTable(
                 name: "school_rating");
 
             migrationBuilder.DropTable(
                 name: "school_enroll_dict");
+
+            migrationBuilder.DropTable(
+                name: "school_infra_dict");
 
             migrationBuilder.DropTable(
                 name: "school_info");

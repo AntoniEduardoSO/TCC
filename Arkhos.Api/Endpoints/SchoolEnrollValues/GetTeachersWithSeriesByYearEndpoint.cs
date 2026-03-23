@@ -7,28 +7,27 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Arkhos.Api.Endpoints.SchoolEnrollValues;
 
-public class GetStudentWithSeriesByYearEndpoint : IEndpoint
+public class GetTeachersWithSeriesByYearEndpoint : IEndpoint
 {
     public static void Map(IEndpointRouteBuilder app)
-    => app.MapGet("/students/{year}", HandleAsync)
-    .WithName("SchoolEnrollValues: Get Students Series By Year")
-    .WithSummary("Pega os alunos por serie pelo ano.")
-    .Produces<Response<ICollection<SchoolEnrollValuesStudentsDto>>>();
-
-
+    => app.MapGet("/teachers/{year}", HandleAsync)
+        .WithName("SchoolEnrollValues: Get Teachers Series By Year")
+        .WithSummary("Pega os professores por serie pelo ano.")
+        .Produces<Response<ICollection<SchoolEnrollValuesTeachersDto>>>();
+    
     public static async Task<IResult> HandleAsync(
         int year,
         [FromServices] ISchoolEnrollValuesHandler handler,
         [FromQuery] int? limit = null)
     {
-        var request = new GetStudentsWithSeriesByYearRequest
+        var request = new GetTeachersWithSeriesByYearRequest
         {
             Year = year,
             Limit = limit ?? null
             
         };
 
-        var result = await handler.GetStudentsWithSeriesByYearAsync(request);
+        var result = await handler.GetTeachersWithSeriesByYearAsync(request);
 
         return result.IsSuccess
             ? TypedResults.Ok(result)

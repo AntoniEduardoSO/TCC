@@ -6,4 +6,5 @@ namespace Arkhos.Core.Handlers;
 public interface ISchoolEnrollValuesHandler
 {
     Task<Response<ICollection<SchoolEnrollValuesStudentsDto>>> GetStudentsWithSeriesByYearAsync(GetStudentsWithSeriesByYearRequest request);
+    Task<Response<ICollection<SchoolEnrollValuesTeachersDto>>> GetTeachersWithSeriesByYearAsync(GetTeachersWithSeriesByYearRequest request);
 }

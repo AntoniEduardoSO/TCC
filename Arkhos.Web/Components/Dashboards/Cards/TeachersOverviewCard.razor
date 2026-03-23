@@ -2,25 +2,27 @@
 
 <MudPaper Elevation="0" Class="pa-4" Style="background-color: #1a1f2e; height: 100%; color: white; border-radius: 12px; border: 1px solid #2d3748;">
     
-    @* mb-4 para manter o padrão *@
+    @* Margem do título em mb-4 *@
     <div class="d-flex justify-space-between align-start mb-4">
         <div>
             <MudText Typo="Typo.h6" Style="font-weight: 500; color: #e2e8f0; font-size: 1.1rem;">
-                Matrículas <span style="color: #60a5fa;">. (Consolidado)</span>
+                Corpo Docente <span style="color: #f59e0b;">. (Consolidado)</span>
             </MudText>
-            <MudText Typo="Typo.caption" Style="color: #a0aec0;">Distribuição por etapas de ensino (@Ano).</MudText>
+            <MudText Typo="Typo.caption" Style="color: #a0aec0;">Distribuição de professores por etapa (@Ano).</MudText>
         </div>
         
         <div style="background-color: #111420; border-radius: 8px; border: 1px solid #2d3748; padding: 6px 10px; text-align: center;">
-            <MudText Typo="Typo.caption" Style="color: #a0aec0; font-size: 0.6rem; display: block;">Total Alunos</MudText>
+            <MudText Typo="Typo.caption" Style="color: #a0aec0; font-size: 0.6rem; display: block;">Total Docentes</MudText>
             <MudText Typo="Typo.body1" Style="font-weight: 700; color: #e2e8f0; line-height: 1;">
                 @TotalGeral.ToString("N0", new System.Globalization.CultureInfo("pt-BR"))
             </MudText>
         </div>
     </div>
 
-    @* gap-2 para separar as caixinhas *@
+    @* Gap em 2 para separar as caixinhas *@
     <div class="d-flex flex-column gap-2">
+        
+        @* py-2 para devolver a altura interna da linha *@
         
         @* Creche *@
         <div class="d-flex justify-space-between align-center px-3 py-2" style="background-color: transparent; border-radius: 6px; border: 1px solid #2d3748;">
@@ -29,7 +31,7 @@
                 <MudText Typo="Typo.body2" Style="color: #e2e8f0; font-weight: 500; font-size: 0.85rem;">Creche</MudText>
             </div>
             <div style="background-color: #21283a; padding: 2px 8px; border-radius: 4px;">
-                <MudText Typo="Typo.body2" Style="font-weight: 600; font-size: 0.85rem;">@TotalCreche.ToString("N0", new System.Globalization.CultureInfo("pt-BR"))</MudText>
+                <MudText Typo="Typo.body2" Style="font-weight: 600; font-size: 0.85rem;">@TotalCreche.ToString("N0")</MudText>
             </div>
         </div>
 
@@ -40,29 +42,29 @@
                 <MudText Typo="Typo.body2" Style="color: #e2e8f0; font-weight: 500; font-size: 0.85rem;">Pré-escola</MudText>
             </div>
             <div style="background-color: #21283a; padding: 2px 8px; border-radius: 4px;">
-                <MudText Typo="Typo.body2" Style="font-weight: 600; font-size: 0.85rem;">@TotalPreEscola.ToString("N0", new System.Globalization.CultureInfo("pt-BR"))</MudText>
+                <MudText Typo="Typo.body2" Style="font-weight: 600; font-size: 0.85rem;">@TotalPreEscola.ToString("N0")</MudText>
             </div>
         </div>
 
-        @* Ens. Fund. (Anos Iniciais) *@
+        @* Ens. Fund (Iniciais) *@
         <div class="d-flex justify-space-between align-center px-3 py-2" style="background-color: transparent; border-radius: 6px; border: 1px solid #2d3748;">
             <div class="d-flex align-center gap-2">
                 <MudIcon Icon="@Icons.Material.Filled.MenuBook" Size="Size.Small" Style="color: #94a3b8; font-size: 1rem;"/>
-                <MudText Typo="Typo.body2" Style="color: #e2e8f0; font-weight: 500; font-size: 0.85rem;">Ens. Fund. (Anos Iniciais)</MudText>
+                <MudText Typo="Typo.body2" Style="color: #e2e8f0; font-weight: 500; font-size: 0.85rem;">Ens. Fund. (Iniciais)</MudText>
             </div>
             <div style="background-color: #21283a; padding: 2px 8px; border-radius: 4px;">
-                <MudText Typo="Typo.body2" Style="font-weight: 600; font-size: 0.85rem;">@TotalFundIniciais.ToString("N0", new System.Globalization.CultureInfo("pt-BR"))</MudText>
+                <MudText Typo="Typo.body2" Style="font-weight: 600; font-size: 0.85rem;">@TotalFundIniciais.ToString("N0")</MudText>
             </div>
         </div>
 
-        @* Ens. Fund. (Anos Finais) *@
+        @* Ens. Fund (Finais) *@
         <div class="d-flex justify-space-between align-center px-3 py-2" style="background-color: transparent; border-radius: 6px; border: 1px solid #2d3748;">
             <div class="d-flex align-center gap-2">
                 <MudIcon Icon="@Icons.Material.Filled.AutoStories" Size="Size.Small" Style="color: #94a3b8; font-size: 1rem;"/>
-                <MudText Typo="Typo.body2" Style="color: #e2e8f0; font-weight: 500; font-size: 0.85rem;">Ens. Fund. (Anos Finais)</MudText>
+                <MudText Typo="Typo.body2" Style="color: #e2e8f0; font-weight: 500; font-size: 0.85rem;">Ens. Fund. (Finais)</MudText>
             </div>
             <div style="background-color: #21283a; padding: 2px 8px; border-radius: 4px;">
-                <MudText Typo="Typo.body2" Style="font-weight: 600; font-size: 0.85rem;">@TotalFundFinais.ToString("N0", new System.Globalization.CultureInfo("pt-BR"))</MudText>
+                <MudText Typo="Typo.body2" Style="font-weight: 600; font-size: 0.85rem;">@TotalFundFinais.ToString("N0")</MudText>
             </div>
         </div>
 
@@ -73,7 +75,18 @@
                 <MudText Typo="Typo.body2" Style="color: #e2e8f0; font-weight: 500; font-size: 0.85rem;">Ensino Médio</MudText>
             </div>
             <div style="background-color: #21283a; padding: 2px 8px; border-radius: 4px;">
-                <MudText Typo="Typo.body2" Style="font-weight: 600; font-size: 0.85rem;">@TotalMedio.ToString("N0", new System.Globalization.CultureInfo("pt-BR"))</MudText>
+                <MudText Typo="Typo.body2" Style="font-weight: 600; font-size: 0.85rem;">@TotalMedio.ToString("N0")</MudText>
+            </div>
+        </div>
+
+        @* Educação Especial *@
+        <div class="d-flex justify-space-between align-center px-3 py-2" style="background-color: transparent; border-radius: 6px; border: 1px solid #2d3748;">
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.Accessible" Size="Size.Small" Style="color: #94a3b8; font-size: 1rem;"/>
+                <MudText Typo="Typo.body2" Style="color: #e2e8f0; font-weight: 500; font-size: 0.85rem;">Educação Especial</MudText>
+            </div>
+            <div style="background-color: #21283a; padding: 2px 8px; border-radius: 4px;">
+                <MudText Typo="Typo.body2" Style="font-weight: 600; font-size: 0.85rem;">@TotalEspecial.ToString("N0")</MudText>
             </div>
         </div>
 
@@ -87,6 +100,7 @@
     [Parameter] public double TotalFundIniciais { get; set; }
     [Parameter] public double TotalFundFinais { get; set; }
     [Parameter] public double TotalMedio { get; set; }
+    [Parameter] public double TotalEspecial { get; set; }
 
-    private double TotalGeral => TotalCreche + TotalPreEscola + TotalFundIniciais + TotalFundFinais + TotalMedio;
+    private double TotalGeral => TotalCreche + TotalPreEscola + TotalFundIniciais + TotalFundFinais + TotalMedio + TotalEspecial;
 }

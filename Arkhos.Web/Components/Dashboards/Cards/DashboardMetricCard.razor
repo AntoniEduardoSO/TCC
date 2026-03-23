@@ -3,8 +3,8 @@
 <div class="d-flex flex-column justify-center" style="flex: 1; min-width: 105px; background-color: #21283a; border-radius: 8px; border: 1px solid #2d3748; padding: 12px;">
     <div class="d-flex align-center gap-2 mb-2">
         <MudIcon Icon="@Icon" Size="Size.Small" Style="color: #94a3b8;"/>
-        <MudText Typo="Typo.caption" Style="font-weight: 600; color: #e2e8f0; line-height: 1.1;">
-            @((MarkupString)Title.Replace("\n", "<br/>"))
+        <MudText Typo="Typo.caption" Style="font-weight: 600; color: #e2e8f0; line-height: 1.2;">
+            @((MarkupString)Title.Replace("\\n", "<br/>").Replace("\n", "<br/>"))
         </MudText>
     </div>
     <MudText Typo="Typo.h6" Style="font-weight: 600; color: #e2e8f0; font-size: 1.1rem;">

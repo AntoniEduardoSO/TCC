@@ -20,6 +20,85 @@ def connect_to_db():
         port=DB_PORT
     )
 
+def exec_school_infra_values(conn, cur):
+    query = """
+        INSERT INTO school_infra_values (
+            ano, id_escola_fk, id_atributo, tipo_atributo, valor
+        ) VALUES (
+            %(ano)s, %(id_escola)s, %(id_atributo)s, %(tipo_atributo)s, %(valor)s
+        )
+    """
+    lote_dados = []
+
+    with open('data/Infraestrutura/infrastructure_values.csv', 'r', encoding='utf-8') as file:
+        data_reader = csv.DictReader(file)
+
+        for row in data_reader:
+
+            for key, value in row.items():
+                if value is None or value.strip() == "":
+                    row[key] = None
+
+            if row.get('id_escola') is not None:
+                row['id_escola'] = int(float(row['id_escola'].strip()))
+                
+            if row.get('ano') is not None:
+                row['ano'] = int(float(row['ano'].strip()))
+
+            if row.get('id_atributo') is not None:
+                row['id_atributo'] = int(float(row['id_atributo'].strip()))
+
+            if row.get('valor') is not None:
+                row['valor'] = float(row['valor'].strip())
+
+            lote_dados.append(row)
+            if len(lote_dados) == 5000:
+                cur.executemany(query, lote_dados)
+                lote_dados = [] 
+
+        if lote_dados:
+            cur.executemany(query, lote_dados)
+    
+    conn.commit()
+
+def exec_school_infra_dict(conn, cur):
+
+    query = """
+        INSERT INTO school_infra_dict (
+            id, variavel, descricao, tipo, tamanho, grupo
+        ) VALUES (
+            %(id_atributo)s, %(variavel)s, %(descricao)s, %(tipo)s, %(tamanho)s, %(grupo)s
+        )
+    """
+
+    lote_dados = []
+
+    with open('data/Infraestrutura/infrastructure_dict.csv', 'r', encoding='utf-8-sig') as file:
+        data_reader = csv.DictReader(file)
+
+        for row in data_reader:
+
+            for key, value in row.items():
+                if value is None or value.strip() == "":
+                    row[key] = None
+
+            if row.get('id_atributo') is not None:
+                row['id_atributo'] = int(float(row['id_atributo'].strip()))
+                
+            if row.get('tamanho') is not None:
+                row['tamanho'] = int(float(row['tamanho'].strip()))
+
+            lote_dados.append(row)
+
+            if len(lote_dados) == 5000:
+                cur.executemany(query, lote_dados)
+                lote_dados = [] 
+
+        if lote_dados:
+            cur.executemany(query, lote_dados)
+    
+    conn.commit()
+
 def exec_school_enroll_dict(conn,cur):
     query = """
         INSERT INTO school_enroll_dict (
@@ -305,5 +384,7 @@ def exec_datatables():
     exec_school_rating(conn, cur)
     exec_school_enroll_dict(conn, cur)
     exec_school_enroll_values(conn, cur)
+    exec_school_infra_dict(conn,cur)
+    exec_school_infra_values(conn,cur)
 
     conn.commit()

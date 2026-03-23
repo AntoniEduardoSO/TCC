@@ -1,22 +1,99 @@
 ﻿@inherits LayoutComponentBase
+@using MudBlazor
 
 <MudThemeProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
+<style>
+    .search-bar-container {
+        width: 650px; 
+        max-width: 50vw; 
+        background-color: #21283a;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        height: 42px;
+    }
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+    .custom-search .mud-input-control {
+        margin: 0 !important;
+        width: 100%;
+    }
+    
+    .custom-search .mud-input-slot {
+        color: #e2e8f0 !important;
+        font-size: 0.95rem;
+        padding: 0 !important;
+        margin-top: 2px !important;
+    }
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+    .custom-search .mud-input-root {
+        margin-top: 0 !important;
+    }
+    
+    .custom-search .mud-input-underline:before,
+    .custom-search .mud-input-underline:after {
+        display: none !important;
+    }
+</style>
+
+<MudLayout>
+
+    <MudAppBar Elevation="0" Style="background-color: #1a1f2e; border-bottom: 1px solid #2d3748;">
+        
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Style="color: #94a3b8;" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+
+        <MudSpacer /> 
+
+        <div class="search-bar-container">
+            <MudIcon Icon="@Icons.Material.Filled.Search" Style="color: #a0aec0; margin-right: 12px;" Size="Size.Medium" />
+            <MudTextField T="string" 
+                          Placeholder="Busque aqui ..." 
+                          Variant="Variant.Text" 
+                          DisableUnderLine="true" 
+                          Class="custom-search"
+                          Margin="Margin.None" />
         </div>
 
-        <article class="content px-4">
+        <MudSpacer /> 
+
+        <MudIconButton Icon="@Icons.Material.Filled.NotificationsNone" Style="color: #94a3b8; margin-right: 16px;" />
+
+        <div class="d-flex align-center gap-3" style="cursor: pointer;">
+            <MudAvatar Image="https://i.pravatar.cc/150?u=pedro" Size="Size.Medium" Style="border: 1px solid #2d3748;" />
+
+            <div class="d-none d-sm-flex flex-column">
+                <MudText Typo="Typo.body2" Style="color: #e2e8f0; font-weight: 600; line-height: 1.2;">Antonio Eduardo</MudText>
+                <MudText Typo="Typo.caption" Style="color: #94a3b8; font-size: 0.7rem;">Administrador</MudText>
+            </div>
+
+            <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" Size="Size.Small" Style="color: #94a3b8;" />
+        </div>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="0" Style="background-color: #111420; border-right: 1px solid #2d3748;">
+        <div class="pa-4">
+            <MudText Typo="Typo.h6" Style="color: white; font-weight: 700;">Arkhos.Web</MudText>
+        </div>
+        
+        <NavMenu /> 
+    </MudDrawer>
+
+    <MudMainContent Style="background-color: #111420; min-height: 100vh;">
+        <div class="pa-4">
             @Body
-        </article>
-    </main>
-</div>
+        </div>
+    </MudMainContent>
+
+</MudLayout>
+
+@code {
+    bool _drawerOpen = true;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+}

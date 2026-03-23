@@ -19,10 +19,13 @@ public static class Endpoint
             .MapEndpoint<GetSchoolInfoByYearEndpoint>();
 
         endpoints.MapGroup("v1/schoolrating")
+        .WithTags("SchoolRating")
             .MapEndpoint<GetSchoolRatingByYearEndpoint>();
 
         endpoints.MapGroup("v1/schoolenrollvalues")
-            .MapEndpoint<GetStudentWithSeriesByYearEndpoint>();
+            .WithTags("SchoolEnrollValues")
+            .MapEndpoint<GetStudentWithSeriesByYearEndpoint>()
+            .MapEndpoint<GetTeachersWithSeriesByYearEndpoint>();
     }
 
     private static IEndpointRouteBuilder MapEndpoint<TEndpoint>(this IEndpointRouteBuilder app)

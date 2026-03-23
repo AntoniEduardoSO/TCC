@@ -29,4 +29,7 @@ public class SchoolInfo
 
     // School_enroll_fk
     public ICollection<SchoolEnrollValues> SchoolEnrollValues {get;set;} = null!;
+
+    // School_dict_fk
+    public ICollection<SchoolInfraValues> SchoolInfraValues {get;set;} = null!;
 }

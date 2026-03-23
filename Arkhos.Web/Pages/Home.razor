@@ -10,48 +10,64 @@
 @inject ISchoolInfosHandler Handler
 @inject ISchoolRatingsHandler RatingHandler
 @inject ISchoolEnrollValuesHandler EnrollHandler
+@inject ISchoolEnrollValuesHandler TeachersHandler
 @inject IJSRuntime JS
 
 <PageTitle>Dashboard</PageTitle>
 
 
-<MudText Typo="Typo.h3" Class="mb-4">Rede de Ensino</MudText>
+@* <MudText Typo="Typo.h3" Class="mb-4">Rede de Ensino</MudText> *@
 
 <MudGrid>
-    @* Mapa *@
     <MudItem xs="12" md="7">
-        <MudPaper Elevation="3" Class="d-flex align-center justify-center mud-width-full" Style="height: 500px">
-            <div id="map" style="height:100%; width:100%; border-radius: 8px;"></div>
-        </MudPaper>
+        <MudStack Spacing="4">
+            <MudPaper Elevation="3" Class="d-flex align-center justify-center mud-width-full" Style="height: 500px">
+                <div id="map" style="height:100%; width:100%; border-radius: 8px;"></div>
+            </MudPaper>
+
+            <FinancialOverviewCard 
+                AvgStudent="@AvgSpendingPerStudent" 
+                AvgTeacher="@AvgSpendingPerTeacher" 
+                AvgInfra="@AvgInfrastructure" 
+                AvgTransport="@AvgTransport" 
+                AvgMeal="@AvgMeal" />
+        </MudStack>
     </MudItem>
 
-    <MudItem xs="12" md="5" Style="height: 430px">
-        <EnrollmentOverviewCard
-            Ano="2024"
-            TotalCreche="@TotalCreche" 
-            TotalPreEscola="@TotalPreEscola" 
-            TotalFundIniciais="@TotalFundIniciais" 
-            TotalFundFinais="@TotalFundFinais" 
-            TotalMedio="@TotalMedio" />
+    <MudItem xs="12" md="5">
+        <MudStack Spacing="2">
+
+            <EnrollmentOverviewCard
+                Ano="2024"
+                TotalCreche="@TotalCreche" 
+                TotalPreEscola="@TotalPreEscola" 
+                TotalFundIniciais="@TotalFundIniciais" 
+                TotalFundFinais="@TotalFundFinais" 
+                TotalMedio="@TotalMedio" />
+            
+            <TeachersOverviewCard 
+                Ano="2024"
+                TotalCreche="@ProfCreche" 
+                TotalPreEscola="@ProfPreEscola" 
+                TotalFundIniciais="@ProfFundIniciais" 
+                TotalFundFinais="@ProfFundFinais" 
+                TotalMedio="@ProfMedio"
+                TotalEspecial="@ProfEspecial" />
+
+        </MudStack>
     </MudItem>
 
-    <MudItem xs="12" md="7">
-        <FinancialOverviewCard 
-            AvgStudent="@AvgSpendingPerStudent" 
-            AvgTeacher="@AvgSpendingPerTeacher" 
-            AvgInfra="@AvgInfrastructure" 
-            AvgTransport="@AvgTransport" 
-            AvgMeal="@AvgMeal" />
-    </MudItem>
 </MudGrid>
 
 @code {
     private Response<ICollection<SchoolInfoMapDto>>? response;
     private Response<ICollection<SchoolRatingSpendingDto>>? ratings;
     private Response<ICollection<SchoolEnrollValuesStudentsDto>>? enrollments;
+    private Response<ICollection<SchoolEnrollValuesTeachersDto>>? teachers;
     private bool _mapRendered = false;
     private IEnumerable<SchoolRatingSpendingDto> Filtered => GetFilteredRatings();
     private IEnumerable<SchoolEnrollValuesStudentsDto> FilteredEnrollments => GetFilteredEnrollments();
+    private IEnumerable<SchoolEnrollValuesTeachersDto> FilteredTeachers => GetFilteredTeachers();
 
     private DotNetObjectReference<Home>? _objRef;
 
@@ -71,6 +87,9 @@
 
         var enrollmentRequest = new GetStudentsWithSeriesByYearRequest {Year = 2024};
         enrollments = await EnrollHandler.GetStudentsWithSeriesByYearAsync(enrollmentRequest);
+
+        var teacherRequest = new GetTeachersWithSeriesByYearRequest { Year = 2024 };
+        teachers = await TeachersHandler.GetTeachersWithSeriesByYearAsync(teacherRequest);
 
     }
 
@@ -98,6 +117,19 @@
         StateHasChanged(); // Força a atualização dos cards
     }
 
+    private IEnumerable<SchoolEnrollValuesTeachersDto> GetFilteredTeachers()
+    {
+        if (teachers?.Data == null) return Enumerable.Empty<SchoolEnrollValuesTeachersDto>();
+        if (_currentId == null) return teachers.Data;
+
+        return _currentLevel switch
+        {
+            "meso" => teachers.Data.Where(x => x.MesorregiaoId == _currentId),
+            "micro" => teachers.Data.Where(x => x.MicrorregiaoId == _currentId),
+            "municipio" => teachers.Data.Where(x => x.MunicipioId == _currentId),
+            _ => teachers.Data
+        };
+    }
     private IEnumerable<SchoolRatingSpendingDto> GetFilteredRatings()
     {
         if (ratings?.Data == null) return Enumerable.Empty<SchoolRatingSpendingDto>();
@@ -148,6 +180,12 @@
     private double TotalFundFinais => FilteredEnrollments.Sum(x => x.Matricula6Ano + x.Matricula7Ano + x.Matricula8Ano + x.Matricula9Ano);
     private double TotalMedio => FilteredEnrollments.Sum(x => x.MatriculaMedio1Ano + x.MatriculaMedio2Ano + x.MatriculaMedio3Ano);
 
+    private double ProfCreche => FilteredTeachers.Sum(x => x.ProfessorCreche);
+    private double ProfPreEscola => FilteredTeachers.Sum(x => x.ProfessorPreEscola);
+    private double ProfFundIniciais => FilteredTeachers.Sum(x => x.ProfessorEFIniciais);
+    private double ProfFundFinais => FilteredTeachers.Sum(x => x.ProfessorEFFinais);
+    private double ProfMedio => FilteredTeachers.Sum(x => x.ProfessorMedio);
+    private double ProfEspecial => FilteredTeachers.Sum(x => x.ProfessorEspecial);
     public void Dispose()
     {
         _objRef?.Dispose();
