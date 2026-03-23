@@ -1,0 +1,11 @@
+pandas
+selenium
+webdriver-manager
+bs4
+pdfplumber
+tqdm
+colorama
+openpyxl
+unidecode
+psycopg2-binary
+sqlalchemy

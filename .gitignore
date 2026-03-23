@@ -1,0 +1,17 @@
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+.DS_Store
+web-scraping/data/*
+!web-scraping/data/area_territorial_municipios.csv
+!web-scraping/data/pop_municipios.csv
+!web-scraping/data/localizacao_escolas.csv
+.venv/
+venv/
+.vscode/
+web-scraping/database.sql
+Arkhos.Api/obj/
+Arkhos.Core/obj/
+Arkhos.Web/obj/
+Arkhos.Web/bin/
+Arkhos.Web/wwwroot/lib/
