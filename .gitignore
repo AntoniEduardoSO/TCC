@@ -14,4 +14,6 @@ Arkhos.Api/obj/
 Arkhos.Core/obj/
 Arkhos.Web/obj/
 Arkhos.Web/bin/
+Arkhos.Core/bin/
+Arkhos.Api/bin/
 Arkhos.Web/wwwroot/lib/

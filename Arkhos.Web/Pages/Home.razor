@@ -16,13 +16,17 @@
 <PageTitle>Dashboard</PageTitle>
 
 
-@* <MudText Typo="Typo.h3" Class="mb-4">Rede de Ensino</MudText> *@
-
 <MudGrid>
     <MudItem xs="12" md="7">
         <MudStack Spacing="4">
-            <MudPaper Elevation="3" Class="d-flex align-center justify-center mud-width-full" Style="height: 500px">
+            <MudPaper Elevation="3" Class="d-flex align-center justify-center mud-width-full" Style="position: relative; height: 500px">
                 <div id="map" style="height:100%; width:100%; border-radius: 8px;"></div>
+                <MudFab Color="Color.Primary" 
+                    StartIcon="@Icons.Material.Filled.ArrowBack" 
+                    Label="Voltar"
+                    Size="Size.Small"
+                    Style="position: absolute; top: 10px; right: 10px; z-index: 1000;"
+                    @onclick="GoBack" />
             </MudPaper>
 
             <FinancialOverviewCard 
