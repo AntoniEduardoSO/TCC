@@ -5,13 +5,36 @@ using System.Diagnostics;
 using Arkhos.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
+using System.Text.Json;
+
 public static class AppExtension
 {
+    private static bool IsScrapingDone(string scriptDirectory)
+    {
+        var flagPath = Path.Combine(scriptDirectory, "status", "scraping_done.flag");
+
+        if (!File.Exists(flagPath))
+            return false;
+
+        try
+        {
+            var json = File.ReadAllText(flagPath);
+            var doc = JsonDocument.Parse(json);
+            
+            var status = doc.RootElement.GetProperty("status").GetString();
+
+            return status == "done";
+        }
+        catch
+        {
+            return false;
+        }
+    }
     private static void RunWebScraping()
     {
         try
         {
-            var comandoPython = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "python" : "python3";
+            var commandPython = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "python" : "python3";
             var basePath = Directory.GetCurrentDirectory();
 
             var scriptPath = Path.GetFullPath(Path.Combine(basePath,"..", "web-scraping", "main.py"));
@@ -22,10 +45,14 @@ public static class AppExtension
                 return;
             }
 
+            var scriptDirectory = Path.GetDirectoryName(scriptPath) ?? string.Empty;
+
+            var modo = IsScrapingDone(scriptDirectory) ? "2" : "1";
+
             var startInfo = new ProcessStartInfo
             {
-                FileName = comandoPython,
-                Arguments = $"\"{scriptPath}\"",
+                FileName = commandPython,
+                Arguments = $"\"{scriptPath}\" {modo}",
                 WorkingDirectory = Path.GetDirectoryName(scriptPath),
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -43,7 +70,7 @@ public static class AppExtension
 
                 if (process.ExitCode == 0)
                 {
-                    Console.WriteLine("Web-scraping executado com sucesso!");
+                    Console.WriteLine("Execução Python finalizada.");
                     Console.WriteLine(output);
                 }
                 else
@@ -69,7 +96,7 @@ public static class AppExtension
 
         if(!context.CityInfos.Any())
         {
-            Console.WriteLine("Tabela city_info vazia. Iniciando web-scraping...");
+            Console.WriteLine("Banco vazio.");
             RunWebScraping();
         }
         else
