@@ -7,4 +7,6 @@ namespace Arkhos.Core.Handlers;
 public interface ISchoolRatingsHandler
 {
     Task<Response<ICollection<SchoolRatingSpendingDto>>> GetByYearAsync(GetSchoolRatingByYearRequest request);
+
+    Task<Response<ICollection<SchoolRatingDropDto>>> GetDropByYearAsync(GetSchoolRatingDropByYearRequest request);
 }

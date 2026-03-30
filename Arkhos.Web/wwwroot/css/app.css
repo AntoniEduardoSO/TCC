@@ -135,3 +135,138 @@ code {
 .card .mud-typography-caption {
     opacity: 0.7;
 }
+
+.mud-dialog-title {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    color: #f1f5f9 !important;
+    padding: 16px 24px;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.mud-dialog-title > .mud-icon-button {
+    color: #f1f5f9;
+}
+
+.rendimento-card-dark {
+    background: #151c2c !important;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    color: white;
+    min-height: 220px;
+}
+
+
+.rendimento-layout {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 12px;
+}
+
+.rendimento-chart-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 120px;
+}
+
+.rendimento-legend-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.rendimento-legend-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.rendimento-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.rendimento-chip {
+    min-width: 58px;
+    width: 58px;
+    min-height: 32px;
+    height: 32px;
+    border-radius: 8px !important;
+    font-size: 15px;
+    font-weight: 700;
+    justify-content: center;
+    color: white !important;
+}
+
+.legend-marker {
+    width: 13px;
+    height: 13px;
+    min-width: 13px;
+    min-height: 13px;
+    border-radius: 3px;
+    display: block;
+    flex-shrink: 0;
+}
+
+.rendimento-donut-chart svg path {
+    stroke-width: 22 !important;
+    stroke-linecap: butt;
+    stroke-linejoin: round;
+}
+
+.rendimento-donut-chart svg {
+    overflow: visible;
+}
+
+.rendimento-donut-chart {
+    transform: scale(0.95);
+}
+
+.aprovado {
+    color: white;
+}
+
+.reprovado {
+    color: white;
+}
+
+.abandono {
+    color: white;
+}
+
+/* "#0072BB",
+            "#F9C131",
+            "#EF7655" */
+
+.aprovado-chip {
+    background: #0072BB !important;
+}
+
+.reprovado-chip {
+    background: #F9C131 !important;
+}
+
+.abandono-chip {
+    background: #EF7655 !important;
+}
+
+.aprovado-marker {
+    background: #0072BB;
+}
+
+.reprovado-marker {
+    background: #F9C131;
+}
+
+.abandono-marker {
+    background: #EF7655;
+}

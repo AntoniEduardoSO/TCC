@@ -15,11 +15,11 @@ public class SchoolRating
 
     public double WellbeingRating {get;set;}
 
-    public double HumanSupportRating {get;set;}
+    public double? HumanSupportRating {get;set;}
 
     public double ManagementRating {get;set;}
 
-    public double AgeGradeDistortionRating {get;set;}
+    public double? AgeGradeDistortionRating {get;set;}
 
     public double PedagogicalRating {get;set;}
 

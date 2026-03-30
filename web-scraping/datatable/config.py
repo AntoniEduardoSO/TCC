@@ -1,7 +1,10 @@
+# -*- coding: utf-8 -*-
+
 import csv
 import pandas as pd
 from sqlalchemy import create_engine
 import psycopg2
+from psycopg2.extras import execute_values
 
 DB_HOST = 'localhost'
 DB_NAME = 'arkhos'
@@ -21,44 +24,47 @@ def connect_to_db():
     )
 
 def exec_school_infra_values(conn, cur):
-    query = """
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS school_infra_values_staging (
+            id TEXT,
+            ano TEXT,
+            id_escola TEXT,
+            id_atributo TEXT,
+            tipo_atributo TEXT,
+            valor TEXT
+            );
+    """)
+
+    cur.execute("TRUNCATE school_infra_values_staging")
+
+    with open('data/Infraestrutura/infrastructure_values.csv', 'r', encoding='utf-8-sig') as f:
+        cur.copy_expert("""
+            COPY school_infra_values_staging
+            FROM STDIN
+            WITH CSV HEADER
+        """, f)
+
+    cur.execute("""
         INSERT INTO school_infra_values (
-            ano, id_escola_fk, id_atributo, tipo_atributo, valor
-        ) VALUES (
-            %(ano)s, %(id_escola)s, %(id_atributo)s, %(tipo_atributo)s, %(valor)s
+            ano,
+            id_escola_fk,
+            id_atributo,
+            tipo_atributo,
+            valor
         )
-    """
-    lote_dados = []
+        SELECT
+            NULLIF(TRIM(ano), '')::INT,
+            NULLIF(TRIM(id_escola), '')::INT,
+            NULLIF(TRIM(id_atributo), '')::INT,
+            NULLIF(TRIM(tipo_atributo), ''),
+            NULLIF(TRIM(valor), '')::FLOAT
+        FROM school_infra_values_staging
+        ON CONFLICT DO NOTHING;
+    """)
 
-    with open('data/Infraestrutura/infrastructure_values.csv', 'r', encoding='utf-8-sig') as file:
-        data_reader = csv.DictReader(file)
+    cur.execute("TRUNCATE school_infra_values_staging")
 
-        for row in data_reader:
-
-            for key, value in row.items():
-                if value is None or value.strip() == "":
-                    row[key] = None
-
-            if row.get('id_escola') is not None:
-                row['id_escola'] = int(float(row['id_escola'].strip()))
-                
-            if row.get('ano') is not None:
-                row['ano'] = int(float(row['ano'].strip()))
-
-            if row.get('id_atributo') is not None:
-                row['id_atributo'] = int(float(row['id_atributo'].strip()))
-
-            if row.get('valor') is not None:
-                row['valor'] = float(row['valor'].strip())
-
-            lote_dados.append(row)
-            if len(lote_dados) == 5000:
-                cur.executemany(query, lote_dados)
-                lote_dados = [] 
-
-        if lote_dados:
-            cur.executemany(query, lote_dados)
-    
     conn.commit()
 
 def exec_school_infra_dict(conn, cur):
@@ -137,45 +143,28 @@ def exec_school_enroll_dict(conn,cur):
     conn.commit()
 
 def exec_school_enroll_values(conn, cur):
+
+    df = pd.read_csv('data/Matricula/enroll_values.csv', encoding='utf-8-sig')
+
+    df = df.where(pd.notnull(df), None)
+
+    df['id_escola'] = pd.to_numeric(df['id_escola'], errors='coerce')
+    df['ano'] = pd.to_numeric(df['ano'], errors='coerce')
+    df['id_atributo'] = pd.to_numeric(df['id_atributo'], errors='coerce')
+    df['valor'] = pd.to_numeric(df['valor'], errors='coerce')
+    df = df[['ano', 'id_escola', 'id_atributo', 'tipo_atributo', 'valor']]
+
+    data = list(df.itertuples(index=False, name=None))
+
     query = """
         INSERT INTO school_enroll_values (
             ano, id_escola_fk, id_atributo, tipo_atributo, valor
-        ) VALUES (
-            %(ano)s, %(id_escola)s, %(id_atributo)s, %(tipo_atributo)s, %(valor)s
-        )
+        ) VALUES %s
+        ON CONFLICT DO NOTHING
     """
 
-    lote_dados = []
+    execute_values(cur, query, data, page_size=10000)
 
-    with open('data/Matricula/enroll_values.csv', 'r', encoding='utf-8-sig') as file:
-        data_reader = csv.DictReader(file)
-
-        for row in data_reader:
-
-            for key, value in row.items():
-                if value is None or value.strip() == "":
-                    row[key] = None
-
-            if row.get('id_escola') is not None:
-                row['id_escola'] = int(float(row['id_escola'].strip()))
-                
-            if row.get('ano') is not None:
-                row['ano'] = int(float(row['ano'].strip()))
-
-            if row.get('id_atributo') is not None:
-                row['id_atributo'] = int(float(row['id_atributo'].strip()))
-
-            if row.get('valor') is not None:
-                row['valor'] = float(row['valor'].strip())
-
-            lote_dados.append(row)
-            if len(lote_dados) == 5000:
-                cur.executemany(query, lote_dados)
-                lote_dados = [] 
-
-        if lote_dados:
-            cur.executemany(query, lote_dados)
-    
     conn.commit()
 
 def exec_school_rating(conn, cur):
@@ -189,45 +178,65 @@ def exec_school_rating(conn, cur):
             spending_per_student, spending_per_teacher, pedagogical_spending_per_student, 
             infrastructure_spending_per_student, meal_spending_per_student, 
             transport_spending_per_student, approval_rate, failure_rate, 
-            dropout_rate
-        ) VALUES (
-            %(id_escola)s, %(ano)s, %(acessibility_rating)s, %(recreation_rating)s,
-            %(wellbeing_rating)s, %(human_support_rating)s, %(management_rating)s,
-            %(age_grade_distortion_rating)s, %(pedagogical_rating)s, %(teacher_stress_rating)s,
-            %(teacher_instability_rating)s, %(administrative_burden_rating)s,
-            %(spending_per_student)s, %(spending_per_teacher)s, %(pedagogical_spending_per_student)s,
-            %(infrastructure_spending_per_student)s, %(meal_spending_per_student)s,
-            %(transport_spending_per_student)s, %(approval_rate)s, %(failure_rate)s,
-            %(dropout_rate)s
-        )
+            dropout_rate, ideb_rating, saeb_rating
+        ) VALUES %s
+        ON CONFLICT DO NOTHING
     """
 
-    lote_dados = []
+    def to_int(val):
+        try:
+            return int(float(val)) if val and val.strip() != "" else None
+        except:
+            return None
+
+    def to_float(val):
+        try:
+            return float(val) if val and val.strip() != "" else None
+        except:
+            return None
+
+    lote = []
 
     with open('data/Geral/school_ratings.csv', 'r', encoding='utf-8-sig') as file:
-        data_reader = csv.DictReader(file)
+        reader = csv.DictReader(file)
 
-        for row in data_reader:
+        for row in reader:
 
-            for key, value in row.items():
-                if value is None or value.strip() == "":
-                    row[key] = None
+            parsed = (
+                to_int(row.get('id_escola')),
+                to_int(row.get('ano')),
+                to_float(row.get('acessibility_rating')),
+                to_float(row.get('recreation_rating')),
+                to_float(row.get('wellbeing_rating')),
+                to_float(row.get('human_support_rating')),
+                to_float(row.get('management_rating')),
+                to_float(row.get('age_grade_distortion_rating')),
+                to_float(row.get('pedagogical_rating')),
+                to_float(row.get('teacher_stress_rating')),
+                to_float(row.get('teacher_instability_rating')),
+                to_float(row.get('administrative_burden_rating')),
+                to_float(row.get('spending_per_student')),
+                to_float(row.get('spending_per_teacher')),
+                to_float(row.get('pedagogical_spending_per_student')),
+                to_float(row.get('infrastructure_spending_per_student')),
+                to_float(row.get('meal_spending_per_student')),
+                to_float(row.get('transport_spending_per_student')),
+                to_float(row.get('approval_rate')),
+                to_float(row.get('failure_rate')),
+                to_float(row.get('dropout_rate')),
+                to_float(row.get('ideb_rating')),
+                to_float(row.get('saeb_rating')),
+            )
 
-            if row.get('id_escola') is not None:
-                row['id_escola'] = int(float(row['id_escola'].strip()))
-                
-            if row.get('ano') is not None:
-                row['ano'] = int(float(row['ano'].strip()))
+            lote.append(parsed)
 
-            lote_dados.append(row)
+            if len(lote) >= 10000:
+                execute_values(cur, query, lote)
+                lote.clear()
 
-            if len(lote_dados) == 5000:
-                cur.executemany(query, lote_dados)
-                lote_dados = [] 
+        if lote:
+            execute_values(cur, query, lote)
 
-        if lote_dados:
-            cur.executemany(query, lote_dados)
-    
     conn.commit()
 
 def exec_school_info( conn, cur):
@@ -366,6 +375,7 @@ def exec_city_info(conn, cur):
             %(id_microrregiao)s, %(nome_microrregiao)s,
             %(area_territorial)s, %(populacao_total)s, %(densidade_demografica)s
         )
+        ON CONFLICT (municipio_id, ano) DO NOTHING
     """
 
     lote_dados = df_cities.to_dict('records')

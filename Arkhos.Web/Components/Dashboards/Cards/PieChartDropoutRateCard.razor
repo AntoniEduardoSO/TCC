@@ -1,0 +1,88 @@
+@using MudBlazor
+
+<MudPaper Class="pa-4 rendimento-card-dark">
+    <MudText Typo="Typo.h6" Class="fw-bold mb-1" Style="color: #e2e8f0;">
+        Rendimento Escolar<span class="rendimento-accent">.</span>
+    </MudText>
+
+    <MudText Typo="Typo.caption" Class="rendimento-subtitle" Style="color: #a0aec0;">
+        Relação de aprovados, reprovados e abandonos em @Ano
+    </MudText>
+
+    <div class="rendimento-layout">
+        <div class="rendimento-chart-area">
+            <MudChart T="double" Class="rendimento-donut-chart" ChartType="ChartType.Donut" Width="120px" Height="120px"
+                      ChartSeries="@([data])" ChartOptions="@options" ShowLegend="false" />
+        </div>
+
+        <div class="rendimento-legend-area">
+            <div class="rendimento-legend-row">
+                <div class="rendimento-label">
+                    <span class="legend-marker aprovado-marker"></span>
+                    <MudText>Aprovados</MudText>
+                </div>
+                <MudChip T="string" Class="rendimento-chip aprovado-chip">
+                    @($"{(TotalAprovados*100):0.0}%")
+                </MudChip>
+            </div>
+
+            <div class="rendimento-legend-row">
+                <div class="rendimento-label">
+                    <span class="legend-marker reprovado-marker"></span>
+                    <MudText>Reprovados</MudText>
+                </div>
+                <MudChip T="string" Class="rendimento-chip reprovado-chip">
+                    @($"{(TotalReprovados*100):0.0}%")
+                </MudChip>
+            </div>
+
+            <div class="rendimento-legend-row">
+                <div class="rendimento-label">
+                    <span class="legend-marker abandono-marker"></span>
+                    <MudText>Abandonos</MudText>
+                </div>
+                <MudChip T="string" Class="rendimento-chip abandono-chip">
+                    @($"{(TotalAbandonos*100):0.0}%")
+                </MudChip>
+            </div>
+        </div>
+    </div>
+</MudPaper>
+
+
+@code {
+    [Parameter] public int Ano { get; set; } = 2024;
+    [Parameter] public double? TotalAprovados { get; set; }
+    [Parameter] public double? TotalReprovados { get; set; }
+    [Parameter] public double? TotalAbandonos { get; set; }
+
+
+    ChartOptions options = new ChartOptions();
+    private int Index = -1;
+    private double[] data = Array.Empty<double>();
+    private string[] labels =
+    [
+        "Aprovados",
+        "Reprovados",
+        "Abandonos"
+    ];
+    protected override void OnParametersSet()
+    {
+        data =
+        [
+            Math.Sqrt(TotalAprovados -0.5 ?? 0),
+            Math.Sqrt(TotalReprovados ?? 0),
+            Math.Sqrt(TotalAbandonos ?? 0)
+        ];
+    }
+    protected override void OnInitialized()
+    {
+        string[] colors = {
+            "#0072BB",
+            "#F9C131",
+            "#EF7655"
+        };
+
+        options.ChartPalette = colors;
+    }
+}

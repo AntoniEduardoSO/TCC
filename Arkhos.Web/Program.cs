@@ -22,6 +22,7 @@ builder.Services.AddHttpClient(Configuration.HttpClientName, options =>
 builder.Services.AddScoped<ISchoolInfosHandler, SchoolInfoHandler>();
 builder.Services.AddScoped<ISchoolRatingsHandler, SchoolRatingHandler>();
 builder.Services.AddScoped<ISchoolEnrollValuesHandler, SchoolEnrollValuesHandler>();
+builder.Services.AddScoped<ICityInfosHandler, CityInfosHandler>();
 
 
 await builder.Build().RunAsync();

@@ -70,4 +70,59 @@ public class SchoolRatingsHandler(AppDbContext context) : ISchoolRatingsHandler
             return new Response<ICollection<SchoolRatingSpendingDto>>(null, 500, "Não foi possível consultar os ratings");
         }
     }
+
+    public async Task<Response<ICollection<SchoolRatingDropDto>>> GetDropByYearAsync(GetSchoolRatingDropByYearRequest request)
+    {
+        var swTotal = Stopwatch.StartNew();
+        try
+        {
+            var swDb = Stopwatch.StartNew();
+            
+            var query = context.SchoolRatings
+                .AsNoTracking()
+                .Where(x => x.Ano == request.Year)
+                .Select(x => new SchoolRatingDropDto
+                {
+                    Ano = x.Ano,
+                    SchoolInfoId = x.SchoolInfoId,
+                    ApprovalRate = x.ApprovalRate,
+                    FailureRate = x.FailureRate,
+                    DropoutRate = x.DropoutRate,
+                    MesorregiaoId = x.SchoolInfo.CityInfo.IdMesorregiao,
+                    MicrorregiaoId = x.SchoolInfo.CityInfo.IdMicrorregiao,
+                    MunicipioId = x.SchoolInfo.CityInfo.MunicipioId
+                });
+
+
+            if (request.Limit.HasValue)
+                query = query.Take(request.Limit.Value);
+
+
+            var schooldrop = await query.ToListAsync();
+
+            swDb.Stop();
+            
+
+            Console.WriteLine($"DB + Materialização: {swDb.ElapsedMilliseconds} ms");
+            Console.WriteLine($"Quantidade: {schooldrop.Count}");
+
+            var swSerialize = Stopwatch.StartNew();
+
+            var json = System.Text.Json.JsonSerializer.Serialize(schooldrop);
+
+            swSerialize.Stop();
+
+            Console.WriteLine($"Serialização: {swSerialize.ElapsedMilliseconds} ms");
+            Console.WriteLine($"Tamanho JSON: {System.Text.Encoding.UTF8.GetByteCount(json) / 1024.0 / 1024.0:F2} MB");
+
+            swTotal.Stop();
+            Console.WriteLine($"TOTAL (até aqui): {swTotal.ElapsedMilliseconds} ms");
+
+            return new Response<ICollection<SchoolRatingDropDto>>(schooldrop, message: "Retornado com sucesso o schooldrop.");
+        }
+        catch
+        {
+            return new Response<ICollection<SchoolRatingDropDto>>(null, 500, "Não foi possível consultar os dropouts");
+        }
+    }
 }

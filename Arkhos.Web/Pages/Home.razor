@@ -16,49 +16,46 @@
 <PageTitle>Dashboard</PageTitle>
 
 
-<MudGrid>
-    <MudItem xs="12" md="7">
+<MudGrid Spacing="2">
+    <MudItem xs="12" md="6">
         <MudStack Spacing="4">
-            <MudPaper Elevation="3" Class="d-flex align-center justify-center mud-width-full" Style="position: relative; height: 500px">
+            <MudPaper Elevation="3" Class="d-flex align-center justify-center mud-width-full"
+                      Style="position: relative; height: 500px">
                 <div id="map" style="height:100%; width:100%; border-radius: 8px;"></div>
-                <MudFab Color="Color.Primary" 
-                    StartIcon="@Icons.Material.Filled.ArrowBack" 
-                    Label="Voltar"
-                    Size="Size.Small"
-                    Style="position: absolute; top: 10px; right: 10px; z-index: 1000;"
-                    @onclick="GoBack" />
+                <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.ArrowBack" Label="Voltar"
+                        Size="Size.Small" Style="position: absolute; top: 10px; right: 10px; z-index: 1000;"
+                        @onclick="GoBack" />
             </MudPaper>
 
-            <FinancialOverviewCard 
-                AvgStudent="@AvgSpendingPerStudent" 
-                AvgTeacher="@AvgSpendingPerTeacher" 
-                AvgInfra="@AvgInfrastructure" 
-                AvgTransport="@AvgTransport" 
-                AvgMeal="@AvgMeal" />
+            <FinancialOverviewCard AvgStudent="@AvgSpendingPerStudent" AvgTeacher="@AvgSpendingPerTeacher"
+                                   AvgInfra="@AvgInfrastructure" AvgTransport="@AvgTransport" AvgMeal="@AvgMeal"
+                                   TotalGasto="@TotalGasto" />
+                
         </MudStack>
     </MudItem>
 
-    <MudItem xs="12" md="5">
-        <MudStack Spacing="2">
+    <MudItem xs="12" md="6">
+        <MudGrid Spacing="2">
+            <MudItem xs="12" md="6">
+                <MudStack Spacing="2">
+                    <EnrollmentOverviewCard Ano="2024" TotalCreche="@TotalCreche" TotalPreEscola="@TotalPreEscola"
+                                            TotalFundIniciais="@TotalFundIniciais" TotalFundFinais="@TotalFundFinais"
+                                            TotalMedio="@TotalMedio" />
 
-            <EnrollmentOverviewCard
-                Ano="2024"
-                TotalCreche="@TotalCreche" 
-                TotalPreEscola="@TotalPreEscola" 
-                TotalFundIniciais="@TotalFundIniciais" 
-                TotalFundFinais="@TotalFundFinais" 
-                TotalMedio="@TotalMedio" />
-            
-            <TeachersOverviewCard 
-                Ano="2024"
-                TotalCreche="@ProfCreche" 
-                TotalPreEscola="@ProfPreEscola" 
-                TotalFundIniciais="@ProfFundIniciais" 
-                TotalFundFinais="@ProfFundFinais" 
-                TotalMedio="@ProfMedio"
-                TotalEspecial="@ProfEspecial" />
+                    <TeachersOverviewCard Ano="2024" TotalCreche="@ProfCreche" TotalPreEscola="@ProfPreEscola"
+                                          TotalFundIniciais="@ProfFundIniciais" TotalFundFinais="@ProfFundFinais" TotalMedio="@ProfMedio"
+                                          TotalEspecial="@ProfEspecial" />
+                </MudStack>
+            </MudItem>
 
-        </MudStack>
+            <MudItem xs="12" md="6">
+                <PieChartDropoutRateCard 
+                TotalAbandonos="@TotalAbandonos" 
+                TotalAprovados="@TotalAprovados" 
+                TotalReprovados="@TotalReprovados"/>
+            </MudItem>
+        </MudGrid>
+
     </MudItem>
 
 </MudGrid>
@@ -68,6 +65,7 @@
     private Response<ICollection<SchoolRatingSpendingDto>>? ratings;
     private Response<ICollection<SchoolEnrollValuesStudentsDto>>? enrollments;
     private Response<ICollection<SchoolEnrollValuesTeachersDto>>? teachers;
+    private Response<ICollection<SchoolRatingDropDto>>? dropouts;
     private bool _mapRendered = false;
     private IEnumerable<SchoolRatingSpendingDto> Filtered => GetFilteredRatings();
     private IEnumerable<SchoolEnrollValuesStudentsDto> FilteredEnrollments => GetFilteredEnrollments();
@@ -89,12 +87,14 @@
         var ratingRequest = new GetSchoolRatingByYearRequest { Year = 2024 };
         ratings = await RatingHandler.GetByYearAsync(ratingRequest);
 
-        var enrollmentRequest = new GetStudentsWithSeriesByYearRequest {Year = 2024};
+        var enrollmentRequest = new GetStudentsWithSeriesByYearRequest { Year = 2024 };
         enrollments = await EnrollHandler.GetStudentsWithSeriesByYearAsync(enrollmentRequest);
 
         var teacherRequest = new GetTeachersWithSeriesByYearRequest { Year = 2024 };
         teachers = await TeachersHandler.GetTeachersWithSeriesByYearAsync(teacherRequest);
 
+        var dropoutRequest = new GetSchoolRatingDropByYearRequest { Year = 2024 };
+        dropouts = await RatingHandler.GetDropByYearAsync(dropoutRequest);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -134,6 +134,19 @@
             _ => teachers.Data
         };
     }
+    private IEnumerable<SchoolRatingDropDto> GetFilteredDropouts()
+    {
+        if (dropouts?.Data == null) return Enumerable.Empty<SchoolRatingDropDto>();
+        if (_currentId == null) return dropouts.Data;
+
+        return _currentLevel switch
+        {
+            "meso" => dropouts.Data.Where(x => x.MesorregiaoId == _currentId),
+            "micro" => dropouts.Data.Where(x => x.MicrorregiaoId == _currentId),
+            "municipio" => dropouts.Data.Where(x => x.MunicipioId == _currentId),
+            _ => dropouts.Data
+        };
+    }
     private IEnumerable<SchoolRatingSpendingDto> GetFilteredRatings()
     {
         if (ratings?.Data == null) return Enumerable.Empty<SchoolRatingSpendingDto>();
@@ -164,32 +177,44 @@
     }
 
     private double AvgSpendingPerStudent =>
-        Filtered.Any() ? Filtered.Average(x => x.SpendingPerStudent) : 0;
+        Filtered.Any() ? Filtered.Average(x => x.SpendingPerStudent) / 12 : 0;
 
     private double AvgSpendingPerTeacher =>
-        Filtered.Any() ? Filtered.Average(x => x.SpendingPerTeacher) : 0;
+        Filtered.Any() ? Filtered.Average(x => x.SpendingPerTeacher) / 12 : 0;
 
     private double AvgInfrastructure =>
-       Filtered.Any() ? Filtered.Average(x => x.InfrastructureSpendingPerStudent) : 0;
+       Filtered.Any() ? Filtered.Average(x => x.InfrastructureSpendingPerStudent) / 12 : 0;
 
     private double AvgTransport =>
-        Filtered.Any() ? Filtered.Average(x => x.TransportSpendingPerStudent) : 0;
+        Filtered.Any() ? Filtered.Average(x => x.TransportSpendingPerStudent) / 12 : 0;
 
     private double AvgMeal =>
-        Filtered.Any() ? Filtered.Average(x => x.MealSpendingPerStudent) : 0;
+        Filtered.Any() ? Filtered.Average(x => x.MealSpendingPerStudent) / 12 : 0;
+    
+    private double TotalGasto => ((TotalAlunos * AvgSpendingPerStudent) / 12);
+
 
     private double TotalCreche => FilteredEnrollments.Sum(x => x.MatriculaCreche);
     private double TotalPreEscola => FilteredEnrollments.Sum(x => x.MatriculaPreEscola);
-    private double TotalFundIniciais => FilteredEnrollments.Sum(x => x.Matricula1Ano + x.Matricula2Ano + x.Matricula3Ano + x.Matricula4Ano + x.Matricula5Ano);
-    private double TotalFundFinais => FilteredEnrollments.Sum(x => x.Matricula6Ano + x.Matricula7Ano + x.Matricula8Ano + x.Matricula9Ano);
-    private double TotalMedio => FilteredEnrollments.Sum(x => x.MatriculaMedio1Ano + x.MatriculaMedio2Ano + x.MatriculaMedio3Ano);
-
+    private double TotalFundIniciais => FilteredEnrollments.Sum(x => x.Matricula1Ano + x.Matricula2Ano + x.Matricula3Ano +
+x.Matricula4Ano + x.Matricula5Ano);
+    private double TotalFundFinais => FilteredEnrollments.Sum(x => x.Matricula6Ano + x.Matricula7Ano + x.Matricula8Ano +
+x.Matricula9Ano);
+    private double TotalMedio => FilteredEnrollments.Sum(x => x.MatriculaMedio1Ano + x.MatriculaMedio2Ano +
+x.MatriculaMedio3Ano);
+    private double TotalAlunos =>
+        TotalCreche + TotalPreEscola + TotalFundIniciais + TotalFundFinais + TotalMedio;
     private double ProfCreche => FilteredTeachers.Sum(x => x.ProfessorCreche);
     private double ProfPreEscola => FilteredTeachers.Sum(x => x.ProfessorPreEscola);
     private double ProfFundIniciais => FilteredTeachers.Sum(x => x.ProfessorEFIniciais);
     private double ProfFundFinais => FilteredTeachers.Sum(x => x.ProfessorEFFinais);
     private double ProfMedio => FilteredTeachers.Sum(x => x.ProfessorMedio);
     private double ProfEspecial => FilteredTeachers.Sum(x => x.ProfessorEspecial);
+
+    private double? TotalAbandonos => GetFilteredDropouts().Average(x => x.DropoutRate);
+    private double? TotalAprovados => GetFilteredDropouts().Average(x => x.ApprovalRate);
+    private double? TotalReprovados => GetFilteredDropouts().Average(x => x.FailureRate);
+
     public void Dispose()
     {
         _objRef?.Dispose();

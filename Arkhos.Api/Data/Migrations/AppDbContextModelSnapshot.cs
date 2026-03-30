@@ -326,7 +326,7 @@ namespace Arkhos.Api.Migrations
                         .HasColumnType("numeric(7,4)")
                         .HasColumnName("administrative_burden_rating");
 
-                    b.Property<double>("AgeGradeDistortionRating")
+                    b.Property<double?>("AgeGradeDistortionRating")
                         .HasColumnType("numeric(7,4)")
                         .HasColumnName("age_grade_distortion_rating");
 
@@ -346,7 +346,7 @@ namespace Arkhos.Api.Migrations
                         .HasColumnType("numeric(7,4)")
                         .HasColumnName("failure_rate");
 
-                    b.Property<double>("HumanSupportRating")
+                    b.Property<double?>("HumanSupportRating")
                         .HasColumnType("numeric(7,4)")
                         .HasColumnName("human_support_rating");
 
