@@ -11,10 +11,13 @@
 @inject ISchoolRatingsHandler RatingHandler
 @inject ISchoolEnrollValuesHandler EnrollHandler
 @inject ISchoolEnrollValuesHandler TeachersHandler
+@inject DashboardStateService DashboardState
 @inject IJSRuntime JS
 
 <PageTitle>Dashboard</PageTitle>
 
+<AiInsightCard Title="@InsightTitle" HighlightValue="@($"{Math.Round((TotalAprovados * 100 ?? 0), 1)}%")"
+               Recommendation="@InsightRecommendation" />
 
 <MudGrid Spacing="2">
     <MudItem xs="12" md="6">
@@ -38,21 +41,28 @@
         <MudGrid Spacing="2">
             <MudItem xs="12" md="6">
                 <MudStack Spacing="2">
-                    <EnrollmentOverviewCard Ano="2024" TotalCreche="@TotalCreche" TotalPreEscola="@TotalPreEscola"
-                                            TotalFundIniciais="@TotalFundIniciais" TotalFundFinais="@TotalFundFinais"
-                                            TotalMedio="@TotalMedio" />
+                    <EnrollmentOverviewCard Ano="@DashboardState.SelectedYear" TotalCreche="@TotalCreche"
+                                            TotalPreEscola="@TotalPreEscola" TotalFundIniciais="@TotalFundIniciais"
+                                            TotalFundFinais="@TotalFundFinais" TotalMedio="@TotalMedio" />
 
-                    <TeachersOverviewCard Ano="2024" TotalCreche="@ProfCreche" TotalPreEscola="@ProfPreEscola"
-                                          TotalFundIniciais="@ProfFundIniciais" TotalFundFinais="@ProfFundFinais" TotalMedio="@ProfMedio"
-                                          TotalEspecial="@ProfEspecial" />
+                    
+                    <GovernanceSupportCard Psychologists="8" SocialAssistants="12" Libras="5" HasCouncil="true"
+                                           HasParentsAssociation="true" HasStudentUnion="false" />
                 </MudStack>
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <PieChartDropoutRateCard 
-                TotalAbandonos="@TotalAbandonos" 
-                TotalAprovados="@TotalAprovados" 
-                TotalReprovados="@TotalReprovados"/>
+                <MudStack Spacing="2">
+                    <PieChartDropoutRateCard TotalAbandonos="@TotalAbandonos" TotalAprovados="@TotalAprovados"
+                                             TotalReprovados="@TotalReprovados" />
+
+                    <InfrastructureQualityCard Accessibility="78" Pedagogical="64" WellBeing="81" />
+
+                    <TeachersOverviewCard Ano="@DashboardState.SelectedYear" TotalCreche="@ProfCreche"
+                                          TotalPreEscola="@ProfPreEscola" TotalFundIniciais="@ProfFundIniciais"
+                                          TotalFundFinais="@ProfFundFinais" TotalMedio="@ProfMedio" TotalEspecial="@ProfEspecial" />
+
+                </MudStack>
             </MudItem>
         </MudGrid>
 
@@ -71,30 +81,71 @@
     private IEnumerable<SchoolEnrollValuesStudentsDto> FilteredEnrollments => GetFilteredEnrollments();
     private IEnumerable<SchoolEnrollValuesTeachersDto> FilteredTeachers => GetFilteredTeachers();
 
+    
     private DotNetObjectReference<Home>? _objRef;
 
     private string? _currentLevel;
     private int? _currentId;
 
-
     protected override async Task OnInitializedAsync()
     {
         _objRef = DotNetObjectReference.Create(this);
 
-        var request = new GetSchoolInfoByYearRequest { Year = 2024 };
-        response = await Handler.GetByYearAsync(request);
+        DashboardState.OnYearChanged += ReloadByYear;
 
-        var ratingRequest = new GetSchoolRatingByYearRequest { Year = 2024 };
-        ratings = await RatingHandler.GetByYearAsync(ratingRequest);
+        await LoadDashboardDataAsync();
+    }
 
-        var enrollmentRequest = new GetStudentsWithSeriesByYearRequest { Year = 2024 };
-        enrollments = await EnrollHandler.GetStudentsWithSeriesByYearAsync(enrollmentRequest);
+    private async void ReloadByYear()
+    {
+        await LoadDashboardDataAsync();
 
-        var teacherRequest = new GetTeachersWithSeriesByYearRequest { Year = 2024 };
-        teachers = await TeachersHandler.GetTeachersWithSeriesByYearAsync(teacherRequest);
+        if (response?.Data != null)
+            await JS.InvokeVoidAsync("updateMarkers", response.Data);
 
-        var dropoutRequest = new GetSchoolRatingDropByYearRequest { Year = 2024 };
-        dropouts = await RatingHandler.GetDropByYearAsync(dropoutRequest);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadDashboardDataAsync()
+    {
+        DashboardState.SetLoading(true);
+
+        try
+        {
+            var request = new GetSchoolInfoByYearRequest
+            {
+                Year = DashboardState.SelectedYear
+            };
+            response = await Handler.GetByYearAsync(request);
+
+            var ratingRequest = new GetSchoolRatingByYearRequest
+            {
+                Year = DashboardState.SelectedYear
+            };
+            ratings = await RatingHandler.GetByYearAsync(ratingRequest);
+
+            var enrollmentRequest = new GetStudentsWithSeriesByYearRequest
+            {
+                Year = DashboardState.SelectedYear
+            };
+            enrollments = await EnrollHandler.GetStudentsWithSeriesByYearAsync(enrollmentRequest);
+
+            var teacherRequest = new GetTeachersWithSeriesByYearRequest
+            {
+                Year = DashboardState.SelectedYear
+            };
+            teachers = await TeachersHandler.GetTeachersWithSeriesByYearAsync(teacherRequest);
+
+            var dropoutRequest = new GetSchoolRatingDropByYearRequest
+            {
+                Year = DashboardState.SelectedYear
+            };
+            dropouts = await RatingHandler.GetDropByYearAsync(dropoutRequest);
+        }
+        finally
+        {
+            DashboardState.SetLoading(false);
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -215,8 +266,13 @@ x.MatriculaMedio3Ano);
     private double? TotalAprovados => GetFilteredDropouts().Average(x => x.ApprovalRate);
     private double? TotalReprovados => GetFilteredDropouts().Average(x => x.FailureRate);
 
+    private string InsightTitle => $"Aprovação média atinge {Math.Round(((TotalAprovados * 100) ?? 0), 1)}% nas regiões analisadas";
+    private string InsightDescription => "A análise consolidada identificou predominância de aprovação escolar nas regiões filtradas, com estabilidade nos índices de abandono.";
+    private string InsightRecommendation => "Reforçar ações nas regiões com reprovação acima da média e manter alocação eficiente de docentes.";
+
     public void Dispose()
     {
+        DashboardState.OnYearChanged -= ReloadByYear;
         _objRef?.Dispose();
     }
 }

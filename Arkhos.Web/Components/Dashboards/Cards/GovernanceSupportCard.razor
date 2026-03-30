@@ -1,0 +1,126 @@
+<MudPaper Class="gov-card" Elevation="1">
+    <MudText Class="gov-title" Style="color: #e2e8f0;">
+        Equipe Técnica e Governança.
+    </MudText>
+
+    <MudText Class="gov-subtitle">
+        Suporte especializado e órgãos colegiados da rede.
+    </MudText>
+
+    <div class="gov-metrics">
+        <div class="gov-box">
+            <div class="gov-value">@Psychologists</div>
+            <div class="gov-label">Psicólogos</div>
+        </div>
+
+        <div class="gov-box">
+            <div class="gov-value">@SocialAssistants</div>
+            <div class="gov-label">Assist. Social</div>
+        </div>
+
+        <div class="gov-box">
+            <div class="gov-value">@Libras</div>
+            <div class="gov-label">Libras</div>
+        </div>
+    </div>
+
+    <div class="gov-orgs">
+        <div class="gov-org-row">
+            <span>Conselho Escolar</span>
+            <MudIcon Icon="@(HasCouncil? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)"
+                     Class="@(HasCouncil ? "ok" : "fail")" />
+        </div>
+
+        <div class="gov-org-row">
+            <span>Assoc. Pais e Mestres</span>
+            <MudIcon Icon="@(HasParentsAssociation? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)"
+                     Class="@(HasParentsAssociation ? "ok" : "fail")" />
+        </div>
+
+        <div class="gov-org-row">
+            <span>Grêmio Estudantil</span>
+            <MudIcon Icon="@(HasStudentUnion? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)"
+                     Class="@(HasStudentUnion ? "ok" : "fail")" />
+        </div>
+    </div>
+</MudPaper>
+
+<style>
+    .gov-card {
+        padding: 18px;
+        border-radius: 12px;
+        background: #1a1f2e;
+    }
+
+    .gov-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: white;
+    }
+
+    .gov-title span {
+        color: #38bdf8;
+    }
+
+    .gov-subtitle {
+        font-size: 13px;
+        color: #94a3b8;
+        margin-bottom: 16px;
+    }
+
+    .gov-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .gov-box {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 6px; 
+        border: 2px solid #2d3748;
+        padding: 14px;
+        text-align: center;
+    }
+
+    .gov-value {
+        font-size: 26px;
+        font-weight: 800;
+        color: #22d3ee;
+    }
+
+    .gov-label {
+        font-size: 12px;
+        color: #cbd5e1;
+    }
+
+    .gov-org-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 12px;
+        border-radius: 6px; 
+        border: 2px solid #2d3748;
+        background: rgba(255, 255, 255, 0.02);
+        margin-bottom: 8px;
+        color: white;
+    }
+
+    .ok {
+        color: #22c55e;
+    }
+
+    .fail {
+        color: #ef4444;
+    }
+</style>
+
+@code {
+    [Parameter] public int Psychologists { get; set; }
+    [Parameter] public int SocialAssistants { get; set; }
+    [Parameter] public int Libras { get; set; }
+
+    [Parameter] public bool HasCouncil { get; set; }
+    [Parameter] public bool HasParentsAssociation { get; set; }
+    [Parameter] public bool HasStudentUnion { get; set; }
+}

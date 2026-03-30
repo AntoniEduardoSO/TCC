@@ -22,10 +22,10 @@
     @* Gap em 2 para separar as caixinhas *@
     <div class="d-flex flex-column gap-2">
         
-        @* py-2 para devolver a altura interna da linha *@
+        @* py-1 para devolver a altura interna da linha *@
         
         @* Creche *@
-        <div class="d-flex justify-space-between align-center px-3 py-2" style="background-color: transparent; border-radius: 6px; border: 1px solid #2d3748;">
+        <div class="d-flex justify-space-between align-center px-3 py-1" style="background-color: transparent; border-radius: 6px; border: 1px solid #2d3748;">
             <div class="d-flex align-center gap-2">
                 <MudIcon Icon="@Icons.Material.Filled.ChildCare" Size="Size.Small" Style="color: #94a3b8; font-size: 1rem;"/>
                 <MudText Typo="Typo.body2" Style="color: #e2e8f0; font-weight: 500; font-size: 0.85rem;">Creche</MudText>
@@ -36,7 +36,7 @@
         </div>
 
         @* Pré-escola *@
-        <div class="d-flex justify-space-between align-center px-3 py-2" style="background-color: transparent; border-radius: 6px; border: 1px solid #2d3748;">
+        <div class="d-flex justify-space-between align-center px-3 py-1" style="background-color: transparent; border-radius: 6px; border: 1px solid #2d3748;">
             <div class="d-flex align-center gap-2">
                 <MudIcon Icon="@Icons.Material.Filled.EscalatorWarning" Size="Size.Small" Style="color: #94a3b8; font-size: 1rem;"/>
                 <MudText Typo="Typo.body2" Style="color: #e2e8f0; font-weight: 500; font-size: 0.85rem;">Pré-escola</MudText>
@@ -47,7 +47,7 @@
         </div>
 
         @* Ens. Fund (Iniciais) *@
-        <div class="d-flex justify-space-between align-center px-3 py-2" style="background-color: transparent; border-radius: 6px; border: 1px solid #2d3748;">
+        <div class="d-flex justify-space-between align-center px-3 py-1" style="background-color: transparent; border-radius: 6px; border: 1px solid #2d3748;">
             <div class="d-flex align-center gap-2">
                 <MudIcon Icon="@Icons.Material.Filled.MenuBook" Size="Size.Small" Style="color: #94a3b8; font-size: 1rem;"/>
                 <MudText Typo="Typo.body2" Style="color: #e2e8f0; font-weight: 500; font-size: 0.85rem;">Ens. Fund. (Iniciais)</MudText>
@@ -58,7 +58,7 @@
         </div>
 
         @* Ens. Fund (Finais) *@
-        <div class="d-flex justify-space-between align-center px-3 py-2" style="background-color: transparent; border-radius: 6px; border: 1px solid #2d3748;">
+        <div class="d-flex justify-space-between align-center px-3 py-1" style="background-color: transparent; border-radius: 6px; border: 1px solid #2d3748;">
             <div class="d-flex align-center gap-2">
                 <MudIcon Icon="@Icons.Material.Filled.AutoStories" Size="Size.Small" Style="color: #94a3b8; font-size: 1rem;"/>
                 <MudText Typo="Typo.body2" Style="color: #e2e8f0; font-weight: 500; font-size: 0.85rem;">Ens. Fund. (Finais)</MudText>
@@ -69,24 +69,13 @@
         </div>
 
         @* Ensino Médio *@
-        <div class="d-flex justify-space-between align-center px-3 py-2" style="background-color: transparent; border-radius: 6px; border: 1px solid #2d3748;">
+        <div class="d-flex justify-space-between align-center px-3 py-1" style="background-color: transparent; border-radius: 6px; border: 1px solid #2d3748;">
             <div class="d-flex align-center gap-2">
                 <MudIcon Icon="@Icons.Material.Filled.School" Size="Size.Small" Style="color: #94a3b8; font-size: 1rem;"/>
                 <MudText Typo="Typo.body2" Style="color: #e2e8f0; font-weight: 500; font-size: 0.85rem;">Ensino Médio</MudText>
             </div>
             <div style="background-color: #21283a; padding: 2px 8px; border-radius: 4px;">
                 <MudText Typo="Typo.body2" Style="font-weight: 600; font-size: 0.85rem;">@TotalMedio.ToString("N0")</MudText>
-            </div>
-        </div>
-
-        @* Educação Especial *@
-        <div class="d-flex justify-space-between align-center px-3 py-2" style="background-color: transparent; border-radius: 6px; border: 1px solid #2d3748;">
-            <div class="d-flex align-center gap-2">
-                <MudIcon Icon="@Icons.Material.Filled.Accessible" Size="Size.Small" Style="color: #94a3b8; font-size: 1rem;"/>
-                <MudText Typo="Typo.body2" Style="color: #e2e8f0; font-weight: 500; font-size: 0.85rem;">Educação Especial</MudText>
-            </div>
-            <div style="background-color: #21283a; padding: 2px 8px; border-radius: 4px;">
-                <MudText Typo="Typo.body2" Style="font-weight: 600; font-size: 0.85rem;">@TotalEspecial.ToString("N0")</MudText>
             </div>
         </div>
 

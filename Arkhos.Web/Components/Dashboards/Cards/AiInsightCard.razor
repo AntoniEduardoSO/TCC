@@ -1,0 +1,27 @@
+@using MudBlazor
+
+<MudPaper Class="ai-insight-compact" Elevation="1">
+    <div class="ai-insight-icon-box">
+        <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Size="Size.Small" />
+    </div>
+
+    <div class="ai-insight-content">
+        <MudText Class="ai-title">
+            Aprovação média atinge
+            <span class="ai-highlight-value">@HighlightValue</span>
+            nas regiões analisadas
+        </MudText>
+        <MudText Class="ai-subtitle">@Recommendation</MudText>
+    </div>
+
+    <MudButton Variant="Variant.Text" Color="Color.Primary" Class="ai-mini-btn"
+               EndIcon="@Icons.Material.Filled.ArrowForward">
+        Ver plano
+    </MudButton>
+</MudPaper>
+
+@code {
+    [Parameter] public string HighlightValue { get; set; } = string.Empty;
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string Recommendation { get; set; } = string.Empty;
+}

@@ -1,0 +1,103 @@
+@using MudBlazor
+
+<MudPaper Class="infra-card-compact" Elevation="1">
+    <div class="infra-header">
+        <div>
+            <MudText Typo="Typo.h6" Style="color: #e2e8f0;">
+                Infraestrutura Escolar.
+            </MudText>
+
+            <MudText Class="infra-subtitle" Style="color: #94a3b8;">
+                Indicadores médios de acessibilidade, pedagogia e convivência.
+            </MudText>
+        </div>
+
+        <MudText Class="infra-score">74,3%</MudText>
+    </div>
+
+    <div class="infra-line">
+        <div class="infra-label-row">
+            <span>Acessibilidade</span>
+            <span>78%</span>
+        </div>
+        <MudProgressLinear Value="78"   Rounded="true" Color="Color.Info" class="infra-progress"/>
+    </div>
+
+    <div class="infra-line">
+        <div class="infra-label-row">
+            <span>Espaços pedagógicos</span>
+            <span>64%</span>
+        </div>
+        <MudProgressLinear Value="64"  Rounded="true" Color="Color.Info" class="infra-progress" />
+    </div>
+
+    <div class="infra-line">
+        <div class="infra-label-row">
+            <span>Bem-estar e convivência</span>
+            <span>81%</span>
+        </div>
+        <MudProgressLinear Value="81" Rounded="true" Color="Color.Info" class="infra-progress" />
+    </div>
+</MudPaper>
+
+<style>
+    .infra-card-compact {
+        padding: 14px 16px;
+        border-radius: 12px;
+        background: #1a1f2e;
+    }
+
+    .infra-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 10px;
+    }
+
+    .infra-title span {
+        color: #22c55e;
+    }
+
+    .infra-line {
+        margin-top: 8px;
+    }
+
+    .infra-label-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 3px;
+        font-size: 13px;
+        color: white;
+    }
+
+    .infra-subtitle {
+        font-size: 12px;
+        color: #94a3b8;
+        max-width: 220px;
+    }
+
+    .infra-score {
+        font-size: 22px;
+        font-weight: 800;
+        color: #38bdf8;
+    }
+
+    .infra-progress {
+        height: 6px !important;
+        border-radius: 8px;
+    }
+
+    .infra-progress .mud-progress-linear-buffer {
+        background: rgba(255, 255, 255, 0.08) !important;
+    }
+</style>
+
+@code {
+    [Parameter] public double Accessibility { get; set; }
+    [Parameter] public double Pedagogical { get; set; }
+    [Parameter] public double WellBeing { get; set; }
+
+    private double OverallScore =>
+        Math.Round((Accessibility + Pedagogical + WellBeing) / 3, 1);
+}
