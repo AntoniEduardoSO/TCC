@@ -181,7 +181,6 @@ namespace Arkhos.Api.Migrations
                         .HasColumnName("dependencia");
 
                     b.Property<string>("Endereco")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("endereco");
 

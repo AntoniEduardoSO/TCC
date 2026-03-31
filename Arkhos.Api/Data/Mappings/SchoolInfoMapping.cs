@@ -62,8 +62,7 @@ public class SchoolInfoMapping : IEntityTypeConfiguration<SchoolInfo>
 
         builder.Property(x => x.Endereco)
         .HasColumnType("text")
-        .HasColumnName("endereco")
-        .IsRequired();
+        .HasColumnName("endereco");
 
         builder.Property(x => x.Telefone)
         .HasColumnType("text")
