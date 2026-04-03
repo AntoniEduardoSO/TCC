@@ -1,14 +1,13 @@
 using Arkhos.Api.Common.Api;
 using Arkhos.Core.Handlers;
-using Arkhos.Core.Models;
-using Arkhos.Core.Models.Dto;
+using Arkhos.Core.Models.Dto.SchoolRating;
 using Arkhos.Core.Requests.SchoolRatings;
 using Arkhos.Core.Responses;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Arkhos.Api.Endpoints.SchoolRatings;
 
-public class GetSchoolRatingByYearEndpoint : IEndpoint
+public class GetSchoolRatingSpendingByYearEndpoint : IEndpoint
 {
     public static void Map(IEndpointRouteBuilder app)
     => app.MapGet("/spending/{year}", HandleAsync)
@@ -22,12 +21,12 @@ public class GetSchoolRatingByYearEndpoint : IEndpoint
         [FromServices] ISchoolRatingsHandler handler,
         [FromQuery] int? limit = null)
     {
-        var request = new GetSchoolRatingByYearRequest
+        var request = new GetSchoolRatingSpendingByYearRequest
         {
             Year = year
         };
 
-        var result = await handler.GetByYearAsync(request);
+        var result = await handler.GetSpendingByYearAsync(request);
 
         return result.IsSuccess
             ? TypedResults.Ok(result)

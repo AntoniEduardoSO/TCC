@@ -1,4 +1,4 @@
-using Arkhos.Core.Models.Dto;
+using Arkhos.Core.Models.Dto.SchoolEnrollValues;
 using Arkhos.Core.Requests.SchoolEnrollValues;
 using Arkhos.Core.Responses;
 

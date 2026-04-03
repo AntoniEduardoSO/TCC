@@ -1,6 +1,6 @@
 using Arkhos.Api.Common.Api;
 using Arkhos.Core.Handlers;
-using Arkhos.Core.Models.Dto;
+using Arkhos.Core.Models.Dto.SchoolEnrollValues;
 using Arkhos.Core.Requests.SchoolEnrollValues;
 using Arkhos.Core.Responses;
 using Microsoft.AspNetCore.Mvc;

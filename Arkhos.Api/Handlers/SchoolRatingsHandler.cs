@@ -1,8 +1,7 @@
 using System.Diagnostics;
 using Arkhos.Api.Data;
 using Arkhos.Core.Handlers;
-using Arkhos.Core.Models;
-using Arkhos.Core.Models.Dto;
+using Arkhos.Core.Models.Dto.SchoolRating;
 using Arkhos.Core.Requests.SchoolRatings;
 using Arkhos.Core.Responses;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +10,7 @@ namespace Arkhos.Api.Handlers;
 
 public class SchoolRatingsHandler(AppDbContext context) : ISchoolRatingsHandler
 {
-    public async Task<Response<ICollection<SchoolRatingSpendingDto>>> GetByYearAsync(GetSchoolRatingByYearRequest request)
+    public async Task<Response<ICollection<SchoolRatingSpendingDto>>> GetSpendingByYearAsync(GetSchoolRatingSpendingByYearRequest request)
     {
         var swTotal = Stopwatch.StartNew();
         try

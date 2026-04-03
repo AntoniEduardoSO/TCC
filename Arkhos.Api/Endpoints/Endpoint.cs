@@ -2,6 +2,7 @@ using Arkhos.Api.Common.Api;
 using Arkhos.Api.Endpoints.CityInfos;
 using Arkhos.Api.Endpoints.SchoolEnrollValues;
 using Arkhos.Api.Endpoints.SchoolInfos;
+using Arkhos.Api.Endpoints.SchoolInfraValues;
 using Arkhos.Api.Endpoints.SchoolRatings;
 
 namespace Arkhos.Api.Endpoints;
@@ -26,13 +27,17 @@ public static class Endpoint
 
         endpoints.MapGroup("v1/schoolrating")
         .WithTags("SchoolRating")
-            .MapEndpoint<GetSchoolRatingByYearEndpoint>()
+            .MapEndpoint<GetSchoolRatingSpendingByYearEndpoint>()
             .MapEndpoint<GetSchoolRatingDropoutByYearEndpoint>();
 
         endpoints.MapGroup("v1/schoolenrollvalues")
             .WithTags("SchoolEnrollValues")
             .MapEndpoint<GetStudentWithSeriesByYearEndpoint>()
             .MapEndpoint<GetTeachersWithSeriesByYearEndpoint>();
+
+        endpoints.MapGroup("v1/schoolinfravalues")
+            .WithTags("SchoolInfraValues")
+            .MapEndpoint<GetSchoolInfraValuesPedagogicalRoomsByYearEndpoint>();
     }
 
     private static IEndpointRouteBuilder MapEndpoint<TEndpoint>(this IEndpointRouteBuilder app)

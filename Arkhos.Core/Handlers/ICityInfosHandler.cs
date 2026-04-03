@@ -1,4 +1,4 @@
-using Arkhos.Core.Models.Dto;
+using Arkhos.Core.Models.Dto.CityInfo;
 using Arkhos.Core.Requests.CityInfos;
 using Arkhos.Core.Responses;
 

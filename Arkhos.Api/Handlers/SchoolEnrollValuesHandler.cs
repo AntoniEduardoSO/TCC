@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Arkhos.Api.Data;
 using Arkhos.Core.Handlers;
-using Arkhos.Core.Models.Dto;
+using Arkhos.Core.Models.Dto.SchoolEnrollValues;
 using Arkhos.Core.Requests.SchoolEnrollValues;
 using Arkhos.Core.Responses;
 using Microsoft.EntityFrameworkCore;

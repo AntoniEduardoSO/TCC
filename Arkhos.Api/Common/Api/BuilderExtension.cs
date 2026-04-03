@@ -58,6 +58,10 @@ public static class BuilderExtension
         builder
             .Services
             .AddScoped<ICityInfosHandler, CityInfosHandler>();
+        
+        builder
+            .Services
+            .AddScoped<ISchoolInfraValuesHandler, SchoolInfraValuesHandler>();
     }
 
     public static void AddDataContexts(this WebApplicationBuilder builder)

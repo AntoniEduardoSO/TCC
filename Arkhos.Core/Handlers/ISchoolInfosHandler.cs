@@ -1,5 +1,4 @@
-using Arkhos.Core.Models;
-using Arkhos.Core.Models.Dto;
+using Arkhos.Core.Models.Dto.SchoolInfo;
 using Arkhos.Core.Requests.SchoolInfos;
 using Arkhos.Core.Responses;
 
