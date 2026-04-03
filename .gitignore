@@ -10,7 +10,6 @@ web-scraping/status/
 .venv/
 venv/
 .vscode/
-web-scraping/database.sql
 Arkhos.Api/obj/
 Arkhos.Core/obj/
 Arkhos.Web/obj/

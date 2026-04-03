@@ -18,50 +18,101 @@ public class SchoolEnrollValuesHandler(AppDbContext context) : ISchoolEnrollValu
         {
             var swDb = Stopwatch.StartNew();
 
-            var query = context.SchoolEnrollValues
+            var baseQuery = context.SchoolEnrollValues
                 .AsNoTracking()
-                .Where(x => x.Ano == request.Year && x.AtributoId >= 31 && x.AtributoId <= 44)
-                .GroupBy(x => new
-                {
-                    x.IdEscolaEnrollValues,
-                    x.Ano,
-                    x.SchoolInfo.CityInfo.IdMesorregiao,
-                    x.SchoolInfo.CityInfo.IdMicrorregiao,
-                    x.SchoolInfo.CityInfo.MunicipioId
-                })
-                .Select(g => new SchoolEnrollValuesStudentsDto
-                {
-                    EscolaId = g.Key.IdEscolaEnrollValues,
-                    Ano = g.Key.Ano,
-                    MesorregiaoId = g.Key.IdMesorregiao,
-                    MicrorregiaoId = g.Key.IdMicrorregiao,
-                    MunicipioId = g.Key.MunicipioId,
+                .Where(x => x.Ano == request.Year && x.SchoolInfo.Funcionamento == 1);
 
-                    MatriculaCreche = g.Sum(x => x.AtributoId == 31 ? x.Valor : 0),
-                    MatriculaPreEscola = g.Sum(x => x.AtributoId == 32 ? x.Valor : 0),
+            IQueryable<SchoolEnrollValuesStudentsDto>? finalQuery = null;
 
-                    Matricula1Ano = g.Sum(x => x.AtributoId == 33 ? x.Valor : 0),
-                    Matricula2Ano = g.Sum(x => x.AtributoId == 34 ? x.Valor : 0),
-                    Matricula3Ano = g.Sum(x => x.AtributoId == 35 ? x.Valor : 0),
-                    Matricula4Ano = g.Sum(x => x.AtributoId == 36 ? x.Valor : 0),
-                    Matricula5Ano = g.Sum(x => x.AtributoId == 37 ? x.Valor : 0),
+            if (request.Year > 2022)
+            {
 
-                    Matricula6Ano = g.Sum(x => x.AtributoId == 38 ? x.Valor : 0),
-                    Matricula7Ano = g.Sum(x => x.AtributoId == 39 ? x.Valor : 0),
-                    Matricula8Ano = g.Sum(x => x.AtributoId == 40 ? x.Valor : 0),
-                    Matricula9Ano = g.Sum(x => x.AtributoId == 41 ? x.Valor : 0),
+                finalQuery = baseQuery
+                    .Where(x => x.AtributoId >= 31 && x.AtributoId <= 44)
+                    .GroupBy(x => new
+                    {
+                        x.IdEscolaEnrollValues,
+                        x.Ano,
+                        x.SchoolInfo.CityInfo.IdMesorregiao,
+                        x.SchoolInfo.CityInfo.IdMicrorregiao,
+                        x.SchoolInfo.CityInfo.MunicipioId
+                    })
+                    .Select(g => new SchoolEnrollValuesStudentsDto
+                    {
+                        EscolaId = g.Key.IdEscolaEnrollValues,
+                        Ano = g.Key.Ano,
+                        MesorregiaoId = g.Key.IdMesorregiao,
+                        MicrorregiaoId = g.Key.IdMicrorregiao,
+                        MunicipioId = g.Key.MunicipioId,
 
-                    MatriculaMedio1Ano = g.Sum(x => x.AtributoId == 42 ? x.Valor : 0),
-                    MatriculaMedio2Ano = g.Sum(x => x.AtributoId == 43 ? x.Valor : 0),
-                    MatriculaMedio3Ano = g.Sum(x => x.AtributoId == 44 ? x.Valor : 0)
-                });
+                        MatriculaCreche = g.Sum(x => x.AtributoId == 31 ? x.Valor : 0),
+                        MatriculaPreEscola = g.Sum(x => x.AtributoId == 32 ? x.Valor : 0),
+
+                        Matricula1Ano = g.Sum(x => x.AtributoId == 33 ? x.Valor : 0),
+                        Matricula2Ano = g.Sum(x => x.AtributoId == 34 ? x.Valor : 0),
+                        Matricula3Ano = g.Sum(x => x.AtributoId == 35 ? x.Valor : 0),
+                        Matricula4Ano = g.Sum(x => x.AtributoId == 36 ? x.Valor : 0),
+                        Matricula5Ano = g.Sum(x => x.AtributoId == 37 ? x.Valor : 0),
+
+                        Matricula6Ano = g.Sum(x => x.AtributoId == 38 ? x.Valor : 0),
+                        Matricula7Ano = g.Sum(x => x.AtributoId == 39 ? x.Valor : 0),
+                        Matricula8Ano = g.Sum(x => x.AtributoId == 40 ? x.Valor : 0),
+                        Matricula9Ano = g.Sum(x => x.AtributoId == 41 ? x.Valor : 0),
+
+                        MatriculaMedio1Ano = g.Sum(x => x.AtributoId == 42 ? x.Valor : 0),
+                        MatriculaMedio2Ano = g.Sum(x => x.AtributoId == 43 ? x.Valor : 0),
+                        MatriculaMedio3Ano = g.Sum(x => x.AtributoId == 44 ? x.Valor : 0)
+                    });
+            }
+            else
+            {
+                // CORREÇÃO CRÍTICA AQUI: Trocado '&&' por '||' (OU) entre os blocos de ID
+                finalQuery = baseQuery
+                    .Where(x => (x.AtributoId >= 31 && x.AtributoId <= 44) || (x.AtributoId >= 123 && x.AtributoId <= 125))
+                    .GroupBy(x => new
+                    {
+                        x.IdEscolaEnrollValues,
+                        x.Ano,
+                        x.SchoolInfo.CityInfo.IdMesorregiao,
+                        x.SchoolInfo.CityInfo.IdMicrorregiao,
+                        x.SchoolInfo.CityInfo.MunicipioId
+                    })
+                    .Select(g => new SchoolEnrollValuesStudentsDto
+                    {
+                        EscolaId = g.Key.IdEscolaEnrollValues,
+                        Ano = g.Key.Ano,
+                        MesorregiaoId = g.Key.IdMesorregiao,
+                        MicrorregiaoId = g.Key.IdMicrorregiao,
+                        MunicipioId = g.Key.MunicipioId,
+
+                        MatriculaCreche = g.Sum(x => x.AtributoId == 31 ? x.Valor : 0),
+                        MatriculaPreEscola = g.Sum(x => x.AtributoId == 32 ? x.Valor : 0),
+                        Matricula1Ano = g.Sum(x => x.AtributoId == 123 ? x.Valor : 0),
+                        Matricula2Ano = g.Sum(x => x.AtributoId == 34 ? x.Valor : 0),
+                        Matricula3Ano = g.Sum(x => x.AtributoId == 35 ? x.Valor : 0),
+                        Matricula4Ano = g.Sum(x => x.AtributoId == 36 ? x.Valor : 0),
+                        Matricula5Ano = g.Sum(x => x.AtributoId == 37 ? x.Valor : 0),
+                        Matricula6Ano = g.Sum(x => x.AtributoId == 124 ? x.Valor : 0),
+                        Matricula7Ano = g.Sum(x => x.AtributoId == 39 ? x.Valor : 0),
+                        Matricula8Ano = g.Sum(x => x.AtributoId == 40 ? x.Valor : 0),
+                        Matricula9Ano = g.Sum(x => x.AtributoId == 41 ? x.Valor : 0),
+                        MatriculaMedio1Ano = g.Sum(x => x.AtributoId == 125 ? x.Valor : 0),
+                        MatriculaMedio2Ano = g.Sum(x => x.AtributoId == 43 ? x.Valor : 0),
+                        MatriculaMedio3Ano = g.Sum(x => x.AtributoId == 44 ? x.Valor : 0)
+                    });
+            }
 
             if (request.Limit.HasValue)
             {
-                query = query.Take(request.Limit.Value);
+                if (request.Limit.HasValue)
+                {
+                    finalQuery = finalQuery
+                        .OrderBy(x => x.EscolaId)
+                        .Take(request.Limit.Value);
+                }
             }
 
-            var studentsEnrollment = await query.ToListAsync();
+            var studentsEnrollment = await finalQuery.ToListAsync();
 
             swDb.Stop();
 

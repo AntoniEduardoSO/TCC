@@ -11,7 +11,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Arkhos.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260329185137_v1")]
+    [Migration("20260330130320_v1")]
     partial class v1
     {
         /// <inheritdoc />
@@ -184,7 +184,6 @@ namespace Arkhos.Api.Migrations
                         .HasColumnName("dependencia");
 
                     b.Property<string>("Endereco")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("endereco");
 

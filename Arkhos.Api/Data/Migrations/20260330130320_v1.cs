@@ -83,7 +83,7 @@ namespace Arkhos.Api.Migrations
                     alocacao = table.Column<short>(type: "smallint", nullable: false),
                     ocupacao = table.Column<short>(type: "smallint", nullable: false),
                     ano = table.Column<int>(type: "int", nullable: false),
-                    endereco = table.Column<string>(type: "text", nullable: false),
+                    endereco = table.Column<string>(type: "text", nullable: true),
                     telefone = table.Column<string>(type: "text", nullable: true),
                     lat = table.Column<double>(type: "numeric(9,6)", nullable: true),
                     lon = table.Column<double>(type: "numeric(9,6)", nullable: true),

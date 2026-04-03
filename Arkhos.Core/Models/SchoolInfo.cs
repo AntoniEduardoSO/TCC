@@ -12,7 +12,7 @@ public class SchoolInfo
     public short Alocacao {get;set;}
     public short Ocupacao {get;set;}
     public int Ano {get;set;}
-    public string Endereco {get;set;} = string.Empty;
+    public string? Endereco {get;set;} = string.Empty;
     public string? Telefone {get;set;} = string.Empty;
 
     public double? Lat {get;set;}
