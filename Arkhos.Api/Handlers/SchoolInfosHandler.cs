@@ -24,7 +24,7 @@ public class SchoolInfosHandler(AppDbContext context) : ISchoolInfosHandler
                 {
                     IdEscola = x.IdEscola,
                     NomeEscola = x.NomeEscola,
-                    Endereco = x.Endereco,
+                    Endereco= x.Endereco ?? string.Empty,
                     Ano = x.Ano,
                     MunicipioId = x.CityInfoId,
                     Lat = x.Lat,

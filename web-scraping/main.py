@@ -8,7 +8,7 @@ from datatable.config import exec_datatables
 
 from datetime import datetime
 
-FLAG_PATH = "web_scraping/status/scraping_done.flag"
+FLAG_PATH = "web-scraping/status/scraping_done.flag"
 
 def clean_flag():
     if os.path.exists(FLAG_PATH):

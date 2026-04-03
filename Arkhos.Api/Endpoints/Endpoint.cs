@@ -28,16 +28,19 @@ public static class Endpoint
         endpoints.MapGroup("v1/schoolrating")
         .WithTags("SchoolRating")
             .MapEndpoint<GetSchoolRatingSpendingByYearEndpoint>()
-            .MapEndpoint<GetSchoolRatingDropoutByYearEndpoint>();
+            .MapEndpoint<GetSchoolRatingDropoutByYearEndpoint>()
+            .MapEndpoint<GetSchoolRatingMapByYearEndpoint>();
 
         endpoints.MapGroup("v1/schoolenrollvalues")
             .WithTags("SchoolEnrollValues")
             .MapEndpoint<GetStudentWithSeriesByYearEndpoint>()
-            .MapEndpoint<GetTeachersWithSeriesByYearEndpoint>();
+            .MapEndpoint<GetTeachersWithSeriesByYearEndpoint>()
+            .MapEndpoint<GetSchoolEnrollValuesGovernanceByYearEndpoint>();
 
         endpoints.MapGroup("v1/schoolinfravalues")
             .WithTags("SchoolInfraValues")
-            .MapEndpoint<GetSchoolInfraValuesPedagogicalRoomsByYearEndpoint>();
+            .MapEndpoint<GetSchoolInfraValuesPedagogicalRoomsByYearEndpoint>()
+            .MapEndpoint<GetSchoolInfraValuesWellbeingByYearEndpoint>();
     }
 
     private static IEndpointRouteBuilder MapEndpoint<TEndpoint>(this IEndpointRouteBuilder app)

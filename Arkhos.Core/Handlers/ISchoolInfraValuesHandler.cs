@@ -7,6 +7,8 @@ public interface ISchoolInfraValuesHandler
 {
     Task<Response<ICollection<SchoolInfraValuesPedagogicalRoomsDto>>> 
         GetPedagogicalRoomsByYearAsync(GetSchoolInfraValuesPedagogicalRoomsByYearRequest request);
-
+    
+    Task<Response<ICollection<SchoolInfraValuesWellbeingDto>>> 
+        GetWellbeingByYearAsync(GetSchoolInfraValuesWellbeingByYearRequest request);
     
 }

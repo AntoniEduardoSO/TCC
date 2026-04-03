@@ -10,6 +10,78 @@ namespace Arkhos.Api.Handlers;
 
 public class SchoolEnrollValuesHandler(AppDbContext context) : ISchoolEnrollValuesHandler
 {
+    public async Task<Response<ICollection<SchoolEnrollValuesGovernanceDto>>> GetGovernanceByYearAsync(GetSchoolEnrollValuesGovernanceByYearRequest request)
+    {
+        var swTotal = Stopwatch.StartNew();
+        double[] governance_ids = [8,6,15,16,19,20,21];
+        try
+        {
+            var swDb = Stopwatch.StartNew();
+
+            var query = context.SchoolEnrollValues
+                .AsNoTracking()
+                .Where(x => x.Ano == request.Year
+                    && governance_ids.Contains(x.AtributoId))
+                .GroupBy(x => new
+                {
+                    x.IdEscolaEnrollValues,
+                    x.Ano,
+                    x.SchoolInfo.CityInfo.IdMesorregiao,
+                    x.SchoolInfo.CityInfo.IdMicrorregiao,
+                    x.SchoolInfo.CityInfo.MunicipioId
+                })
+                .Select(g => new SchoolEnrollValuesGovernanceDto
+                {
+                    EscolaId = g.Key.IdEscolaEnrollValues,
+                    Ano = g.Key.Ano,
+                    MesorregiaoId = g.Key.IdMesorregiao,
+                    MicrorregiaoId = g.Key.IdMicrorregiao,
+                    MunicipioId = g.Key.MunicipioId,
+
+                    Psicologo = g.Sum(x => x.AtributoId == 8 ? x.Valor : 0),
+                    Fonaudiologo = g.Sum(x => x.AtributoId == 6 ? x.Valor : 0),
+                    AssistenteSocial = g.Sum(x => x.AtributoId == 15 ? x.Valor : 0),
+                    TradutorLibras = g.Sum(x => x.AtributoId == 16 ? x.Valor : 0),
+                    AssociacaoPaiMestres = g.Sum(x => x.AtributoId == 19 ? x.Valor : 0),
+                    ConselhoEscolar = g.Sum(x => x.AtributoId == 20 ? x.Valor : 0),
+                    GremioEstudantil = g.Sum(x => x.AtributoId == 21 ? x.Valor : 0),
+                });
+        
+
+            if (request.Limit.HasValue)
+            {
+                query = query
+                    .OrderBy(x => x.EscolaId)
+                    .Take(request.Limit.Value);
+            }
+
+            var governanceDtos = await query.ToListAsync();
+
+            swDb.Stop();
+
+            Console.WriteLine($"DB + Materialização: {swDb.ElapsedMilliseconds} ms");
+            Console.WriteLine($"Quantidade: {governanceDtos.Count}");
+
+            var swSerialize = Stopwatch.StartNew();
+
+            var json = System.Text.Json.JsonSerializer.Serialize(governanceDtos);
+
+            swSerialize.Stop();
+
+            Console.WriteLine($"Serialização: {swSerialize.ElapsedMilliseconds} ms");
+            Console.WriteLine($"Tamanho JSON: {System.Text.Encoding.UTF8.GetByteCount(json) / 1024.0 / 1024.0:F2} MB");
+
+            swTotal.Stop();
+            Console.WriteLine($"TOTAL (até aqui): {swTotal.ElapsedMilliseconds} ms");
+
+            return new Response<ICollection<SchoolEnrollValuesGovernanceDto>>(governanceDtos, 200, $"Matrículas carregadas com sucesso em {swTotal.ElapsedMilliseconds}ms.");
+        }
+        catch
+        {
+            return new Response<ICollection<SchoolEnrollValuesGovernanceDto>>(null, 500, "Não foi possível consultar as matriculas dos alunos. [series]");
+        }
+    }
+
     public async Task<Response<ICollection<SchoolEnrollValuesStudentsDto>>> GetStudentsWithSeriesByYearAsync(GetStudentsWithSeriesByYearRequest request)
     {
 
@@ -66,7 +138,6 @@ public class SchoolEnrollValuesHandler(AppDbContext context) : ISchoolEnrollValu
             }
             else
             {
-                // CORREÇÃO CRÍTICA AQUI: Trocado '&&' por '||' (OU) entre os blocos de ID
                 finalQuery = baseQuery
                     .Where(x => (x.AtributoId >= 31 && x.AtributoId <= 44) || (x.AtributoId >= 123 && x.AtributoId <= 125))
                     .GroupBy(x => new
@@ -208,3 +279,19 @@ public class SchoolEnrollValuesHandler(AppDbContext context) : ISchoolEnrollValu
         }
     }
 }
+
+/*
+ Psicologo 
+
+ Fonaudiologo 
+
+ AssistenteSocial 
+
+ TradutorLibras 
+
+ AssociacaoPaiMestres 
+
+ ConselhoEscolar 
+
+ GremioEstudantil 
+*/
