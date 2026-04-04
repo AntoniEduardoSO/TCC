@@ -1,16 +1,23 @@
 ﻿@page "/"
 @using Arkhos.Core.Handlers
 @using Arkhos.Core.Models.Dto
+@using Arkhos.Core.Models.Dto.SchoolEnrollValues
+@using Arkhos.Core.Models.Dto.SchoolInfo
+@using Arkhos.Core.Models.Dto.SchoolInfraValues
+@using Arkhos.Core.Models.Dto.SchoolRating
 @using Arkhos.Core.Requests.SchoolEnrollValues
 @using Arkhos.Core.Requests.SchoolInfos
+@using Arkhos.Core.Requests.SchoolInfraValues
 @using Arkhos.Core.Requests.SchoolRatings
 @using Arkhos.Core.Responses
 @using Arkhos.Web.Components.Dashboards.Cards
+@using Arkhos.Web.Handlers
 
 @inject ISchoolInfosHandler Handler
 @inject ISchoolRatingsHandler RatingHandler
 @inject ISchoolEnrollValuesHandler EnrollHandler
 @inject ISchoolEnrollValuesHandler TeachersHandler
+@inject ISchoolInfraValuesHandler InfraHandler
 @inject DashboardStateService DashboardState
 @inject IJSRuntime JS
 
@@ -56,7 +63,7 @@
                     <PieChartDropoutRateCard TotalAbandonos="@TotalAbandonos" TotalAprovados="@TotalAprovados"
                                              TotalReprovados="@TotalReprovados" />
 
-                    <InfrastructureQualityCard Accessibility="78" Pedagogical="64" WellBeing="81" />
+                    <InfrastructureQualityCard Accessibility="@AcessibilityRating" Pedagogical="@TotalPedagogicalRooms" WellBeing="@TotalWellbeing" />
 
                     <TeachersOverviewCard Ano="@DashboardState.SelectedYear" TotalCreche="@ProfCreche"
                                           TotalPreEscola="@ProfPreEscola" TotalFundIniciais="@ProfFundIniciais"
@@ -72,14 +79,20 @@
 
 @code {
     private Response<ICollection<SchoolInfoMapDto>>? response;
-    private Response<ICollection<SchoolRatingSpendingDto>>? ratings;
+    private Response<ICollection<SchoolRatingSpendingDto>>? spendingRatings;
+    private Response<ICollection<SchoolRatingMapDto>>? ratings;
     private Response<ICollection<SchoolEnrollValuesStudentsDto>>? enrollments;
     private Response<ICollection<SchoolEnrollValuesTeachersDto>>? teachers;
+    private Response<ICollection<SchoolInfraValuesPedagogicalRoomsDto>>? pedagogicalRooms;
+    private Response<ICollection<SchoolInfraValuesWellbeingDto>>? wellbeingInfra;
     private Response<ICollection<SchoolRatingDropDto>>? dropouts;
     private bool _mapRendered = false;
-    private IEnumerable<SchoolRatingSpendingDto> Filtered => GetFilteredRatings();
+    private IEnumerable<SchoolRatingSpendingDto> FilteredSpending => GetFilteredSpendingRatings();
     private IEnumerable<SchoolEnrollValuesStudentsDto> FilteredEnrollments => GetFilteredEnrollments();
     private IEnumerable<SchoolEnrollValuesTeachersDto> FilteredTeachers => GetFilteredTeachers();
+    private IEnumerable<SchoolRatingMapDto> FilteredRatings => GetFilteredRatings();
+    private IEnumerable<SchoolInfraValuesPedagogicalRoomsDto> FilteredPedagogicalRooms => GetFilteredPedagogicalRooms();
+    private IEnumerable<SchoolInfraValuesWellbeingDto> FilteredWellbeing => GetFilteredWellbeing();
 
     
     private DotNetObjectReference<Home>? _objRef;
@@ -118,11 +131,29 @@
             };
             response = await Handler.GetByYearAsync(request);
 
-            var ratingRequest = new GetSchoolRatingByYearRequest
+            var spendingRatingRequest = new GetSchoolRatingSpendingByYearRequest
             {
                 Year = DashboardState.SelectedYear
             };
-            ratings = await RatingHandler.GetByYearAsync(ratingRequest);
+            spendingRatings = await RatingHandler.GetSpendingByYearAsync(spendingRatingRequest);
+
+            var ratingsRequest = new GetSchoolRatingMapByYearRequest
+            {
+                Year = DashboardState.SelectedYear
+            };
+            ratings = await RatingHandler.GetRatingByYearAsync(ratingsRequest);
+
+            var wellbeingInfraRequest = new GetSchoolInfraValuesWellbeingByYearRequest
+            {
+                Year = DashboardState.SelectedYear
+            };
+            wellbeingInfra = await InfraHandler.GetWellbeingByYearAsync(wellbeingInfraRequest);
+
+            var pedagogicalInfraRequest = new GetSchoolInfraValuesPedagogicalRoomsByYearRequest
+            {
+                Year = DashboardState.SelectedYear
+            };
+            pedagogicalRooms = await InfraHandler.GetPedagogicalRoomsByYearAsync(pedagogicalInfraRequest);
 
             var enrollmentRequest = new GetStudentsWithSeriesByYearRequest
             {
@@ -198,9 +229,23 @@
             _ => dropouts.Data
         };
     }
-    private IEnumerable<SchoolRatingSpendingDto> GetFilteredRatings()
+    private IEnumerable<SchoolRatingSpendingDto> GetFilteredSpendingRatings()
     {
-        if (ratings?.Data == null) return Enumerable.Empty<SchoolRatingSpendingDto>();
+        if (spendingRatings?.Data == null) return Enumerable.Empty<SchoolRatingSpendingDto>();
+
+        if (_currentId == null) return spendingRatings.Data;
+
+        return _currentLevel switch
+        {
+            "meso" => spendingRatings.Data.Where(x => x.MesorregiaoId == _currentId),
+            "micro" => spendingRatings.Data.Where(x => x.MicrorregiaoId == _currentId),
+            "municipio" => spendingRatings.Data.Where(x => x.MunicipioId == _currentId),
+            _ => spendingRatings.Data
+        };
+    }
+    private IEnumerable<SchoolRatingMapDto> GetFilteredRatings()
+    {
+        if (ratings?.Data == null) return Enumerable.Empty<SchoolRatingMapDto>();
 
         if (_currentId == null) return ratings.Data;
 
@@ -210,6 +255,31 @@
             "micro" => ratings.Data.Where(x => x.MicrorregiaoId == _currentId),
             "municipio" => ratings.Data.Where(x => x.MunicipioId == _currentId),
             _ => ratings.Data
+        };
+    }
+    private IEnumerable<SchoolInfraValuesPedagogicalRoomsDto> GetFilteredPedagogicalRooms()
+    {
+        if (pedagogicalRooms?.Data == null) return Enumerable.Empty<SchoolInfraValuesPedagogicalRoomsDto>();
+        if (_currentId == null) return pedagogicalRooms.Data;
+
+        return _currentLevel switch
+        {
+            "micro" => pedagogicalRooms.Data.Where(x => x.MicrorregiaoId == _currentId),
+            "municipio" => pedagogicalRooms.Data.Where(x => x.MunicipioId == _currentId),
+            _ => pedagogicalRooms.Data
+        };
+    }
+
+    private IEnumerable<SchoolInfraValuesWellbeingDto> GetFilteredWellbeing()
+    {
+        if (wellbeingInfra?.Data == null) return Enumerable.Empty<SchoolInfraValuesWellbeingDto>();
+        if (_currentId == null) return wellbeingInfra.Data;
+
+        return _currentLevel switch
+        {
+            "micro" => wellbeingInfra.Data.Where(x => x.MicrorregiaoId == _currentId),
+            "municipio" => wellbeingInfra.Data.Where(x => x.MunicipioId == _currentId),
+            _ => wellbeingInfra.Data
         };
     }
 
@@ -227,23 +297,66 @@
         };
     }
 
+    private double AcessibilityRating => FilteredRatings.Any() ? FilteredRatings.Average(x => x.RatingAcessibilidade) : 0;
+
     private double AvgSpendingPerStudent =>
-        Filtered.Any() ? Filtered.Average(x => x.SpendingPerStudent) / 12 : 0;
+        FilteredSpending.Any() ? FilteredSpending.Average(x => x.SpendingPerStudent) / 12 : 0;
 
     private double AvgSpendingPerTeacher =>
-        Filtered.Any() ? Filtered.Average(x => x.SpendingPerTeacher) / 12 : 0;
+        FilteredSpending.Any() ? FilteredSpending.Average(x => x.SpendingPerTeacher) / 12 : 0;
 
     private double AvgInfrastructure =>
-       Filtered.Any() ? Filtered.Average(x => x.InfrastructureSpendingPerStudent) / 12 : 0;
+       FilteredSpending.Any() ? FilteredSpending.Average(x => x.InfrastructureSpendingPerStudent) / 12 : 0;
 
     private double AvgTransport =>
-        Filtered.Any() ? Filtered.Average(x => x.TransportSpendingPerStudent) / 12 : 0;
+        FilteredSpending.Any() ? FilteredSpending.Average(x => x.TransportSpendingPerStudent) / 12 : 0;
 
     private double AvgMeal =>
-        Filtered.Any() ? Filtered.Average(x => x.MealSpendingPerStudent) / 12 : 0;
+        FilteredSpending.Any() ? FilteredSpending.Average(x => x.MealSpendingPerStudent) / 12 : 0;
     
     private double TotalGasto => ((TotalAlunos * AvgSpendingPerStudent) / 12);
 
+    private const int TotalWellbeingItems = 14;
+    private double TotalWellbeing => FilteredWellbeing.Any()
+    ? FilteredWellbeing.Average(x => SumWellbeingProperties(x) / TotalWellbeingItems)
+    : 0;
+
+    private double SumWellbeingProperties(SchoolInfraValuesWellbeingDto x)
+    {
+        return x.AlimentacaoEscolar +
+               x.AreaVerde +
+               x.BanheiroAlunos +
+               x.BanheiroEducacaoInfantil +
+               x.Cozinha +
+               x.Despensa +
+               x.ParqueInfantil +
+               x.PatioCoberto +
+               x.PatioDescoberto +
+               x.Piscina +
+               x.QuadraEsportes +
+               x.Refeitorio +
+               x.SalaRepousoAluno +
+               x.Terreirao;
+    }
+    private const int TotalPedagogicalRoomsItems = 10;
+
+    private double TotalPedagogicalRooms => FilteredPedagogicalRooms.Any()
+        ? FilteredPedagogicalRooms.Average(x => SumPedagogicalRoomsProperties(x) / TotalPedagogicalRoomsItems)
+        : 0;
+
+     private double SumPedagogicalRoomsProperties(SchoolInfraValuesPedagogicalRoomsDto x)
+    {
+        return x.Auditorio +
+               x.Biblioteca +
+               x.LaboratorioCiencias +
+               x.LaboratorioInformatica +
+               x.SalaAtelieArtes +
+               x.SalaMusicaCoral +
+               x.SalaEstudioDanca +
+               x.SalaLeitura +
+               x.SalaMultiuso +
+               x.SalaEstudioGravacao;
+    }
 
     private double TotalCreche => FilteredEnrollments.Sum(x => x.MatriculaCreche);
     private double TotalPreEscola => FilteredEnrollments.Sum(x => x.MatriculaPreEscola);

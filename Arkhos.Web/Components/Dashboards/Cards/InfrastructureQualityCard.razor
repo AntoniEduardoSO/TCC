@@ -12,31 +12,31 @@
             </MudText>
         </div>
 
-        <MudText Class="infra-score">74,3%</MudText>
+        <MudText Class="infra-score">@($"{(OverallScore*100):0.00}%")</MudText>
     </div>
 
     <div class="infra-line">
         <div class="infra-label-row">
             <span>Acessibilidade</span>
-            <span>78%</span>
+            <span>@($"{(Accessibility*100):0.00}%")</span>
         </div>
-        <MudProgressLinear Value="78"   Rounded="true" Color="Color.Info" class="infra-progress"/>
+        <MudProgressLinear Value="@(Accessibility*100)"   Rounded="true" Color="Color.Info" class="infra-progress"/>
     </div>
 
     <div class="infra-line">
         <div class="infra-label-row">
             <span>Espaços pedagógicos</span>
-            <span>64%</span>
+            <span>@($"{(Pedagogical*100):0.00}%")</span>
         </div>
-        <MudProgressLinear Value="64"  Rounded="true" Color="Color.Info" class="infra-progress" />
+        <MudProgressLinear Value="@(Pedagogical*100)"  Rounded="true" Color="Color.Info" class="infra-progress" />
     </div>
 
     <div class="infra-line">
         <div class="infra-label-row">
             <span>Bem-estar e convivência</span>
-            <span>81%</span>
+            <span>@($"{(WellBeing*100):0.00}%")</span>
         </div>
-        <MudProgressLinear Value="81" Rounded="true" Color="Color.Info" class="infra-progress" />
+        <MudProgressLinear Value="@(WellBeing*100)" Rounded="true" Color="Color.Info" class="infra-progress" />
     </div>
 </MudPaper>
 
@@ -99,5 +99,5 @@
     [Parameter] public double WellBeing { get; set; }
 
     private double OverallScore =>
-        Math.Round((Accessibility + Pedagogical + WellBeing) / 3, 1);
+        (Accessibility + Pedagogical + WellBeing) / 3;
 }

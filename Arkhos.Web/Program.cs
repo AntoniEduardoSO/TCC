@@ -19,10 +19,11 @@ builder.Services.AddHttpClient(Configuration.HttpClientName, options =>
     options.BaseAddress = new Uri(Configuration.BackendUrl);
 });
 
-builder.Services.AddScoped<ISchoolInfosHandler, SchoolInfoHandler>();
-builder.Services.AddScoped<ISchoolRatingsHandler, SchoolRatingHandler>();
-builder.Services.AddScoped<ISchoolEnrollValuesHandler, SchoolEnrollValuesHandler>();
 builder.Services.AddScoped<ICityInfosHandler, CityInfosHandler>();
+builder.Services.AddScoped<ISchoolInfosHandler, SchoolInfoHandler>();
+builder.Services.AddScoped<ISchoolEnrollValuesHandler, SchoolEnrollValuesHandler>();
+builder.Services.AddScoped<ISchoolInfraValuesHandler, SchoolInfraValuesHandler>();
+builder.Services.AddScoped<ISchoolRatingsHandler, SchoolRatingHandler>();
 builder.Services.AddScoped<DashboardStateService>();
 
 
