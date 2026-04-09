@@ -74,6 +74,12 @@ public static class BuilderExtension
 
     public static void AddDataContexts(this WebApplicationBuilder builder)
     {
+        var isProduction = builder.Environment.IsProduction();
+    
+        
+        var connectionString = isProduction 
+            ? "Data Source=arkhos.db" 
+            : "Data Source=../arkhos.db";
 
         builder.Services.AddDbContext<AppDbContext>(
             x =>
