@@ -11,7 +11,11 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddMudServices();
 
-var backendUrl = builder.Configuration.GetValue<string>("BackendUrl");
+var backendUrl = builder.Configuration.GetValue<string>("BackendUrl") 
+                 ?? "https://arkhos-ub0p.onrender.com";
+
+Console.WriteLine($"[LOG BLAZOR] Inicializando Frontend.");
+Console.WriteLine($"[LOG BLAZOR] A API alvo é: {backendUrl}");
 
 builder.Services.AddHttpClient(Configuration.HttpClientName, options =>
 {
