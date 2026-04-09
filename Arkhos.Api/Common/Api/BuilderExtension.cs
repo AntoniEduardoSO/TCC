@@ -11,14 +11,22 @@ public static class BuilderExtension
 {
     public static void AddConfiguration(this WebApplicationBuilder builder)
     {
-        Configuration.ConnectionString = 
+        var isProduction = builder.Environment.IsProduction();
+
+        Configuration.ConnectionString = isProduction
+        ? "Data Source=arkhos.db"
+        : builder.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
+
+        Configuration.ConnectionString =
             builder
             .Configuration
             .GetConnectionString("DefaultConnection")
         ?? string.Empty;
 
         Configuration.BackendUrl = builder.Configuration.GetValue<string>("BackendUrl") ?? string.Empty;
-        Configuration.FrontendUrl = builder.Configuration.GetValue<string>("FrontendUrl") ?? string.Empty;
+        Configuration.FrontendUrl = isProduction
+        ? "https://sua-url-do-vercel.vercel.app"
+        : builder.Configuration.GetValue<string>("FrontendUrl") ?? string.Empty;
     }
     public static void AddDocumentation(this WebApplicationBuilder builder)
     {
@@ -54,11 +62,11 @@ public static class BuilderExtension
         builder
             .Services
             .AddScoped<ISchoolEnrollValuesHandler, SchoolEnrollValuesHandler>();
-        
+
         builder
             .Services
             .AddScoped<ICityInfosHandler, CityInfosHandler>();
-        
+
         builder
             .Services
             .AddScoped<ISchoolInfraValuesHandler, SchoolInfraValuesHandler>();
