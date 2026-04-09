@@ -140,6 +140,9 @@ public static class AppExtension
                 Console.WriteLine($"[LOG] Arquivo DB encontrado no ZIP: {extractedDbFile}");
                 File.Move(extractedDbFile, dbPath, overwrite: true);
                 Console.WriteLine($"[LOG] Banco movido com sucesso para o alvo: {dbPath}");
+
+                var tamanhoMb = new FileInfo(dbPath).Length / 1024.0 / 1024.0;
+                Console.WriteLine($"[LOG] TAMANHO REAL DO BANCO EXTRAÍDO: {tamanhoMb:F2} MB");
             }
             else
             {
@@ -157,6 +160,8 @@ public static class AppExtension
         using var scope = app.Services.CreateScope();
 
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        Console.WriteLine($"[LOG] O EF ESTÁ CONECTANDO EM: {context.Database.GetDbConnection().ConnectionString}");
 
         context.Database.Migrate();
 
