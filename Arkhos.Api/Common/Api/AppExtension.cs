@@ -40,8 +40,8 @@ public static class AppExtension
             var commandPython = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "python" : "python3";
             var basePath = Directory.GetCurrentDirectory();
 
-            var scriptPath = isProduction 
-            ? Path.Combine(basePath, "web-scraping", "main.py") 
+            var scriptPath = isProduction
+            ? Path.Combine(basePath, "web-scraping", "main.py")
             : Path.GetFullPath(Path.Combine(basePath, "..", "web-scraping", "main.py"));
 
             Console.WriteLine($"[LOG] Procurando script Python em: {scriptPath}");
@@ -100,7 +100,7 @@ public static class AppExtension
 
         var dbPath = isProduction ? "arkhos.db" : "../arkhos.db";
         var zipPath = isProduction ? "arkhos.zip" : "../arkhos.zip";
-        var extractPath = isProduction ? "." : "..";
+        var tempExtractPath = isProduction ? "temp_extract" : "../temp_extract";
 
 
         var downloadUrl = "https://www.dropbox.com/scl/fi/he9vq0un51f8m48kwfe7o/arkhos.zip?rlkey=6gw353bkxvckoqsej9dejp540&st=svr7z800&dl=1";
@@ -118,7 +118,7 @@ public static class AppExtension
                 var response = client.GetAsync(downloadUrl).Result;
                 response.EnsureSuccessStatusCode();
 
-                using var fs = new FileStream(zipPath, FileMode.CreateNew);
+                using var fs = new FileStream(zipPath, FileMode.Create);
                 response.Content.CopyToAsync(fs).Wait();
 
                 Console.WriteLine("[LOG] Download concluído com sucesso!");
@@ -129,8 +129,24 @@ public static class AppExtension
                 Console.WriteLine("[LOG] Arquivo ZIP já existe localmente. Pulando download.");
             }
 
-            Console.WriteLine($"[LOG] Extraindo ZIP para a pasta: {(extractPath == "." ? "Atual (/app)" : "Anterior (../)")}");
-            ZipFile.ExtractToDirectory(zipPath, extractPath, overwriteFiles: true);
+            if (Directory.Exists(tempExtractPath)) Directory.Delete(tempExtractPath, true);
+            Directory.CreateDirectory(tempExtractPath);
+            ZipFile.ExtractToDirectory(zipPath, tempExtractPath, overwriteFiles: true);
+
+            var extractedDbFile = Directory.GetFiles(tempExtractPath, "*.db", SearchOption.AllDirectories).FirstOrDefault();
+
+            if (extractedDbFile != null)
+            {
+                Console.WriteLine($"[LOG] Arquivo DB encontrado no ZIP: {extractedDbFile}");
+                File.Move(extractedDbFile, dbPath, overwrite: true);
+                Console.WriteLine($"[LOG] Banco movido com sucesso para o alvo: {dbPath}");
+            }
+            else
+            {
+                Console.WriteLine("[LOG] ERRO CRÍTICO: Nenhum arquivo .db foi encontrado dentro do ZIP baixado!");
+            }
+
+            Directory.Delete(tempExtractPath, true);
             Console.WriteLine("[LOG] Extração concluída!");
         }
         else
@@ -147,7 +163,16 @@ public static class AppExtension
         if (!context.CityInfos.Any())
         {
             Console.WriteLine("[LOG] AVISO: Banco ainda está vazio após a extração!");
-            RunWebScraping(isProduction);
+
+            if (isProduction)
+            {
+                Console.WriteLine("[LOG] Estamos no Render. O Python não será executado. Verifique o arquivo ZIP no Dropbox.");
+            }
+            else
+            {
+                Console.WriteLine("[LOG] Estamos no PC local. Iniciando script Python de fallback...");
+                RunWebScraping(isProduction);
+            }
         }
         else
         {
