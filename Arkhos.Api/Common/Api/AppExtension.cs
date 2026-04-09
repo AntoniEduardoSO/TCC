@@ -6,6 +6,7 @@ using Arkhos.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using System.IO;
 using System.IO.Compression;
+using System.Net.Http;
 
 using System.Text.Json;
 
@@ -93,21 +94,26 @@ public static class AppExtension
         var dbPath = "arkhos.db";
         var zipPath = "arkhos.zip";
 
+
+        var downloadUrl = "https://www.dropbox.com/scl/fi/he9vq0un51f8m48kwfe7o/arkhos.zip?rlkey=6gw353bkxvckoqsej9dejp540&st=svr7z800&dl=1";
+
         if (!File.Exists(dbPath))
         {
-            Console.WriteLine("Banco de dados não encontrado no disco.");
+            if (!File.Exists(zipPath))
+            {
+                using var client = new HttpClient();
 
-            if (File.Exists(zipPath))
-            {
-                Console.WriteLine("Encontrado arkhos.zip! Iniciando descompactação...");
-                ZipFile.ExtractToDirectory(zipPath, ".", overwriteFiles: true);
+                var response = client.GetAsync(downloadUrl).Result;
+                response.EnsureSuccessStatusCode();
+
+                using var fs = new FileStream(zipPath, FileMode.CreateNew);
+                response.Content.CopyToAsync(fs).Wait();
+
             }
-            else
-            {
-                Console.WriteLine("arkhos.zip não foi encontrado.");
-            }
+
+            ZipFile.ExtractToDirectory(zipPath, ".", overwriteFiles: true);
         }
-        
+
         using var scope = app.Services.CreateScope();
 
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
