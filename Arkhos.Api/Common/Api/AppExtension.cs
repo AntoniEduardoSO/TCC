@@ -33,14 +33,18 @@ public static class AppExtension
             return false;
         }
     }
-    private static void RunWebScraping()
+    private static void RunWebScraping(bool isProduction)
     {
         try
         {
             var commandPython = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "python" : "python3";
             var basePath = Directory.GetCurrentDirectory();
 
-            var scriptPath = Path.GetFullPath(Path.Combine(basePath, "..", "web-scraping", "main.py"));
+            var scriptPath = isProduction 
+            ? Path.Combine(basePath, "web-scraping", "main.py") 
+            : Path.GetFullPath(Path.Combine(basePath, "..", "web-scraping", "main.py"));
+
+            Console.WriteLine($"[LOG] Procurando script Python em: {scriptPath}");
 
             if (!File.Exists(scriptPath))
             {
@@ -91,16 +95,24 @@ public static class AppExtension
     }
     public static void InitArkhosDatabase(this WebApplication app)
     {
-        var dbPath = "arkhos.db";
-        var zipPath = "arkhos.zip";
+        var isProduction = app.Environment.IsProduction();
+        Console.WriteLine($"[LOG] Ambiente de Produção (Render/Docker): {isProduction}");
+
+        var dbPath = isProduction ? "arkhos.db" : "../arkhos.db";
+        var zipPath = isProduction ? "arkhos.zip" : "../arkhos.zip";
+        var extractPath = isProduction ? "." : "..";
 
 
         var downloadUrl = "https://www.dropbox.com/scl/fi/he9vq0un51f8m48kwfe7o/arkhos.zip?rlkey=6gw353bkxvckoqsej9dejp540&st=svr7z800&dl=1";
 
+        Console.WriteLine($"[LOG] Procurando DB em: {dbPath}");
+
         if (!File.Exists(dbPath))
         {
+            Console.WriteLine("[LOG] Banco não encontrado no disco.");
             if (!File.Exists(zipPath))
             {
+                Console.WriteLine("[LOG] ZIP não encontrado. Iniciando Download do Dropbox...");
                 using var client = new HttpClient();
 
                 var response = client.GetAsync(downloadUrl).Result;
@@ -109,9 +121,21 @@ public static class AppExtension
                 using var fs = new FileStream(zipPath, FileMode.CreateNew);
                 response.Content.CopyToAsync(fs).Wait();
 
+                Console.WriteLine("[LOG] Download concluído com sucesso!");
+
+            }
+            else
+            {
+                Console.WriteLine("[LOG] Arquivo ZIP já existe localmente. Pulando download.");
             }
 
-            ZipFile.ExtractToDirectory(zipPath, ".", overwriteFiles: true);
+            Console.WriteLine($"[LOG] Extraindo ZIP para a pasta: {(extractPath == "." ? "Atual (/app)" : "Anterior (../)")}");
+            ZipFile.ExtractToDirectory(zipPath, extractPath, overwriteFiles: true);
+            Console.WriteLine("[LOG] Extração concluída!");
+        }
+        else
+        {
+            Console.WriteLine("[LOG] Arquivo arkhos.db já existe. Pulando extração.");
         }
 
         using var scope = app.Services.CreateScope();
@@ -122,8 +146,8 @@ public static class AppExtension
 
         if (!context.CityInfos.Any())
         {
-            Console.WriteLine("Banco vazio.");
-            RunWebScraping();
+            Console.WriteLine("[LOG] AVISO: Banco ainda está vazio após a extração!");
+            RunWebScraping(isProduction);
         }
         else
         {
