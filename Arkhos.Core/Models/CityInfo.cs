@@ -2,7 +2,6 @@ namespace Arkhos.Core.Models;
 
 public class CityInfo
 {
-    public int Id {get;set;}
     public int MunicipioId {get;set;}
     public string NomeMunicipio {get;set;} = string.Empty;
     public int Ano {get;set;}

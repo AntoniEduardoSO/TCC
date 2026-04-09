@@ -1,7 +1,8 @@
 using System.Text.Json.Serialization;
+using Arkhos.Core.Interfaces;
 
 namespace Arkhos.Core.Models.Dto.SchoolRating;
-public class SchoolRatingSpendingDto
+public class SchoolRatingSpendingDto : ILocationContext
 {
     [JsonPropertyName("ano")]
     public int Ano {get;set;}

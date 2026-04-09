@@ -8,7 +8,7 @@ from datatable.config import exec_datatables
 
 from datetime import datetime
 
-FLAG_PATH = "web-scraping/status/scraping_done.flag"
+FLAG_PATH = "status/scraping_done.flag"
 
 def clean_flag():
     if os.path.exists(FLAG_PATH):
@@ -42,8 +42,8 @@ def main():
         # print("Inicializando automação nos portais da transparência.")
         # exec_robots()
         
-        print("Inicializando processamento e limpeza de dados do microdados e rendimento do censo.")
-        exec_processing()
+        # print("Inicializando processamento e limpeza de dados do microdados e rendimento do censo.")
+        # exec_processing()
 
         print("Inicializando a criacao da database limpa.")
         exec_datatables()

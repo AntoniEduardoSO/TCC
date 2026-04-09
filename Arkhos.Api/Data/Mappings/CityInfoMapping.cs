@@ -10,67 +10,58 @@ public class CityInfoMapping : IEntityTypeConfiguration<CityInfo>
     {
         builder.ToTable("city_info");
 
-        builder.HasKey(x => x.Id);
+        builder.HasKey(x => new { x.MunicipioId, x.Ano });
 
-        builder.HasIndex(x => new { x.MunicipioId, x.Ano });
 
         builder.Property(x => x.Ano)
-        .HasColumnName("ano")
-        .HasColumnType("int")
-        .IsRequired();
+            .HasColumnName("ano")
+            .HasColumnType("INTEGER")
+            .IsRequired();
 
         builder.Property(x => x.MunicipioId)
-       .HasColumnName("municipio_id")
-       .HasColumnType("int") 
-       .IsRequired();
+            .HasColumnName("municipio_id")
+            .HasColumnType("INTEGER") 
+            .IsRequired();
 
-        builder.Property
-        (x => x.NomeMunicipio)
-        .HasColumnName("nome_municipio")
-        .HasColumnType("text")
-        .IsRequired();
+        builder.Property(x => x.NomeMunicipio)
+            .HasColumnName("nome_municipio")
+            .HasColumnType("TEXT")
+            .IsRequired();
 
-        builder.Property
-        (x => x.NomeMesorregiao)
-        .HasColumnName("nome_mesorregiao")
-        .HasColumnType("text")
-        .IsRequired();
+       builder.Property(x => x.NomeMesorregiao)
+            .HasColumnName("nome_mesorregiao")
+            .HasColumnType("TEXT")
+            .IsRequired();
 
-        builder.Property
-        (x => x.IdMesorregiao)
-        .HasColumnName("id_mesorregiao")
-        .HasColumnType("int")
-        .IsRequired();
+        builder.Property(x => x.IdMesorregiao)
+            .HasColumnName("id_mesorregiao")
+            .HasColumnType("INTEGER")
+            .IsRequired();
 
-        builder.Property
-        (x => x.NomeMicrorregiao)
-        .HasColumnName("nome_microrregiao")
-        .HasColumnType("text")
-        .IsRequired();
+        builder.Property(x => x.NomeMicrorregiao)
+            .HasColumnName("nome_microrregiao")
+            .HasColumnType("TEXT")
+            .IsRequired();
 
-        builder.Property
-        (x => x.IdMicrorregiao)
-        .HasColumnName("id_microrregiao")
-        .HasColumnType("int")
-        .IsRequired();
+        builder.Property(x => x.IdMicrorregiao)
+            .HasColumnName("id_microrregiao")
+            .HasColumnType("INTEGER")
+            .IsRequired();
 
-        builder.Property
-        (x => x.AreaTerritorial)
-        .HasColumnName("area_territorial")
-        .HasColumnType("int")
-        .IsRequired();
+        builder.Property(x => x.AreaTerritorial)
+            .HasColumnName("area_territorial")
+            .HasColumnType("REAL")
+            .IsRequired();
 
-        builder.Property
-        (x => x.PopulacaoTotal)
-        .HasColumnName("populacao_total")
-        .HasColumnType("int")
-        .IsRequired();
+        builder.Property(x => x.PopulacaoTotal)
+            .HasColumnName("populacao_total")
+            .HasColumnType("REAL")
+            .IsRequired();
 
-        builder.Property
-        (x => x.DensidadeDemografica)
-        .HasColumnName("densidade_demografica")
-        .HasColumnType("numeric(5,2)")
-        .IsRequired();
+        builder.Property(x => x.DensidadeDemografica)
+            .HasColumnName("densidade_demografica")
+            .HasColumnType("REAL")
+            .IsRequired();
 
     }
 }

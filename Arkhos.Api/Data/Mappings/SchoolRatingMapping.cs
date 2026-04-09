@@ -10,115 +10,108 @@ public class SchoolRatingMapping : IEntityTypeConfiguration<SchoolRating>
     {
         builder.ToTable("school_rating");
 
-        builder.HasKey(x => x.Id);
-
-        builder.Property(x =>x.Id)
-        .HasIdentityOptions(startValue:1, incrementBy:1);
-
-        builder.HasIndex(x => new { x.SchoolInfoId, x.Ano });
+        builder.HasKey(x => new { x.SchoolInfoId, x.Ano });
         builder.HasIndex(x => x.Ano);
 
 
         builder.Property(x => x.SchoolInfoId)
-        .HasColumnName("id_escola_fk")
-        .HasColumnType("int")
-        .IsRequired();
+            .HasColumnName("id_escola_fk")
+            .HasColumnType("INTEGER")
+            .IsRequired();
 
         builder.Property(x => x.Ano)
-        .HasColumnName("ano")
-        .HasColumnType("int")
-        .IsRequired();
+            .HasColumnName("ano")
+            .HasColumnType("INTEGER")
+            .IsRequired();
 
         builder.Property(x => x.AcessibilityRating)
-            .HasColumnType("numeric(7,4)")
+            .HasColumnType("REAL")
             .HasColumnName("acessibility_rating");
 
         builder.Property(x => x.RecreationRating)
-            .HasColumnType("numeric(7,4)")
+            .HasColumnType("REAL")
             .HasColumnName("recreation_rating");
 
         builder.Property(x => x.WellbeingRating)
-            .HasColumnType("numeric(7,4)")
+            .HasColumnType("REAL")
             .HasColumnName("wellbeing_rating");
 
         builder.Property(x => x.HumanSupportRating)
-            .HasColumnType("numeric(7,4)")
+            .HasColumnType("REAL")
             .HasColumnName("human_support_rating");
         
         builder.Property(x => x.ManagementRating)
-            .HasColumnType("numeric(7,4)")
+            .HasColumnType("REAL")
             .HasColumnName("management_rating");
 
-
         builder.Property(x => x.AgeGradeDistortionRating)
-            .HasColumnType("numeric(7,4)")
+            .HasColumnType("REAL")
             .HasColumnName("age_grade_distortion_rating");
 
         builder.Property(x => x.PedagogicalRating)
-            .HasColumnType("numeric(7,4)")
+            .HasColumnType("REAL")
             .HasColumnName("pedagogical_rating");
    
         builder.Property(x => x.TeacherStressRating)
-            .HasColumnType("numeric(7,4)")
+            .HasColumnType("REAL")
             .HasColumnName("teacher_stress_rating");
         
         builder.Property(x => x.TeacherInstabilityRating)
-            .HasColumnType("numeric(7,4)")
+            .HasColumnType("REAL")
             .HasColumnName("teacher_instability_rating");
 
         builder.Property(x => x.AdministrativeBurdenRating)
-            .HasColumnType("numeric(7,4)")
+            .HasColumnType("REAL")
             .HasColumnName("administrative_burden_rating");
 
         builder.Property(x => x.IdebRating)
-            .HasColumnType("numeric(7,4)")
+            .HasColumnType("REAL")
             .HasColumnName("ideb_rating");
 
         builder.Property(x => x.SaebRating)
-            .HasColumnType("numeric(7,4)")
+            .HasColumnType("REAL")
             .HasColumnName("saeb_rating");
         
         builder.Property(x => x.ApprovalRate)
-            .HasColumnType("numeric(7,4)")
+            .HasColumnType("REAL")
             .HasColumnName("approval_rate");
 
         builder.Property(x => x.FailureRate)
-            .HasColumnType("numeric(7,4)")
+            .HasColumnType("REAL")
             .HasColumnName("failure_rate");
 
         builder.Property(x => x.DropoutRate)
-            .HasColumnType("numeric(7,4)")
+            .HasColumnType("REAL")
             .HasColumnName("dropout_rate");
 
         builder.Property(x => x.SpendingPerStudent)
-            .HasColumnType("numeric(14,4)")
+            .HasColumnType("REAL")
             .HasColumnName("spending_per_student");
 
         builder.Property(x => x.SpendingPerTeacher)
-            .HasColumnType("numeric(14,4)")
+            .HasColumnType("REAL")
             .HasColumnName("spending_per_teacher");
         
         builder.Property(x => x.PedagogicalSpendingPerStudent)
-            .HasColumnType("numeric(14,4)")
+            .HasColumnType("REAL")
             .HasColumnName("pedagogical_spending_per_student");
 
         builder.Property(x => x.InfrastructureSpendingPerStudent)
-            .HasColumnType("numeric(14,4)")
+            .HasColumnType("REAL")
             .HasColumnName("infrastructure_spending_per_student");
 
         builder.Property(x => x.MealSpendingPerStudent)
-            .HasColumnType("numeric(14,4)")
+            .HasColumnType("REAL")
             .HasColumnName("meal_spending_per_student");
 
         builder.Property(x => x.TransportSpendingPerStudent)
-            .HasColumnType("numeric(14,4)")
+            .HasColumnType("REAL")
             .HasColumnName("transport_spending_per_student");
 
-
         builder.HasOne(x => x.SchoolInfo)
-       .WithOne(x => x.SchoolRating)
-       .HasForeignKey<SchoolRating>(x => new { x.SchoolInfoId, x.Ano })
-       .HasPrincipalKey<SchoolInfo>(x => new { x.IdEscola, x.Ano });
+            .WithOne(x => x.SchoolRating)
+            .HasForeignKey<SchoolRating>(x => new { x.SchoolInfoId, x.Ano })
+            .HasPrincipalKey<SchoolInfo>(x => new { x.IdEscola, x.Ano });
 
     }
 }

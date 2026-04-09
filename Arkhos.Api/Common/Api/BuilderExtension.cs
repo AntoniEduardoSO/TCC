@@ -70,7 +70,7 @@ public static class BuilderExtension
         builder.Services.AddDbContext<AppDbContext>(
             x =>
             {
-                x.UseNpgsql(Configuration.ConnectionString);
+                x.UseSqlite(Configuration.ConnectionString);
             }
         );
     }

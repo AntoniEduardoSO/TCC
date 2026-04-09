@@ -10,41 +10,42 @@ public class SchoolInfraValuesMapping : IEntityTypeConfiguration<SchoolInfraValu
     {
         builder.ToTable("school_infra_values");
 
-        builder.HasKey(x => x.Id);
+        builder.HasKey(x => new { x.Ano, x.IdEscolaInfraValues, x.AtributoId });
 
         builder.Property(x => x.IdEscolaInfraValues)
-        .HasColumnName("id_escola_fk")
-        .HasColumnType("int")
-        .IsRequired();
+            .HasColumnName("id_escola_fk")
+            .HasColumnType("INTEGER")
+            .IsRequired();
 
         builder.Property(x => x.Ano)
-        .HasColumnName("ano")
-        .HasColumnType("int")
-        .IsRequired();
+            .HasColumnName("ano")
+            .HasColumnType("INTEGER")
+            .IsRequired();
+
+        builder.Property(x => x.AtributoId)
+            .HasColumnName("id_atributo")
+            .HasColumnType("INTEGER")
+            .IsRequired();
 
         builder.Property(x => x.TipoAtributo)
-        .HasColumnType("text")
-        .HasColumnName("tipo_atributo")
-        .IsRequired();
+            .HasColumnName("tipo_atributo")
+            .HasColumnType("TEXT")
+            .IsRequired();
+
 
         builder.Property(x => x.Valor)
-        .HasColumnType("numeric(10,1)")
-        .HasColumnName("valor")
-        .IsRequired();
+            .HasColumnName("valor")
+            .HasColumnType("REAL")
+            .IsRequired();
 
         builder.HasOne(x => x.SchoolInfraDict)
-       .WithMany(x => x.SchoolInfraValues)
-       .HasForeignKey(x => x.AtributoId)
-       .HasPrincipalKey(x => x.Id);
+            .WithMany(x => x.SchoolInfraValues)
+            .HasForeignKey(x => x.AtributoId)
+            .HasPrincipalKey(x => x.Id);
 
-       builder.Property(x => x.AtributoId)
-       .HasColumnName("id_atributo")
-       .HasColumnType("int")
-       .IsRequired();
-
-       builder.HasOne(x => x.SchoolInfo)
-       .WithMany(x => x.SchoolInfraValues)
-       .HasForeignKey(x => new { x.IdEscolaInfraValues, x.Ano })
-       .HasPrincipalKey(x => new { x.IdEscola, x.Ano });
+        builder.HasOne(x => x.SchoolInfo)
+            .WithMany(x => x.SchoolInfraValues)
+            .HasForeignKey(x => new { x.IdEscolaInfraValues, x.Ano })
+            .HasPrincipalKey(x => new { x.IdEscola, x.Ano });
     }
 }

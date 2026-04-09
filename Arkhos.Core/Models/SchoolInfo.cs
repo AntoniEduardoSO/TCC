@@ -2,7 +2,6 @@ namespace Arkhos.Core.Models;
 
 public class SchoolInfo
 {
-    public int Id {get;set;}
     public int IdEscola { get; set; }
     public string NomeEscola {get;set;} = string.Empty;
     public short Dependencia {get;set;}

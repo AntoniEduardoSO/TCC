@@ -4,6 +4,8 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 using Arkhos.Api.Data;
 using Microsoft.EntityFrameworkCore;
+using System.IO;
+using System.IO.Compression;
 
 using System.Text.Json;
 
@@ -20,7 +22,7 @@ public static class AppExtension
         {
             var json = File.ReadAllText(flagPath);
             var doc = JsonDocument.Parse(json);
-            
+
             var status = doc.RootElement.GetProperty("status").GetString();
 
             return status == "done";
@@ -37,7 +39,7 @@ public static class AppExtension
             var commandPython = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "python" : "python3";
             var basePath = Directory.GetCurrentDirectory();
 
-            var scriptPath = Path.GetFullPath(Path.Combine(basePath,"..", "web-scraping", "main.py"));
+            var scriptPath = Path.GetFullPath(Path.Combine(basePath, "..", "web-scraping", "main.py"));
 
             if (!File.Exists(scriptPath))
             {
@@ -53,7 +55,7 @@ public static class AppExtension
             {
                 FileName = commandPython,
                 Arguments = $"\"{scriptPath}\" {modo}",
-                WorkingDirectory = Path.GetDirectoryName(scriptPath),
+                WorkingDirectory = scriptDirectory,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -63,7 +65,7 @@ public static class AppExtension
             using var process = Process.Start(startInfo);
             if (process != null)
             {
-                process.WaitForExit(); // Aguarda o Python terminar de salvar no banco
+                process.WaitForExit();
 
                 var output = process.StandardOutput.ReadToEnd();
                 var error = process.StandardError.ReadToEnd();
@@ -71,6 +73,7 @@ public static class AppExtension
                 if (process.ExitCode == 0)
                 {
                     Console.WriteLine("Execução Python finalizada.");
+                    Console.WriteLine("arkhos.db criado com sucesso!");
                     Console.WriteLine(output);
                 }
                 else
@@ -80,21 +83,38 @@ public static class AppExtension
                 }
             }
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             Console.WriteLine($"Falha ao tentar executar o processo Python: {ex.Message}");
         }
     }
-
     public static void InitArkhosDatabase(this WebApplication app)
     {
+        var dbPath = "arkhos.db";
+        var zipPath = "arkhos.zip";
+
+        if (!File.Exists(dbPath))
+        {
+            Console.WriteLine("Banco de dados não encontrado no disco.");
+
+            if (File.Exists(zipPath))
+            {
+                Console.WriteLine("Encontrado arkhos.zip! Iniciando descompactação...");
+                ZipFile.ExtractToDirectory(zipPath, ".", overwriteFiles: true);
+            }
+            else
+            {
+                Console.WriteLine("arkhos.zip não foi encontrado.");
+            }
+        }
+        
         using var scope = app.Services.CreateScope();
 
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         context.Database.Migrate();
 
-        if(!context.CityInfos.Any())
+        if (!context.CityInfos.Any())
         {
             Console.WriteLine("Banco vazio.");
             RunWebScraping();

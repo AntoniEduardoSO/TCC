@@ -1,5 +1,6 @@
 ﻿@page "/"
 @using Arkhos.Core.Handlers
+@using Arkhos.Core.Interfaces
 @using Arkhos.Core.Models.Dto
 @using Arkhos.Core.Models.Dto.SchoolEnrollValues
 @using Arkhos.Core.Models.Dto.SchoolInfo
@@ -63,7 +64,8 @@
                     <PieChartDropoutRateCard TotalAbandonos="@TotalAbandonos" TotalAprovados="@TotalAprovados"
                                              TotalReprovados="@TotalReprovados" />
 
-                    <InfrastructureQualityCard Accessibility="@AcessibilityRating" Pedagogical="@TotalPedagogicalRooms" WellBeing="@TotalWellbeing" />
+                    <InfrastructureQualityCard Accessibility="@AcessibilityRating" Pedagogical="@TotalPedagogicalRooms"
+                                               WellBeing="@TotalWellbeing" />
 
                     <TeachersOverviewCard Ano="@DashboardState.SelectedYear" TotalCreche="@ProfCreche"
                                           TotalPreEscola="@ProfPreEscola" TotalFundIniciais="@ProfFundIniciais"
@@ -86,7 +88,13 @@
     private Response<ICollection<SchoolInfraValuesPedagogicalRoomsDto>>? pedagogicalRooms;
     private Response<ICollection<SchoolInfraValuesWellbeingDto>>? wellbeingInfra;
     private Response<ICollection<SchoolRatingDropDto>>? dropouts;
+
     private bool _mapRendered = false;
+    private DotNetObjectReference<Home>? _objRef;
+    private string? _currentLevel;
+    private int? _currentId;
+
+
     private IEnumerable<SchoolRatingSpendingDto> FilteredSpending => GetFilteredSpendingRatings();
     private IEnumerable<SchoolEnrollValuesStudentsDto> FilteredEnrollments => GetFilteredEnrollments();
     private IEnumerable<SchoolEnrollValuesTeachersDto> FilteredTeachers => GetFilteredTeachers();
@@ -94,89 +102,50 @@
     private IEnumerable<SchoolInfraValuesPedagogicalRoomsDto> FilteredPedagogicalRooms => GetFilteredPedagogicalRooms();
     private IEnumerable<SchoolInfraValuesWellbeingDto> FilteredWellbeing => GetFilteredWellbeing();
 
-    
-    private DotNetObjectReference<Home>? _objRef;
+    private double TotalCreche { get; set; }
+    private double TotalPreEscola { get; set; }
+    private double TotalFundIniciais { get; set; }
+    private double TotalFundFinais { get; set; }
+    private double TotalMedio { get; set; }
+    private double TotalAlunos { get; set; }
 
-    private string? _currentLevel;
-    private int? _currentId;
+    // Professores
+    private double ProfCreche { get; set; }
+    private double ProfPreEscola { get; set; }
+    private double ProfFundIniciais { get; set; }
+    private double ProfFundFinais { get; set; }
+    private double ProfMedio { get; set; }
+    private double ProfEspecial { get; set; }
+
+    // Desempenho e Avaliações
+    private double? TotalAbandonos { get; set; }
+    private double? TotalAprovados { get; set; }
+    private double? TotalReprovados { get; set; }
+    private double AcessibilityRating { get; set; }
+
+    // Financeiro
+    private double AvgSpendingPerStudent { get; set; }
+    private double AvgSpendingPerTeacher { get; set; }
+    private double AvgInfrastructure { get; set; }
+    private double AvgTransport { get; set; }
+    private double AvgMeal { get; set; }
+    private double TotalGasto { get; set; }
+
+    // Infraestrutura
+    private double TotalWellbeing { get; set; }
+    private double TotalPedagogicalRooms { get; set; }
+
+    // === Insights ===
+    private string InsightTitle => $"Aprovação média atinge {Math.Round(((TotalAprovados * 100) ?? 0), 1)}% nas regiões analisadas";
+    private string InsightDescription => "A análise consolidada identificou predominância de aprovação escolar nas regiões filtradas, com estabilidade nos índices de abandono.";
+    private string InsightRecommendation => "Reforçar ações nas regiões com reprovação acima da média e manter alocação eficiente de docentes.";
+
 
     protected override async Task OnInitializedAsync()
     {
         _objRef = DotNetObjectReference.Create(this);
-
         DashboardState.OnYearChanged += ReloadByYear;
-
         await LoadDashboardDataAsync();
-    }
-
-    private async void ReloadByYear()
-    {
-        await LoadDashboardDataAsync();
-
-        if (response?.Data != null)
-            await JS.InvokeVoidAsync("updateMarkers", response.Data);
-
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private async Task LoadDashboardDataAsync()
-    {
-        DashboardState.SetLoading(true);
-
-        try
-        {
-            var request = new GetSchoolInfoByYearRequest
-            {
-                Year = DashboardState.SelectedYear
-            };
-            response = await Handler.GetByYearAsync(request);
-
-            var spendingRatingRequest = new GetSchoolRatingSpendingByYearRequest
-            {
-                Year = DashboardState.SelectedYear
-            };
-            spendingRatings = await RatingHandler.GetSpendingByYearAsync(spendingRatingRequest);
-
-            var ratingsRequest = new GetSchoolRatingMapByYearRequest
-            {
-                Year = DashboardState.SelectedYear
-            };
-            ratings = await RatingHandler.GetRatingByYearAsync(ratingsRequest);
-
-            var wellbeingInfraRequest = new GetSchoolInfraValuesWellbeingByYearRequest
-            {
-                Year = DashboardState.SelectedYear
-            };
-            wellbeingInfra = await InfraHandler.GetWellbeingByYearAsync(wellbeingInfraRequest);
-
-            var pedagogicalInfraRequest = new GetSchoolInfraValuesPedagogicalRoomsByYearRequest
-            {
-                Year = DashboardState.SelectedYear
-            };
-            pedagogicalRooms = await InfraHandler.GetPedagogicalRoomsByYearAsync(pedagogicalInfraRequest);
-
-            var enrollmentRequest = new GetStudentsWithSeriesByYearRequest
-            {
-                Year = DashboardState.SelectedYear
-            };
-            enrollments = await EnrollHandler.GetStudentsWithSeriesByYearAsync(enrollmentRequest);
-
-            var teacherRequest = new GetTeachersWithSeriesByYearRequest
-            {
-                Year = DashboardState.SelectedYear
-            };
-            teachers = await TeachersHandler.GetTeachersWithSeriesByYearAsync(teacherRequest);
-
-            var dropoutRequest = new GetSchoolRatingDropByYearRequest
-            {
-                Year = DashboardState.SelectedYear
-            };
-            dropouts = await RatingHandler.GetDropByYearAsync(dropoutRequest);
-        }
-        finally
-        {
-            DashboardState.SetLoading(false);
-        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -190,78 +159,133 @@
         }
     }
 
-    private async Task GoBack()
+    public void Dispose()
     {
-        await JS.InvokeVoidAsync("goBack");
+        DashboardState.OnYearChanged -= ReloadByYear;
+        _objRef?.Dispose();
     }
+
+    private async void ReloadByYear()
+    {
+        await LoadDashboardDataAsync();
+        if (response?.Data != null)
+            await JS.InvokeVoidAsync("updateMarkers", response.Data);
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadDashboardDataAsync()
+    {
+        DashboardState.SetLoading(true);
+        try
+        {
+            var yearReq = DashboardState.SelectedYear;
+
+            var tInfo = Handler.GetByYearAsync(new GetSchoolInfoByYearRequest { Year = yearReq });
+            var tSpending = RatingHandler.GetSpendingByYearAsync(new GetSchoolRatingSpendingByYearRequest { Year = yearReq });
+            var tRatings = RatingHandler.GetRatingByYearAsync(new GetSchoolRatingMapByYearRequest { Year = yearReq });
+            var tWellbeing = InfraHandler.GetWellbeingByYearAsync(new GetSchoolInfraValuesWellbeingByYearRequest
+            {
+                Year = yearReq
+            });
+            var tPedagogical = InfraHandler.GetPedagogicalRoomsByYearAsync(new GetSchoolInfraValuesPedagogicalRoomsByYearRequest
+            {
+                Year = yearReq
+            });
+            var tEnroll = EnrollHandler.GetStudentsWithSeriesByYearAsync(new GetStudentsWithSeriesByYearRequest { Year = yearReq });
+            var tTeachers = TeachersHandler.GetTeachersWithSeriesByYearAsync(new GetTeachersWithSeriesByYearRequest
+            {
+                Year = yearReq
+            });
+            var tDrop = RatingHandler.GetDropByYearAsync(new GetSchoolRatingDropByYearRequest { Year = yearReq });
+
+            await Task.WhenAll(tInfo, tSpending, tRatings, tWellbeing, tPedagogical, tEnroll, tTeachers, tDrop);
+
+            response = tInfo.Result;
+            spendingRatings = tSpending.Result;
+            ratings = tRatings.Result;
+            wellbeingInfra = tWellbeing.Result;
+            pedagogicalRooms = tPedagogical.Result;
+            enrollments = tEnroll.Result;
+            teachers = tTeachers.Result;
+            dropouts = tDrop.Result;
+        
+            CalculateMetrics();
+        }
+        finally
+        {
+            DashboardState.SetLoading(false);
+        }
+    }
+
+    private void CalculateMetrics()
+    {
+        var currentEnrollments = GetFilteredEnrollments().ToList();
+        var currentTeachers = GetFilteredTeachers().ToList();
+        var currentDropouts = GetFilteredDropouts().ToList();
+        var currentSpending = GetFilteredSpendingRatings().ToList();
+        var currentRatings = GetFilteredRatings().ToList();
+        var currentWellbeing = GetFilteredWellbeing().ToList();
+        var currentPedagogical = GetFilteredPedagogicalRooms().ToList();
+
+        // 2. Cálculo de Matrículas (Sum retorna 0 se a lista for vazia, não precisa de .Any)
+        TotalCreche = currentEnrollments.Sum(x => x.MatriculaCreche);
+        TotalPreEscola = currentEnrollments.Sum(x => x.MatriculaPreEscola);
+        TotalFundIniciais = currentEnrollments.Sum(x => x.Matricula1Ano + x.Matricula2Ano + x.Matricula3Ano + x.Matricula4Ano +
+x.Matricula5Ano);
+        TotalFundFinais = currentEnrollments.Sum(x => x.Matricula6Ano + x.Matricula7Ano + x.Matricula8Ano + x.Matricula9Ano);
+        TotalMedio = currentEnrollments.Sum(x => x.MatriculaMedio1Ano + x.MatriculaMedio2Ano + x.MatriculaMedio3Ano);
+        TotalAlunos = TotalCreche + TotalPreEscola + TotalFundIniciais + TotalFundFinais + TotalMedio;
+
+        // 3. Cálculo de Professores
+        ProfCreche = currentTeachers.Sum(x => x.ProfessorCreche);
+        ProfPreEscola = currentTeachers.Sum(x => x.ProfessorPreEscola);
+        ProfFundIniciais = currentTeachers.Sum(x => x.ProfessorEFIniciais);
+        ProfFundFinais = currentTeachers.Sum(x => x.ProfessorEFFinais);
+        ProfMedio = currentTeachers.Sum(x => x.ProfessorMedio);
+        ProfEspecial = currentTeachers.Sum(x => x.ProfessorEspecial);
+
+        // 4. Cálculo de Desempenho (Average quebra se a lista for vazia, usamos .Any() para proteger)
+        TotalAbandonos = currentDropouts.Any() ? currentDropouts.Average(x => x.DropoutRate) : 0;
+        TotalAprovados = currentDropouts.Any() ? currentDropouts.Average(x => x.ApprovalRate) : 0;
+        TotalReprovados = currentDropouts.Any() ? currentDropouts.Average(x => x.FailureRate) : 0;
+        AcessibilityRating = currentRatings.Any() ? currentRatings.Average(x => x.RatingAcessibilidade) : 0;
+
+        // 5. Cálculo Financeiro
+        AvgSpendingPerStudent = currentSpending.Any() ? currentSpending.Average(x => x.SpendingPerStudent) / 12 : 0;
+        AvgSpendingPerTeacher = currentSpending.Any() ? currentSpending.Average(x => x.SpendingPerTeacher) / 12 : 0;
+        AvgInfrastructure = currentSpending.Any() ? currentSpending.Average(x => x.InfrastructureSpendingPerStudent) / 12 : 0;
+        AvgTransport = currentSpending.Any() ? currentSpending.Average(x => x.TransportSpendingPerStudent) / 12 : 0;
+        AvgMeal = currentSpending.Any() ? currentSpending.Average(x => x.MealSpendingPerStudent) / 12 : 0;
+        TotalGasto = (TotalAlunos * AvgSpendingPerStudent) / 12;
+
+        // 6. Cálculo de Infraestrutura
+        TotalWellbeing = currentWellbeing.Any() ? currentWellbeing.Average(SumWellbeingProperties) / 14.0 : 0;
+        TotalPedagogicalRooms = currentPedagogical.Any() ? currentPedagogical.Average(SumPedagogicalRoomsProperties) / 10.0 : 0;
+    }
+
+
+    private async Task GoBack() => await JS.InvokeVoidAsync("goBack");
 
     [JSInvokable]
     public void ApplyFilter(string? level, int? id)
     {
         _currentLevel = level;
         _currentId = id;
+        CalculateMetrics();
         StateHasChanged(); // Força a atualização dos cards
     }
 
-    private IEnumerable<SchoolEnrollValuesTeachersDto> GetFilteredTeachers()
-    {
-        if (teachers?.Data == null) return Enumerable.Empty<SchoolEnrollValuesTeachersDto>();
-        if (_currentId == null) return teachers.Data;
+    private IEnumerable<SchoolEnrollValuesTeachersDto> GetFilteredTeachers() => FilterList(teachers?.Data);
+    private IEnumerable<SchoolRatingDropDto> GetFilteredDropouts() => FilterList(dropouts?.Data);
+    private IEnumerable<SchoolRatingSpendingDto> GetFilteredSpendingRatings() => FilterList(spendingRatings?.Data);
+    private IEnumerable<SchoolRatingMapDto> GetFilteredRatings() => FilterList(ratings?.Data);
+    private IEnumerable<SchoolEnrollValuesStudentsDto> GetFilteredEnrollments() => FilterList(enrollments?.Data);
 
-        return _currentLevel switch
-        {
-            "meso" => teachers.Data.Where(x => x.MesorregiaoId == _currentId),
-            "micro" => teachers.Data.Where(x => x.MicrorregiaoId == _currentId),
-            "municipio" => teachers.Data.Where(x => x.MunicipioId == _currentId),
-            _ => teachers.Data
-        };
-    }
-    private IEnumerable<SchoolRatingDropDto> GetFilteredDropouts()
-    {
-        if (dropouts?.Data == null) return Enumerable.Empty<SchoolRatingDropDto>();
-        if (_currentId == null) return dropouts.Data;
-
-        return _currentLevel switch
-        {
-            "meso" => dropouts.Data.Where(x => x.MesorregiaoId == _currentId),
-            "micro" => dropouts.Data.Where(x => x.MicrorregiaoId == _currentId),
-            "municipio" => dropouts.Data.Where(x => x.MunicipioId == _currentId),
-            _ => dropouts.Data
-        };
-    }
-    private IEnumerable<SchoolRatingSpendingDto> GetFilteredSpendingRatings()
-    {
-        if (spendingRatings?.Data == null) return Enumerable.Empty<SchoolRatingSpendingDto>();
-
-        if (_currentId == null) return spendingRatings.Data;
-
-        return _currentLevel switch
-        {
-            "meso" => spendingRatings.Data.Where(x => x.MesorregiaoId == _currentId),
-            "micro" => spendingRatings.Data.Where(x => x.MicrorregiaoId == _currentId),
-            "municipio" => spendingRatings.Data.Where(x => x.MunicipioId == _currentId),
-            _ => spendingRatings.Data
-        };
-    }
-    private IEnumerable<SchoolRatingMapDto> GetFilteredRatings()
-    {
-        if (ratings?.Data == null) return Enumerable.Empty<SchoolRatingMapDto>();
-
-        if (_currentId == null) return ratings.Data;
-
-        return _currentLevel switch
-        {
-            "meso" => ratings.Data.Where(x => x.MesorregiaoId == _currentId),
-            "micro" => ratings.Data.Where(x => x.MicrorregiaoId == _currentId),
-            "municipio" => ratings.Data.Where(x => x.MunicipioId == _currentId),
-            _ => ratings.Data
-        };
-    }
     private IEnumerable<SchoolInfraValuesPedagogicalRoomsDto> GetFilteredPedagogicalRooms()
     {
         if (pedagogicalRooms?.Data == null) return Enumerable.Empty<SchoolInfraValuesPedagogicalRoomsDto>();
         if (_currentId == null) return pedagogicalRooms.Data;
-
         return _currentLevel switch
         {
             "micro" => pedagogicalRooms.Data.Where(x => x.MicrorregiaoId == _currentId),
@@ -274,7 +298,6 @@
     {
         if (wellbeingInfra?.Data == null) return Enumerable.Empty<SchoolInfraValuesWellbeingDto>();
         if (_currentId == null) return wellbeingInfra.Data;
-
         return _currentLevel switch
         {
             "micro" => wellbeingInfra.Data.Where(x => x.MicrorregiaoId == _currentId),
@@ -283,109 +306,29 @@
         };
     }
 
-    private IEnumerable<SchoolEnrollValuesStudentsDto> GetFilteredEnrollments()
+    private IEnumerable<T> FilterList<T>(IEnumerable<T>? list) where T : class, ILocationContext
     {
-        if (enrollments?.Data == null) return Enumerable.Empty<SchoolEnrollValuesStudentsDto>();
-        if (_currentId == null) return enrollments.Data;
+        if (list == null) return Enumerable.Empty<T>();
+        if (_currentId == null) return list;
 
         return _currentLevel switch
         {
-            "meso" => enrollments.Data.Where(x => x.MesorregiaoId == _currentId),
-            "micro" => enrollments.Data.Where(x => x.MicrorregiaoId == _currentId),
-            "municipio" => enrollments.Data.Where(x => x.MunicipioId == _currentId),
-            _ => enrollments.Data
+            "meso" => list.Where(x => x.MesorregiaoId == _currentId),
+            "micro" => list.Where(x => x.MicrorregiaoId == _currentId),
+            "municipio" => list.Where(x => x.MunicipioId == _currentId),
+            _ => list
         };
     }
 
-    private double AcessibilityRating => FilteredRatings.Any() ? FilteredRatings.Average(x => x.RatingAcessibilidade) : 0;
 
-    private double AvgSpendingPerStudent =>
-        FilteredSpending.Any() ? FilteredSpending.Average(x => x.SpendingPerStudent) / 12 : 0;
+    private double SumWellbeingProperties(SchoolInfraValuesWellbeingDto x) =>
+        x.AlimentacaoEscolar + x.AreaVerde + x.BanheiroAlunos + x.BanheiroEducacaoInfantil +
+        x.Cozinha + x.Despensa + x.ParqueInfantil + x.PatioCoberto + x.PatioDescoberto +
+        x.Piscina + x.QuadraEsportes + x.Refeitorio + x.SalaRepousoAluno + x.Terreirao;
 
-    private double AvgSpendingPerTeacher =>
-        FilteredSpending.Any() ? FilteredSpending.Average(x => x.SpendingPerTeacher) / 12 : 0;
+    private double SumPedagogicalRoomsProperties(SchoolInfraValuesPedagogicalRoomsDto x) =>
+        x.Auditorio + x.Biblioteca + x.LaboratorioCiencias + x.LaboratorioInformatica +
+        x.SalaAtelieArtes + x.SalaMusicaCoral + x.SalaEstudioDanca + x.SalaLeitura +
+        x.SalaMultiuso + x.SalaEstudioGravacao;
 
-    private double AvgInfrastructure =>
-       FilteredSpending.Any() ? FilteredSpending.Average(x => x.InfrastructureSpendingPerStudent) / 12 : 0;
-
-    private double AvgTransport =>
-        FilteredSpending.Any() ? FilteredSpending.Average(x => x.TransportSpendingPerStudent) / 12 : 0;
-
-    private double AvgMeal =>
-        FilteredSpending.Any() ? FilteredSpending.Average(x => x.MealSpendingPerStudent) / 12 : 0;
-    
-    private double TotalGasto => ((TotalAlunos * AvgSpendingPerStudent) / 12);
-
-    private const int TotalWellbeingItems = 14;
-    private double TotalWellbeing => FilteredWellbeing.Any()
-    ? FilteredWellbeing.Average(x => SumWellbeingProperties(x) / TotalWellbeingItems)
-    : 0;
-
-    private double SumWellbeingProperties(SchoolInfraValuesWellbeingDto x)
-    {
-        return x.AlimentacaoEscolar +
-               x.AreaVerde +
-               x.BanheiroAlunos +
-               x.BanheiroEducacaoInfantil +
-               x.Cozinha +
-               x.Despensa +
-               x.ParqueInfantil +
-               x.PatioCoberto +
-               x.PatioDescoberto +
-               x.Piscina +
-               x.QuadraEsportes +
-               x.Refeitorio +
-               x.SalaRepousoAluno +
-               x.Terreirao;
-    }
-    private const int TotalPedagogicalRoomsItems = 10;
-
-    private double TotalPedagogicalRooms => FilteredPedagogicalRooms.Any()
-        ? FilteredPedagogicalRooms.Average(x => SumPedagogicalRoomsProperties(x) / TotalPedagogicalRoomsItems)
-        : 0;
-
-     private double SumPedagogicalRoomsProperties(SchoolInfraValuesPedagogicalRoomsDto x)
-    {
-        return x.Auditorio +
-               x.Biblioteca +
-               x.LaboratorioCiencias +
-               x.LaboratorioInformatica +
-               x.SalaAtelieArtes +
-               x.SalaMusicaCoral +
-               x.SalaEstudioDanca +
-               x.SalaLeitura +
-               x.SalaMultiuso +
-               x.SalaEstudioGravacao;
-    }
-
-    private double TotalCreche => FilteredEnrollments.Sum(x => x.MatriculaCreche);
-    private double TotalPreEscola => FilteredEnrollments.Sum(x => x.MatriculaPreEscola);
-    private double TotalFundIniciais => FilteredEnrollments.Sum(x => x.Matricula1Ano + x.Matricula2Ano + x.Matricula3Ano +
-x.Matricula4Ano + x.Matricula5Ano);
-    private double TotalFundFinais => FilteredEnrollments.Sum(x => x.Matricula6Ano + x.Matricula7Ano + x.Matricula8Ano +
-x.Matricula9Ano);
-    private double TotalMedio => FilteredEnrollments.Sum(x => x.MatriculaMedio1Ano + x.MatriculaMedio2Ano +
-x.MatriculaMedio3Ano);
-    private double TotalAlunos =>
-        TotalCreche + TotalPreEscola + TotalFundIniciais + TotalFundFinais + TotalMedio;
-    private double ProfCreche => FilteredTeachers.Sum(x => x.ProfessorCreche);
-    private double ProfPreEscola => FilteredTeachers.Sum(x => x.ProfessorPreEscola);
-    private double ProfFundIniciais => FilteredTeachers.Sum(x => x.ProfessorEFIniciais);
-    private double ProfFundFinais => FilteredTeachers.Sum(x => x.ProfessorEFFinais);
-    private double ProfMedio => FilteredTeachers.Sum(x => x.ProfessorMedio);
-    private double ProfEspecial => FilteredTeachers.Sum(x => x.ProfessorEspecial);
-
-    private double? TotalAbandonos => GetFilteredDropouts().Average(x => x.DropoutRate);
-    private double? TotalAprovados => GetFilteredDropouts().Average(x => x.ApprovalRate);
-    private double? TotalReprovados => GetFilteredDropouts().Average(x => x.FailureRate);
-
-    private string InsightTitle => $"Aprovação média atinge {Math.Round(((TotalAprovados * 100) ?? 0), 1)}% nas regiões analisadas";
-    private string InsightDescription => "A análise consolidada identificou predominância de aprovação escolar nas regiões filtradas, com estabilidade nos índices de abandono.";
-    private string InsightRecommendation => "Reforçar ações nas regiões com reprovação acima da média e manter alocação eficiente de docentes.";
-
-    public void Dispose()
-    {
-        DashboardState.OnYearChanged -= ReloadByYear;
-        _objRef?.Dispose();
-    }
 }

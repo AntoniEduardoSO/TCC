@@ -16,5 +16,6 @@ public class CityInfoMapDto
     [JsonPropertyName("micro_nome")]
     public string NomeMicrorregiao {get;set;} = string.Empty;
     [JsonPropertyName("micro_id")]
-    public int IdMicrorregiao {get;set;}   
+    public int IdMicrorregiao { get; set; }
+
 }

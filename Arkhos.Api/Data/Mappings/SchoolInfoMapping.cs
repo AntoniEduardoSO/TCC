@@ -10,77 +10,73 @@ public class SchoolInfoMapping : IEntityTypeConfiguration<SchoolInfo>
     {
         builder.ToTable("school_info");
 
-        builder.HasKey(x => x.Id);
-
-        builder.HasIndex(x => new { x.IdEscola, x.Ano });
-        builder.HasIndex(x => x.Ano);
+        builder.HasKey(x => new { x.IdEscola, x.Ano });
 
         builder.Property(x => x.IdEscola)
-        .HasColumnType("int")
-        .HasColumnName("escola_id")
-        .IsRequired();
+            .HasColumnName("escola_id")
+            .HasColumnType("INTEGER")
+            .IsRequired();
 
         builder.Property(x => x.NomeEscola)
-        .HasColumnType("text")
-        .HasColumnName("nome_escola")
-        .IsRequired();
+            .HasColumnName("nome_escola")
+            .HasColumnType("TEXT")
+            .IsRequired();
 
         builder.Property(x => x.CityInfoId)
-        .HasColumnName("id_municipio_fk")
-        .HasColumnType("int")
-        .IsRequired();
+            .HasColumnName("id_municipio_fk")
+            .HasColumnType("INTEGER")
+            .IsRequired();
 
         builder.Property(x => x.Dependencia)
-        .HasColumnType("smallint")
-        .HasColumnName("dependencia")
-        .IsRequired();
-
+            .HasColumnName("dependencia")
+            .HasColumnType("INTEGER")
+            .IsRequired();
 
         builder.Property(x => x.Funcionamento)
-        .HasColumnType("smallint")
-        .HasColumnName("funcionamento")
-        .IsRequired();
+            .HasColumnName("funcionamento")
+            .HasColumnType("INTEGER")
+            .IsRequired();
 
         builder.Property(x => x.Sede)
-        .HasColumnType("int")
-        .HasColumnName("sede")
-        .IsRequired(false);
+            .HasColumnName("sede")
+            .HasColumnType("INTEGER")
+            .IsRequired(false);
 
         builder.Property(x => x.Alocacao)
-        .HasColumnType("smallint")
-        .HasColumnName("alocacao");
+            .HasColumnName("alocacao")
+            .HasColumnType("INTEGER");
 
         builder.Property(x => x.Ocupacao)
-        .HasColumnType("smallint")
-        .HasColumnName("ocupacao")
-        .IsRequired();
+            .HasColumnName("ocupacao")
+            .HasColumnType("INTEGER")
+            .IsRequired();
 
         builder.Property(x => x.Ano)
-        .HasColumnType("int")
-        .HasColumnName("ano")
-        .IsRequired();
+            .HasColumnName("ano")
+            .HasColumnType("INTEGER")
+            .IsRequired();
 
         builder.Property(x => x.Endereco)
-        .HasColumnType("text")
-        .HasColumnName("endereco");
+            .HasColumnName("endereco")
+            .HasColumnType("TEXT");
 
         builder.Property(x => x.Telefone)
-        .HasColumnType("text")
-        .HasColumnName("telefone")
-        .IsRequired(false);
+            .HasColumnName("telefone")
+            .HasColumnType("TEXT")
+            .IsRequired(false);
 
         builder.Property(x => x.Lat)
-        .HasColumnType("numeric(9,6)")
-        .HasColumnName("lat");
+            .HasColumnName("lat")
+            .HasColumnType("REAL");
 
         builder.Property(x => x.Lon)
-        .HasColumnType("numeric(9,6)")
-        .HasColumnName("lon");
+            .HasColumnName("lon")
+            .HasColumnType("REAL");
 
         builder.HasOne(x => x.CityInfo)
-       .WithMany(x => x.SchoolInfos)
-       .HasForeignKey(x => new { x.CityInfoId, x.Ano })
-       .HasPrincipalKey(x => new { x.MunicipioId, x.Ano });
+            .WithMany(x => x.SchoolInfos)
+            .HasForeignKey(x => new { x.CityInfoId, x.Ano })
+            .HasPrincipalKey(x => new { x.MunicipioId, x.Ano });
 
     }
 }

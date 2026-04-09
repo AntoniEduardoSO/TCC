@@ -279,19 +279,3 @@ public class SchoolEnrollValuesHandler(AppDbContext context) : ISchoolEnrollValu
         }
     }
 }
-
-/*
- Psicologo 
-
- Fonaudiologo 
-
- AssistenteSocial 
-
- TradutorLibras 
-
- AssociacaoPaiMestres 
-
- ConselhoEscolar 
-
- GremioEstudantil 
-*/

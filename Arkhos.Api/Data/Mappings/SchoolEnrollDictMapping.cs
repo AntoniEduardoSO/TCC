@@ -8,36 +8,36 @@ public class SchoolEnrollDictMapping : IEntityTypeConfiguration<SchoolEnrollDict
 {
     public void Configure(EntityTypeBuilder<SchoolEnrollDict> builder)
     {
-        builder.ToTable("school_enroll_dict");
-
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id)
-        .HasColumnName("id");
+            .HasColumnName("id")
+            .HasColumnType("INTEGER");
 
         builder.Property(x => x.Variavel)
-        .HasColumnType("text")
-        .HasColumnName("variavel")
-        .IsRequired();
+            .HasColumnName("variavel")
+            .HasColumnType("TEXT")
+            .IsRequired();
 
         builder.Property(x => x.Descricao)
-        .HasColumnType("text")
-        .HasColumnName("descricao")
-        .IsRequired();
+            .HasColumnName("descricao")
+            .HasColumnType("TEXT")
+            .IsRequired();
 
         builder.Property(x => x.Tipo)
-        .HasColumnType("text")
-        .HasColumnName("tipo")
-        .IsRequired();
+            .HasColumnName("tipo")
+            .HasColumnType("TEXT")
+            .IsRequired();
+
 
         builder.Property(x => x.Tamanho)
-        .HasColumnType("text")
-        .HasColumnName("tamanho")
-        .IsRequired();
+            .HasColumnName("tamanho")
+            .HasColumnType("INTEGER")
+            .IsRequired();
 
         builder.Property(x => x.Grupo)
-        .HasColumnType("text")
-        .HasColumnName("grupo")
-        .IsRequired();
+            .HasColumnName("grupo")
+            .HasColumnType("TEXT")
+            .IsRequired();
     }
 }

@@ -2,7 +2,6 @@ namespace Arkhos.Core.Models;
 
 public class SchoolRating
 {
-    public int Id { get; set; }
 
     public int SchoolInfoId { get; set; }
     public SchoolInfo SchoolInfo {get;set;} = null!;

@@ -3,77 +3,158 @@
 import csv
 import pandas as pd
 from sqlalchemy import create_engine
-import psycopg2
-from psycopg2.extras import execute_values
 
-DB_HOST = 'localhost'
-DB_NAME = 'arkhos'
-DB_USER = 'postgres'
-DB_PASSWORD = '311200'
-DB_PORT = '5432'
+import sqlite3
 
-STRING_CONEXAO = 'postgresql://postgres:311200@localhost:5432/arkhos'
+
+DB_NAME = '../arkhos.db'
+
+def to_int(val):
+        try:
+            return int(float(val)) if val and val.strip() != "" else None
+        except:
+            return None
+
+def to_float(val):
+    try:
+        return float(val) if val and val.strip() != "" else None
+    except:
+        return None
 
 def connect_to_db():
-    return psycopg2.connect(
-        host = DB_HOST,
-        database=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        port=DB_PORT
-    )
+    return sqlite3.connect(DB_NAME)
+
+def create_sqlite_indexes(conn, cur):
+    
+    queries_index = [
+        "CREATE INDEX IF NOT EXISTS idx_slite_enroll_optim ON school_enroll_values(ano, id_atributo, id_escola_fk, valor);",
+        "CREATE INDEX IF NOT EXISTS idx_slite_infra_optim ON school_infra_values(ano, id_atributo, id_escola_fk, valor);",
+        "CREATE INDEX IF NOT EXISTS idx_slite_sinfo_optim ON school_info(escola_id, ano, funcionamento, id_municipio_fk);",
+        "CREATE INDEX IF NOT EXISTS idx_slite_cinfo_optim ON city_info(municipio_id, ano, id_mesorregiao, id_microrregiao);",
+        "CREATE INDEX IF NOT EXISTS idx_slite_transp_mun_fk ON city_transparency_portal(municipio_id_fk);"
+    ]
+
+    for query in queries_index:
+        cur.execute(query)
+    
+    conn.commit()
+    
+
+
+def exec_transparency_portal(conn, cur):
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS city_transparency_portal (
+            id TEXT PRIMARY KEY,
+            municipio_id_fk INTEGER,
+            data DATE, 
+            valor DOUBLE PRECISION,
+            credor TEXT,
+            elemento_despesa TEXT,
+            detalhe TEXT,
+            eixo TEXT,
+            macro TEXT,
+            micro TEXT,
+            portal_origem INTEGER
+        );
+    """)
+    conn.commit()
+
+    chunk_size = 50000
+    total_inseridos = 0
+    
+    for df_chunk in pd.read_csv('data/CONSOLIDADO_GERAL_FINAL.csv', encoding='utf-8-sig', chunksize=chunk_size):
+        
+        df_chunk['data'] = pd.to_datetime(df_chunk['data'], format='%d/%m/%Y', errors='coerce').dt.strftime('%Y-%m-%d')
+        df_chunk = df_chunk.where(pd.notnull(df_chunk), None)
+
+        if 'municipio_nome' in df_chunk.columns:
+            df_chunk = df_chunk.drop(columns=['municipio_nome'])
+
+
+        colunas_ordem = [
+            'id', 'municipio_id', 'data', 'valor', 'credor', 
+            'elemento_despesa', 'detalhe', 'eixo', 'macro', 'micro', 'portal_origem'
+        ]
+        df_chunk = df_chunk[colunas_ordem]
+        
+        data_tuples = list(df_chunk.itertuples(index=False, name=None))
+
+        query = """
+            INSERT OR IGNORE INTO city_transparency_portal (
+                id, municipio_id_fk, data, valor, credor,
+                elemento_despesa, detalhe, eixo, macro, micro, portal_origem
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+
+        cur.executemany(query, data_tuples)
+        
+        total_inseridos += len(data_tuples)
+
+    conn.commit()
+
 
 def exec_school_infra_values(conn, cur):
 
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS school_infra_values_staging (
-            id TEXT,
-            ano TEXT,
-            id_escola TEXT,
-            id_atributo TEXT,
+        CREATE TABLE IF NOT EXISTS school_infra_values (
+            ano INTEGER,
+            id_escola_fk INTEGER,
+            id_atributo INTEGER,
             tipo_atributo TEXT,
-            valor TEXT
-            );
+            valor REAL,
+            PRIMARY KEY (ano, id_escola_fk, id_atributo)
+        );
     """)
 
-    cur.execute("TRUNCATE school_infra_values_staging")
+    query = """
+        INSERT OR IGNORE INTO school_infra_values (
+            ano, id_escola_fk, id_atributo, tipo_atributo, valor
+        ) VALUES (?, ?, ?, ?, ?)
+    """
 
-    with open('data/Infraestrutura/infrastructure_values.csv', 'r', encoding='utf-8-sig') as f:
-        cur.copy_expert("""
-            COPY school_infra_values_staging
-            FROM STDIN
-            WITH CSV HEADER
-        """, f)
+    chunk_size = 50000
+    total_inseridos = 0
 
-    cur.execute("""
-        INSERT INTO school_infra_values (
-            ano,
-            id_escola_fk,
-            id_atributo,
-            tipo_atributo,
-            valor
-        )
-        SELECT
-            NULLIF(TRIM(ano), '')::INT,
-            NULLIF(TRIM(id_escola), '')::INT,
-            NULLIF(TRIM(id_atributo), '')::INT,
-            NULLIF(TRIM(tipo_atributo), ''),
-            NULLIF(TRIM(valor), '')::FLOAT
-        FROM school_infra_values_staging
-        ON CONFLICT DO NOTHING;
-    """)
+    for df_chunk in pd.read_csv('data/Infraestrutura/infrastructure_values.csv', encoding='utf-8-sig', chunksize=chunk_size):
 
-    cur.execute("TRUNCATE school_infra_values_staging")
+        df_chunk['valor'] = pd.to_numeric(df_chunk['valor'].astype(str).str.replace(',', '.'), errors='coerce')
+
+        df_chunk['ano'] = pd.to_numeric(df_chunk['ano'], errors='coerce')
+        df_chunk['id_escola'] = pd.to_numeric(df_chunk['id_escola'], errors='coerce')
+        df_chunk['id_atributo'] = pd.to_numeric(df_chunk['id_atributo'], errors='coerce')
+        
+        df_chunk = df_chunk.dropna(subset=['ano', 'id_escola', 'id_atributo'])
+
+        df_chunk = df_chunk.astype(object).where(pd.notnull(df_chunk), None)
+
+        df_chunk = df_chunk[['ano', 'id_escola', 'id_atributo', 'tipo_atributo', 'valor']]
+
+        data = list(df_chunk.itertuples(index=False, name=None))
+        cur.executemany(query, data)
+
+        total_inseridos += len(data)
 
     conn.commit()
 
 def exec_school_infra_dict(conn, cur):
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS school_infra_dict (
+            id INTEGER PRIMARY KEY,
+            variavel TEXT,
+            descricao TEXT,
+            tipo TEXT,
+            tamanho INTEGER,
+            grupo TEXT
+        );
+    """)
+
     query = """
-        INSERT INTO school_infra_dict (
+        INSERT OR IGNORE INTO school_infra_dict (
             id, variavel, descricao, tipo, tamanho, grupo
         ) VALUES (
-            %(id_atributo)s, %(variavel)s, %(descricao)s, %(tipo)s, %(tamanho)s, %(grupo)s
+            :id_atributo, :variavel, :descricao, :tipo, :tamanho, :grupo
         )
     """
 
@@ -85,7 +166,7 @@ def exec_school_infra_dict(conn, cur):
         for row in data_reader:
 
             for key, value in row.items():
-                if value is None or value.strip() == "":
+                if value is None or str(value).strip() == "":
                     row[key] = None
 
             if row.get('id_atributo') is not None:
@@ -102,15 +183,27 @@ def exec_school_infra_dict(conn, cur):
 
         if lote_dados:
             cur.executemany(query, lote_dados)
-    
+
     conn.commit()
 
 def exec_school_enroll_dict(conn,cur):
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS school_enroll_dict (
+            id INTEGER PRIMARY KEY,
+            variavel TEXT,
+            descricao TEXT,
+            tipo TEXT,
+            tamanho INTEGER,
+            grupo TEXT
+        );
+    """)
+
     query = """
-        INSERT INTO school_enroll_dict (
+        INSERT OR IGNORE INTO school_enroll_dict (
             id, variavel, descricao, tipo, tamanho, grupo
         ) VALUES (
-            %(id_atributo)s, %(variavel)s, %(descricao)s, %(tipo)s, %(tamanho)s, %(grupo)s
+            :id_atributo, :variavel, :descricao, :tipo, :tamanho, :grupo
         )
     """
 
@@ -122,7 +215,7 @@ def exec_school_enroll_dict(conn,cur):
         for row in data_reader:
 
             for key, value in row.items():
-                if value is None or value.strip() == "":
+                if value is None or str(value).strip() == "":
                     row[key] = None
 
             if row.get('id_atributo') is not None:
@@ -144,33 +237,81 @@ def exec_school_enroll_dict(conn,cur):
 
 def exec_school_enroll_values(conn, cur):
 
-    df = pd.read_csv('data/Matricula/enroll_values.csv', encoding='utf-8-sig')
-
-    df = df.where(pd.notnull(df), None)
-
-    df['id_escola'] = pd.to_numeric(df['id_escola'], errors='coerce')
-    df['ano'] = pd.to_numeric(df['ano'], errors='coerce')
-    df['id_atributo'] = pd.to_numeric(df['id_atributo'], errors='coerce')
-    df['valor'] = pd.to_numeric(df['valor'], errors='coerce')
-    df = df[['ano', 'id_escola', 'id_atributo', 'tipo_atributo', 'valor']]
-
-    data = list(df.itertuples(index=False, name=None))
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS school_enroll_values (
+            ano INTEGER,
+            id_escola_fk INTEGER,
+            id_atributo INTEGER,
+            tipo_atributo TEXT,
+            valor REAL,
+            PRIMARY KEY (ano, id_escola_fk, id_atributo)
+        );
+    """)
 
     query = """
-        INSERT INTO school_enroll_values (
+        INSERT OR IGNORE INTO school_enroll_values (
             ano, id_escola_fk, id_atributo, tipo_atributo, valor
-        ) VALUES %s
-        ON CONFLICT DO NOTHING
+        ) VALUES (?, ?, ?, ?, ?)
     """
 
-    execute_values(cur, query, data, page_size=10000)
+    chunk_size = 50000
+    total_inseridos = 0
+
+    for df_chunk in pd.read_csv('data/Matricula/enroll_values.csv', encoding='utf-8-sig', chunksize=chunk_size):
+
+        df_chunk['valor'] = pd.to_numeric(df_chunk['valor'].astype(str).str.replace(',', '.'), errors='coerce')
+
+        df_chunk['id_escola'] = pd.to_numeric(df_chunk['id_escola'], errors='coerce')
+        df_chunk['ano'] = pd.to_numeric(df_chunk['ano'], errors='coerce')
+        df_chunk['id_atributo'] = pd.to_numeric(df_chunk['id_atributo'], errors='coerce')
+
+        df_chunk = df_chunk.dropna(subset=['ano', 'id_escola', 'id_atributo'])
+        
+        df_chunk = df_chunk.astype(object).where(pd.notnull(df_chunk), None)
+
+        df_chunk = df_chunk[['ano', 'id_escola', 'id_atributo', 'tipo_atributo', 'valor']]
+
+        data = list(df_chunk.itertuples(index=False, name=None))
+
+        cur.executemany(query, data)
+        
+        total_inseridos += len(data)
 
     conn.commit()
 
 def exec_school_rating(conn, cur):
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS school_rating (
+            id_escola_fk INTEGER,
+            ano INTEGER,
+            acessibility_rating REAL,
+            recreation_rating REAL,
+            wellbeing_rating REAL,
+            human_support_rating REAL,
+            management_rating REAL,
+            age_grade_distortion_rating REAL,
+            pedagogical_rating REAL,
+            teacher_stress_rating REAL,
+            teacher_instability_rating REAL,
+            administrative_burden_rating REAL,
+            spending_per_student REAL,
+            spending_per_teacher REAL,
+            pedagogical_spending_per_student REAL,
+            infrastructure_spending_per_student REAL,
+            meal_spending_per_student REAL,
+            transport_spending_per_student REAL,
+            approval_rate REAL,
+            failure_rate REAL,
+            dropout_rate REAL,
+            ideb_rating REAL,
+            saeb_rating REAL,
+            PRIMARY KEY (id_escola_fk, ano)
+        );
+    """)
+
     query = """
-        INSERT INTO school_rating (
+        INSERT OR IGNORE INTO school_rating (
             id_escola_fk, ano, acessibility_rating, recreation_rating, 
             wellbeing_rating, human_support_rating, management_rating, 
             age_grade_distortion_rating, pedagogical_rating, teacher_stress_rating, 
@@ -179,21 +320,12 @@ def exec_school_rating(conn, cur):
             infrastructure_spending_per_student, meal_spending_per_student, 
             transport_spending_per_student, approval_rate, failure_rate, 
             dropout_rate, ideb_rating, saeb_rating
-        ) VALUES %s
-        ON CONFLICT DO NOTHING
+        ) VALUES (
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
+            ?, ?, ?
+        )
     """
-
-    def to_int(val):
-        try:
-            return int(float(val)) if val and val.strip() != "" else None
-        except:
-            return None
-
-    def to_float(val):
-        try:
-            return float(val) if val and val.strip() != "" else None
-        except:
-            return None
 
     lote = []
 
@@ -201,7 +333,6 @@ def exec_school_rating(conn, cur):
         reader = csv.DictReader(file)
 
         for row in reader:
-
             parsed = (
                 to_int(row.get('id_escola')),
                 to_int(row.get('ano')),
@@ -231,21 +362,38 @@ def exec_school_rating(conn, cur):
             lote.append(parsed)
 
             if len(lote) >= 10000:
-                execute_values(cur, query, lote)
+                cur.executemany(query, lote)
                 lote.clear()
 
         if lote:
-            execute_values(cur, query, lote)
+            cur.executemany(query, lote)
 
     conn.commit()
 
 def exec_school_info( conn, cur):
 
-    coords = {}
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS school_info (
+            escola_id INTEGER,
+            nome_escola TEXT,
+            id_municipio_fk INTEGER,
+            dependencia INTEGER,
+            funcionamento INTEGER,
+            sede INTEGER,
+            alocacao INTEGER,
+            ocupacao INTEGER,
+            ano INTEGER,
+            endereco TEXT,
+            telefone TEXT,
+            lat REAL,
+            lon REAL,
+            PRIMARY KEY (escola_id, ano)
+        );
+    """)
 
+    coords = {}
     with open('data/localizacao_escolas.csv', 'r', encoding='utf-8-sig') as f:
         reader = csv.DictReader(f)
-
         for r in reader:
             try:
                 coords[int(r["id_escola"])] = {
@@ -263,11 +411,11 @@ def exec_school_info( conn, cur):
             endereco, telefone,
             lat, lon
         ) VALUES (
-            %(id_escola)s, %(nome_escola)s, %(municipio_id)s,
-            %(dependencia)s, %(funcionamento)s, %(sede)s,
-            %(alocacao)s, %(ocupacao)s, %(ano)s,
-            %(endereco)s, %(telefone)s,
-            %(lat)s, %(lon)s
+            :id_escola, :nome_escola, :municipio_id,
+            :dependencia, :funcionamento, :sede,
+            :alocacao, :ocupacao, :ano,
+            :endereco, :telefone,
+            :lat, :lon
         )
     """
 
@@ -278,18 +426,23 @@ def exec_school_info( conn, cur):
 
         for row in data_reader:
 
-            for key, value in row.items():
-                if value is None or value.strip() == "":
-                    row[key] = None
 
+            for key, value in row.items():
+                if value is None or str(value).strip() == "":
+                    row[key] = None
                 elif isinstance(value, str) and value.endswith('.0'):
                     row[key] = value[:-2]
 
+
             if row.get('municipio_id') is not None:
                 row['municipio_id'] = int(str(row['municipio_id']).strip())
+            
+            if row.get('ano') is not None:
+                row['ano'] = int(str(row['ano']).strip())
 
             try:
                 id_escola = int(row["id_escola"])
+                row["id_escola"] = id_escola 
 
                 if id_escola in coords:
                     row["lat"] = coords[id_escola]["lat"]
@@ -304,15 +457,32 @@ def exec_school_info( conn, cur):
             lote_dados.append(row)
 
             if len(lote_dados) == 5000:
-                    cur.executemany(query, lote_dados)
-                    lote_dados = [] # Limpa a lista para o próximo lote
-        
+                cur.executemany(query, lote_dados)
+                lote_dados = [] 
+
         if lote_dados:
             cur.executemany(query, lote_dados)
     
     conn.commit()
 
 def exec_city_info(conn, cur):
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS city_info (
+            municipio_id INTEGER,
+            ano INTEGER,
+            nome_municipio TEXT,
+            id_mesorregiao INTEGER,
+            nome_mesorregiao TEXT,
+            id_microrregiao INTEGER,
+            nome_microrregiao TEXT,
+            area_territorial REAL,
+            populacao_total REAL,
+            densidade_demografica REAL,
+            PRIMARY KEY (municipio_id, ano)
+        );
+    """)
+
     cols = [
         'municipio_id', 'ano', 'nome_municipio',
         'id_mesorregiao','nome_mesorregiao', 'id_microrregiao',
@@ -363,25 +533,27 @@ def exec_city_info(conn, cur):
 
     df_cities['densidade_demografica'] = df_cities['densidade_demografica'].round(2)
 
+    df_cities = df_cities.where(pd.notnull(df_cities), None)
+
+    colunas_ordem = [
+        'municipio_id', 'ano', 'nome_municipio',
+        'id_mesorregiao', 'nome_mesorregiao',
+        'id_microrregiao', 'nome_microrregiao',
+        'area_territorial', 'populacao_total', 'densidade_demografica'
+    ]
+
+    data_tuples = list(df_cities[colunas_ordem].itertuples(index=False, name=None))
+
     query = """
-        INSERT INTO city_info (
+        INSERT OR IGNORE INTO city_info (
             municipio_id, ano, nome_municipio,
             id_mesorregiao, nome_mesorregiao,
             id_microrregiao, nome_microrregiao,
             area_territorial, populacao_total, densidade_demografica
-        ) VALUES (
-            %(municipio_id)s, %(ano)s, %(nome_municipio)s,
-            %(id_mesorregiao)s, %(nome_mesorregiao)s,
-            %(id_microrregiao)s, %(nome_microrregiao)s,
-            %(area_territorial)s, %(populacao_total)s, %(densidade_demografica)s
-        )
-        ON CONFLICT (municipio_id, ano) DO NOTHING
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
 
-    lote_dados = df_cities.to_dict('records')
-    
-    cur.executemany(query, lote_dados)
-
+    cur.executemany(query, data_tuples)
     conn.commit()
 
 def exec_datatables():
@@ -396,5 +568,8 @@ def exec_datatables():
     exec_school_enroll_values(conn, cur)
     exec_school_infra_dict(conn,cur)
     exec_school_infra_values(conn,cur)
+    exec_transparency_portal(conn,cur)
+
+    create_sqlite_indexes(conn,cur)
 
     conn.commit()

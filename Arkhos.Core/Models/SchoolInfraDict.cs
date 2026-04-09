@@ -5,7 +5,7 @@ public class SchoolInfraDict
     public string Variavel {get;set;} = string.Empty;
     public string Descricao {get;set;} = string.Empty;
     public string Tipo {get;set;} = string.Empty;
-    public string Tamanho {get;set;} = string.Empty;
+    public int Tamanho {get;set;}
     public string Grupo {get;set;} = string.Empty;
 
     public ICollection<SchoolInfraValues> SchoolInfraValues {get;set;} = [];
