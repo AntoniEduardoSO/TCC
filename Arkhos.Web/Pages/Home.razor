@@ -25,23 +25,23 @@
 <PageTitle>Dashboard</PageTitle>
 
 <AiInsightCard Title="@InsightTitle" HighlightValue="@($"{Math.Round((TotalAprovados * 100 ?? 0), 1)}%")"
-               Recommendation="@InsightRecommendation" />
+    Recommendation="@InsightRecommendation" />
 
 <MudGrid Spacing="2">
     <MudItem xs="12" md="6">
         <MudStack Spacing="4">
             <MudPaper Elevation="3" Class="d-flex align-center justify-center mud-width-full"
-                      Style="position: relative; height: 500px">
+                Style="position: relative; height: 500px">
                 <div id="map" style="height:100%; width:100%; border-radius: 8px;"></div>
                 <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.ArrowBack" Label="Voltar"
-                        Size="Size.Small" Style="position: absolute; top: 10px; right: 10px; z-index: 1000;"
-                        @onclick="GoBack" />
+                    Size="Size.Small" Style="position: absolute; top: 10px; right: 10px; z-index: 1000;"
+                    @onclick="GoBack" />
             </MudPaper>
 
             <FinancialOverviewCard AvgStudent="@AvgSpendingPerStudent" AvgTeacher="@AvgSpendingPerTeacher"
-                                   AvgInfra="@AvgInfrastructure" AvgTransport="@AvgTransport" AvgMeal="@AvgMeal"
-                                   TotalGasto="@TotalGasto" />
-                
+                AvgInfra="@AvgInfrastructure" AvgTransport="@AvgTransport" AvgMeal="@AvgMeal"
+                TotalGasto="@TotalGasto" />
+
         </MudStack>
     </MudItem>
 
@@ -50,26 +50,26 @@
             <MudItem xs="12" md="6">
                 <MudStack Spacing="2">
                     <EnrollmentOverviewCard Ano="@DashboardState.SelectedYear" TotalCreche="@TotalCreche"
-                                            TotalPreEscola="@TotalPreEscola" TotalFundIniciais="@TotalFundIniciais"
-                                            TotalFundFinais="@TotalFundFinais" TotalMedio="@TotalMedio" />
+                        TotalPreEscola="@TotalPreEscola" TotalFundIniciais="@TotalFundIniciais"
+                        TotalFundFinais="@TotalFundFinais" TotalMedio="@TotalMedio" />
 
-                    
+
                     <GovernanceSupportCard Psychologists="8" SocialAssistants="12" Libras="5" HasCouncil="true"
-                                           HasParentsAssociation="true" HasStudentUnion="false" />
+                        HasParentsAssociation="true" HasStudentUnion="false" />
                 </MudStack>
             </MudItem>
 
             <MudItem xs="12" md="6">
                 <MudStack Spacing="2">
                     <PieChartDropoutRateCard TotalAbandonos="@TotalAbandonos" TotalAprovados="@TotalAprovados"
-                                             TotalReprovados="@TotalReprovados" />
+                        TotalReprovados="@TotalReprovados" />
 
                     <InfrastructureQualityCard Accessibility="@AcessibilityRating" Pedagogical="@TotalPedagogicalRooms"
-                                               WellBeing="@TotalWellbeing" />
+                        WellBeing="@TotalWellbeing" />
 
                     <TeachersOverviewCard Ano="@DashboardState.SelectedYear" TotalCreche="@ProfCreche"
-                                          TotalPreEscola="@ProfPreEscola" TotalFundIniciais="@ProfFundIniciais"
-                                          TotalFundFinais="@ProfFundFinais" TotalMedio="@ProfMedio" TotalEspecial="@ProfEspecial" />
+                        TotalPreEscola="@ProfPreEscola" TotalFundIniciais="@ProfFundIniciais"
+                        TotalFundFinais="@ProfFundFinais" TotalMedio="@ProfMedio" TotalEspecial="@ProfEspecial" />
 
                 </MudStack>
             </MudItem>
@@ -181,35 +181,39 @@
         {
             var yearReq = DashboardState.SelectedYear;
 
-            var tInfo = Handler.GetByYearAsync(new GetSchoolInfoByYearRequest { Year = yearReq });
-            var tSpending = RatingHandler.GetSpendingByYearAsync(new GetSchoolRatingSpendingByYearRequest { Year = yearReq });
-            var tRatings = RatingHandler.GetRatingByYearAsync(new GetSchoolRatingMapByYearRequest { Year = yearReq });
-            var tWellbeing = InfraHandler.GetWellbeingByYearAsync(new GetSchoolInfraValuesWellbeingByYearRequest
-            {
-                Year = yearReq
-            });
-            var tPedagogical = InfraHandler.GetPedagogicalRoomsByYearAsync(new GetSchoolInfraValuesPedagogicalRoomsByYearRequest
-            {
-                Year = yearReq
-            });
-            var tEnroll = EnrollHandler.GetStudentsWithSeriesByYearAsync(new GetStudentsWithSeriesByYearRequest { Year = yearReq });
-            var tTeachers = TeachersHandler.GetTeachersWithSeriesByYearAsync(new GetTeachersWithSeriesByYearRequest
-            {
-                Year = yearReq
-            });
-            var tDrop = RatingHandler.GetDropByYearAsync(new GetSchoolRatingDropByYearRequest { Year = yearReq });
+            response = await Handler.GetByYearAsync(new GetSchoolInfoByYearRequest { Year = yearReq });
 
-            await Task.WhenAll(tInfo, tSpending, tRatings, tWellbeing, tPedagogical, tEnroll, tTeachers, tDrop);
+            spendingRatings = await RatingHandler.GetSpendingByYearAsync(new GetSchoolRatingSpendingByYearRequest
+            {
+                Year = yearReq
+            });
 
-            response = tInfo.Result;
-            spendingRatings = tSpending.Result;
-            ratings = tRatings.Result;
-            wellbeingInfra = tWellbeing.Result;
-            pedagogicalRooms = tPedagogical.Result;
-            enrollments = tEnroll.Result;
-            teachers = tTeachers.Result;
-            dropouts = tDrop.Result;
-        
+            ratings = await RatingHandler.GetRatingByYearAsync(new GetSchoolRatingMapByYearRequest { Year = yearReq });
+
+            wellbeingInfra = await InfraHandler.GetWellbeingByYearAsync(new GetSchoolInfraValuesWellbeingByYearRequest
+            {
+                Year =
+            yearReq
+            });
+
+            pedagogicalRooms = await InfraHandler.GetPedagogicalRoomsByYearAsync(new
+            GetSchoolInfraValuesPedagogicalRoomsByYearRequest
+            { Year = yearReq });
+
+            enrollments = await EnrollHandler.GetStudentsWithSeriesByYearAsync(new GetStudentsWithSeriesByYearRequest
+            {
+                Year =
+            yearReq
+            });
+
+            teachers = await TeachersHandler.GetTeachersWithSeriesByYearAsync(new GetTeachersWithSeriesByYearRequest
+            {
+                Year =
+            yearReq
+            });
+
+            dropouts = await RatingHandler.GetDropByYearAsync(new GetSchoolRatingDropByYearRequest { Year = yearReq });
+
             CalculateMetrics();
         }
         finally
@@ -232,7 +236,7 @@
         TotalCreche = currentEnrollments.Sum(x => x.MatriculaCreche);
         TotalPreEscola = currentEnrollments.Sum(x => x.MatriculaPreEscola);
         TotalFundIniciais = currentEnrollments.Sum(x => x.Matricula1Ano + x.Matricula2Ano + x.Matricula3Ano + x.Matricula4Ano +
-x.Matricula5Ano);
+        x.Matricula5Ano);
         TotalFundFinais = currentEnrollments.Sum(x => x.Matricula6Ano + x.Matricula7Ano + x.Matricula8Ano + x.Matricula9Ano);
         TotalMedio = currentEnrollments.Sum(x => x.MatriculaMedio1Ano + x.MatriculaMedio2Ano + x.MatriculaMedio3Ano);
         TotalAlunos = TotalCreche + TotalPreEscola + TotalFundIniciais + TotalFundFinais + TotalMedio;
@@ -322,13 +326,13 @@ x.Matricula5Ano);
 
 
     private double SumWellbeingProperties(SchoolInfraValuesWellbeingDto x) =>
-        x.AlimentacaoEscolar + x.AreaVerde + x.BanheiroAlunos + x.BanheiroEducacaoInfantil +
-        x.Cozinha + x.Despensa + x.ParqueInfantil + x.PatioCoberto + x.PatioDescoberto +
-        x.Piscina + x.QuadraEsportes + x.Refeitorio + x.SalaRepousoAluno + x.Terreirao;
+    x.AlimentacaoEscolar + x.AreaVerde + x.BanheiroAlunos + x.BanheiroEducacaoInfantil +
+    x.Cozinha + x.Despensa + x.ParqueInfantil + x.PatioCoberto + x.PatioDescoberto +
+    x.Piscina + x.QuadraEsportes + x.Refeitorio + x.SalaRepousoAluno + x.Terreirao;
 
     private double SumPedagogicalRoomsProperties(SchoolInfraValuesPedagogicalRoomsDto x) =>
-        x.Auditorio + x.Biblioteca + x.LaboratorioCiencias + x.LaboratorioInformatica +
-        x.SalaAtelieArtes + x.SalaMusicaCoral + x.SalaEstudioDanca + x.SalaLeitura +
-        x.SalaMultiuso + x.SalaEstudioGravacao;
+    x.Auditorio + x.Biblioteca + x.LaboratorioCiencias + x.LaboratorioInformatica +
+    x.SalaAtelieArtes + x.SalaMusicaCoral + x.SalaEstudioDanca + x.SalaLeitura +
+    x.SalaMultiuso + x.SalaEstudioGravacao;
 
 }

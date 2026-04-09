@@ -101,6 +101,7 @@ public class SchoolEnrollValuesHandler(AppDbContext context) : ISchoolEnrollValu
 
                 finalQuery = baseQuery
                     .Where(x => x.AtributoId >= 31 && x.AtributoId <= 44)
+                    .AsNoTracking()
                     .GroupBy(x => new
                     {
                         x.IdEscolaEnrollValues,
@@ -140,6 +141,7 @@ public class SchoolEnrollValuesHandler(AppDbContext context) : ISchoolEnrollValu
             {
                 finalQuery = baseQuery
                     .Where(x => (x.AtributoId >= 31 && x.AtributoId <= 44) || (x.AtributoId >= 123 && x.AtributoId <= 125))
+                    .AsNoTracking()
                     .GroupBy(x => new
                     {
                         x.IdEscolaEnrollValues,
