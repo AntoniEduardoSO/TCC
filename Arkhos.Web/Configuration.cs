@@ -6,6 +6,6 @@ public static class Configuration
 {
     public const string HttpClientName = "arkhos";
 
-    public static string BackendUrl { get; set; } = "http://localhost:5040";
+    public static string BackendUrl { get; set; } = string.Empty;
 
 }
