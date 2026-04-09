@@ -11,12 +11,12 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddMudServices();
 
-Configuration.BackendUrl = builder.Configuration.GetValue<string>("BackendUrl") ?? string.Empty;
+var backendUrl = builder.Configuration.GetValue<string>("BackendUrl");
 
 builder.Services.AddHttpClient(Configuration.HttpClientName, options =>
 {
-    Console.WriteLine(Configuration.BackendUrl);
-    options.BaseAddress = new Uri(Configuration.BackendUrl);
+    Console.WriteLine($"Conectando na API: {backendUrl}");
+    options.BaseAddress = new Uri(backendUrl!);
 });
 
 builder.Services.AddScoped<ICityInfosHandler, CityInfosHandler>();
