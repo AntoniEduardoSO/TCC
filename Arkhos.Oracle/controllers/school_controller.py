@@ -3,10 +3,10 @@ from handlers.management_handler import ManagementHandler
 import pandas as pd
 
 class SchoolController:
-    def __init__(self):
+    def __init__(self, baselines: dict):
         self.handlers = [
-            InfrastructureHandler(),
-            ManagementHandler()
+            InfrastructureHandler(baselines),
+            ManagementHandler(baselines)
         ]
         
     def process_all_schools(self, df: pd.DataFrame) -> list:

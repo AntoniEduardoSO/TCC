@@ -2,10 +2,10 @@ from handlers.infrastructure_handler import InfrastructureHandler
 from handlers.management_handler import ManagementHandler
 
 class MunicipalityController:
-    def __init__(self):
+    def __init__(self, baselines: dict):
         self.handlers = [
-            InfrastructureHandler(),
-            ManagementHandler()
+            InfrastructureHandler(baselines),
+            ManagementHandler(baselines)
         ]
         
     def process_all_municipalities(self, df):
