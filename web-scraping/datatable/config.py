@@ -404,7 +404,7 @@ def exec_school_info( conn, cur):
                 continue
 
     query = """
-        INSERT INTO school_info (
+        INSERT OR REPLACE INTO school_info (
             escola_id, nome_escola, id_municipio_fk,
             dependencia, funcionamento, sede,
             alocacao, ocupacao, ano,

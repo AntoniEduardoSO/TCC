@@ -3,9 +3,7 @@ import numpy as np
 import os
 
 TEACHER_COLS = [
-    'QT_DOC_INF',
-    'QT_DOC_FUND',
-    'QT_DOC_MED'
+    'QT_DOC_BAS'
 ]
 
 STUDENT_COLS = [ 
@@ -111,41 +109,83 @@ def build_support_staff_by_school_map(df_enroll_wide):
 
 def build_students_map(df_enroll_wide):
     
-    cols_existentes = [c for c in STUDENT_COLS if c in df_enroll_wide.columns] 
+    total = pd.Series(0, index=df_enroll_wide.index, dtype=float)
     
-    return df_enroll_wide[cols_existentes].sum(axis=1)
+    # 1. Infantil (Geralmente se mantém consistente)
+    if 'QT_MAT_INF_CRE' in df_enroll_wide.columns: total += df_enroll_wide['QT_MAT_INF_CRE'].fillna(0)
+    if 'QT_MAT_INF_PRE' in df_enroll_wide.columns: total += df_enroll_wide['QT_MAT_INF_PRE'].fillna(0)
+    
+    # 2. Fundamental AI
+    ai_cols = ['QT_MAT_FUND_AI_1', 'QT_MAT_FUND_AI_2', 'QT_MAT_FUND_AI_3', 'QT_MAT_FUND_AI_4', 'QT_MAT_FUND_AI_5']
+    if any(c in df_enroll_wide.columns for c in ai_cols):
+        for c in ai_cols: 
+            if c in df_enroll_wide.columns: total += df_enroll_wide[c].fillna(0)
+    elif 'QT_MAT_FUND_AI' in df_enroll_wide.columns:
+        total += df_enroll_wide['QT_MAT_FUND_AI'].fillna(0)
+
+    # 3. Fundamental AF
+    af_cols = ['QT_MAT_FUND_AF_6', 'QT_MAT_FUND_AF_7', 'QT_MAT_FUND_AF_8', 'QT_MAT_FUND_AF_9']
+    if any(c in df_enroll_wide.columns for c in af_cols):
+        for c in af_cols: 
+            if c in df_enroll_wide.columns: total += df_enroll_wide[c].fillna(0)
+    elif 'QT_MAT_FUND_AF' in df_enroll_wide.columns:
+        total += df_enroll_wide['QT_MAT_FUND_AF'].fillna(0)
+
+    # 4. Ensino Médio
+    med_cols = ['QT_MAT_MED_PROP_1', 'QT_MAT_MED_PROP_2', 'QT_MAT_MED_PROP_3']
+    if any(c in df_enroll_wide.columns for c in med_cols):
+        for c in med_cols: 
+            if c in df_enroll_wide.columns: total += df_enroll_wide[c].fillna(0)
+    elif 'QT_MAT_MED' in df_enroll_wide.columns:
+        total += df_enroll_wide['QT_MAT_MED'].fillna(0)
+
+    # 5. Educação Especial
+    if 'QT_MAT_ESP' in df_enroll_wide.columns: total += df_enroll_wide['QT_MAT_ESP'].fillna(0)
+
+    return total
 
 def build_students_weighted_map(df_enroll_wide):
     # Adicinamos pesos, pois nao podemos colocar 1:1 de professor para aluno, sendo que temos creche que eh muito mais dificil.
     # Assim como ensino fundamental e alunos especiais que sao bem mais trabalhosos (no ponto de vista de cuidado, infraestrutura, transporte).
-    weights = {
-        'QT_MAT_INF_CRE': 5.8,
-        'QT_MAT_INF_PRE': 3.5,
+    weighted = pd.Series(0, index=df_enroll_wide.index, dtype=float)
 
-        'QT_MAT_FUND_AI_1': 1.75,
-        'QT_MAT_FUND_AI_2': 1.75,
-        'QT_MAT_FUND_AI_3': 1.75,
-        'QT_MAT_FUND_AI_4': 1.75,
-        'QT_MAT_FUND_AI_5': 1.75,
+    W_CRE = 5.8
+    W_PRE = 3.5
+    W_AI  = 1.75
+    W_AF  = 1.17
+    W_MED = 1.0
+    W_ESP = 7.0
 
-        'QT_MAT_FUND_AF_6': 1.17,
-        'QT_MAT_FUND_AF_7': 1.17,
-        'QT_MAT_FUND_AF_8': 1.17,
-        'QT_MAT_FUND_AF_9': 1.17,
+    # 1. Infantil
+    if 'QT_MAT_INF_CRE' in df_enroll_wide.columns: weighted += df_enroll_wide['QT_MAT_INF_CRE'].fillna(0) * W_CRE
+    if 'QT_MAT_INF_PRE' in df_enroll_wide.columns: weighted += df_enroll_wide['QT_MAT_INF_PRE'].fillna(0) * W_PRE
 
-        'QT_MAT_MED_PROP_1': 1.0,
-        'QT_MAT_MED_PROP_2': 1.0,
-        'QT_MAT_MED_PROP_3': 1.0,
+    # 2. Fundamental AI
+    ai_cols = ['QT_MAT_FUND_AI_1', 'QT_MAT_FUND_AI_2', 'QT_MAT_FUND_AI_3', 'QT_MAT_FUND_AI_4', 'QT_MAT_FUND_AI_5']
+    if any(c in df_enroll_wide.columns for c in ai_cols):
+        for c in ai_cols: 
+            if c in df_enroll_wide.columns: weighted += df_enroll_wide[c].fillna(0) * W_AI
+    elif 'QT_MAT_FUND_AI' in df_enroll_wide.columns:
+        weighted += df_enroll_wide['QT_MAT_FUND_AI'].fillna(0) * W_AI
 
-        'QT_MAT_ESP': 7.0
-    }
+    # 3. Fundamental AF
+    af_cols = ['QT_MAT_FUND_AF_6', 'QT_MAT_FUND_AF_7', 'QT_MAT_FUND_AF_8', 'QT_MAT_FUND_AF_9']
+    if any(c in df_enroll_wide.columns for c in af_cols):
+        for c in af_cols: 
+            if c in df_enroll_wide.columns: weighted += df_enroll_wide[c].fillna(0) * W_AF
+    elif 'QT_MAT_FUND_AF' in df_enroll_wide.columns:
+        weighted += df_enroll_wide['QT_MAT_FUND_AF'].fillna(0) * W_AF
 
-    cols_existentes = [c for c in weights if c in df_enroll_wide.columns]
+    # 4. Ensino Médio
+    med_cols = ['QT_MAT_MED_PROP_1', 'QT_MAT_MED_PROP_2', 'QT_MAT_MED_PROP_3']
+    if any(c in df_enroll_wide.columns for c in med_cols):
+        for c in med_cols: 
+            if c in df_enroll_wide.columns: weighted += df_enroll_wide[c].fillna(0) * W_MED
+    elif 'QT_MAT_MED' in df_enroll_wide.columns:
+        weighted += df_enroll_wide['QT_MAT_MED'].fillna(0) * W_MED
 
-    weighted = sum(
-        df_enroll_wide[col] * weights[col]
-        for col in cols_existentes
-    )
+    # 5. Educação Especial
+    if 'QT_MAT_ESP' in df_enroll_wide.columns: weighted += df_enroll_wide['QT_MAT_ESP'].fillna(0) * W_ESP
 
     return weighted
 
@@ -561,16 +601,8 @@ def get_teacher_stress_rating(df_enroll_wide, active_schools_ids, df_fin_city, s
 
         school_data = df_enroll_wide.loc[school_id]
 
-        teachers = sum(
-            school_data.get(col, 0)
-            for col in TEACHER_COLS
-        )
-
-        classes = sum(
-            school_data.get(col, 0)
-            for col in CLASS_COLS
-        )
-
+        teachers = sum(school_data.get(col, 0) for col in TEACHER_COLS)
+        classes = sum(school_data.get(col, 0) for col in CLASS_COLS)
         students = students_by_school.get(school_id, 0)
 
         if teachers == 0:
@@ -590,7 +622,7 @@ def get_teacher_stress_rating(df_enroll_wide, active_schools_ids, df_fin_city, s
             4
         )
 
-        stress = max(0, min(round(stress, 2), 1))
+        stress = max(0, min(round(stress, 4), 1))
 
         ratings_map[school_id] = stress
 
@@ -599,67 +631,77 @@ def get_teacher_stress_rating(df_enroll_wide, active_schools_ids, df_fin_city, s
 def get_teacher_instability_rating(active_schools_ids, df_fin_city, school_city_map, year):
 
     df_year = filter_financial_source(df_fin_city, year)
-
-
-    teacher_spending = df_year[
-        (df_year["eixo"] == "Pessoal") &
-        (df_year["macro"] == "Magistério/Docentes")
-    ]
-
-    temp_spending = teacher_spending[
-        teacher_spending["micro"] == "Contrato Temporário"
-    ]
-
-    total_teacher = teacher_spending.groupby("municipio_id")["valor"].sum()
-    total_temp = temp_spending.groupby("municipio_id")["valor"].sum()
-
-    ratio = (total_temp / total_teacher).fillna(0)
-
-    instability_score = 1 - (ratio / 0.4).clip(upper=1)
-
     ratings = {}
 
     for sid in active_schools_ids:
+        city_id = school_city_map.get(sid)
+        
+        if pd.isna(city_id):
+            ratings[sid] = 0
+            continue
 
-        city = school_city_map.get(sid, None)
+        df_city = df_year[df_year["municipio_id"] == city_id]
 
-        if city in instability_score:
-            score = instability_score.loc[city]
-        else:
-            score = 0
+        teacher_spending = df_city[
+            (df_city["eixo"] == "Pessoal") &
+            (df_city["macro"] == "Magistério/Docentes")
+        ]["valor"].sum()
 
-        ratings[sid] = round(score, 4)
+        temp_spending = df_city[
+            (df_city["eixo"] == "Pessoal") &
+            (df_city["macro"] == "Magistério/Docentes") &
+            (df_city["micro"] == "Contrato Temporário")
+        ]["valor"].sum()
+
+        ratio = temp_spending / teacher_spending if teacher_spending > 0 else 0
+        
+        instability_score = 1 - min(ratio / 0.7, 1)
+
+        if sid == 27000095:
+            print(f"\n--- DEBUG INSTABILIDADE (Escola {sid}) ---")
+            print(f"Gasto Total Professores: R$ {teacher_spending:,.2f}")
+            print(f"Gasto Temporários: R$ {temp_spending:,.2f}")
+            print(f"Razão (Proporção Temporários): {ratio*100:.2f}%")
+            print(f"Nota Final (0 = bateu no teto de 40%): {instability_score}")
+            print("------------------------------------------\n")
+
+        ratings[sid] = round(instability_score, 4)
 
     return pd.Series(ratings)
 
 def get_administrative_burden_rating(active_schools_ids, df_fin_city, school_city_map, year):
 
     df_year = filter_financial_source(df_fin_city, year)
-
-    total_spending = df_year.groupby("municipio_id")["valor"].sum()
-
-    admin_spending = df_year[
-        df_year["eixo"] == "Gestão e Administração"
-    ]
-
-    admin_total = admin_spending.groupby("municipio_id")["valor"].sum()
-
-    admin_ratio = (admin_total / total_spending).fillna(0)
-
-    admin_score = 1 - (admin_ratio / 0.15).clip(upper=1)
-
     ratings = {}
 
     for sid in active_schools_ids:
+        city_id = school_city_map.get(sid)
+        
+        if pd.isna(city_id):
+            ratings[sid] = 0
+            continue
 
-        city = school_city_map.get(sid, None)
+        df_city = df_year[df_year["municipio_id"] == city_id]
 
-        if city in admin_score.index:
-            score = admin_score.loc[city]
-        else:
-            score = 0
+        total_spending = df_city["valor"].sum()
+        
+        admin_spending = df_city[
+            df_city["eixo"] == "Gestão e Administração"
+        ]["valor"].sum()
 
-        ratings[sid] = round(score, 4)
+        ratio = admin_spending / total_spending if total_spending > 0 else 0
+
+        admin_score = 1 - min(ratio / 0.3, 1)
+
+        if sid == 27000095:
+            print(f"\n--- DEBUG CARGA ADMINISTRATIVA (Escola {sid}) ---")
+            print(f"Gasto Total do Município: R$ {total_spending:,.2f}")
+            print(f"Gasto Burocracia/Gestão: R$ {admin_spending:,.2f}")
+            print(f"Razão (Proporção Administração): {ratio*100:.2f}%")
+            print(f"Nota Final (0 = bateu no teto de 15%): {admin_score}")
+            print("------------------------------------------------\n")
+
+        ratings[sid] = round(admin_score, 4)
 
     return pd.Series(ratings)
 
@@ -708,11 +750,7 @@ def get_spending_per_teacher(df_enroll_wide, active_schools_ids, df_fin_city, st
 
         teacher_spending_city = df_city[
             (df_city["eixo"] == "Pessoal") &
-            (df_city["macro"] == "Magistério/Docentes") &
-            (df_city["micro"].isin([
-                "Contrato Temporário",
-                "Encargos"
-        ]))
+            (df_city["macro"] == "Magistério/Docentes")
         ]["valor"].sum()
 
 
@@ -998,8 +1036,8 @@ def create_rating_table(df_infra_long, df_enroll_long, df_school_info, df_dict, 
 
     map_enroll_names = dict(zip(df_dict_enroll['id_atributo'], df_dict_enroll['variavel']))
     df_enroll_wide = df_enroll_long.pivot_table(index='id_escola',columns='id_atributo',values='valor',aggfunc='first')
+    df_enroll_wide = df_enroll_wide.reindex(df_school_ratings.index).fillna(0)
     df_enroll_wide.columns = df_enroll_wide.columns.map(map_enroll_names)
-    df_enroll_wide = df_enroll_wide.reindex(df_school_ratings.index)
 
     # Criar maps rapidos para futuros calculos nos ratings
     students_by_school = build_students_map(df_enroll_wide)

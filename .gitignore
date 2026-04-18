@@ -3,6 +3,8 @@
 **/*.pyo
 .DS_Store
 arkhos.db
+arkhos.db-shm
+arkhos.db-wal
 arkhos.zip
 web-scraping/data/*
 !web-scraping/data/area_territorial_municipios.csv
@@ -19,3 +21,4 @@ Arkhos.Web/bin/
 Arkhos.Core/bin/
 Arkhos.Api/bin/
 Arkhos.Web/wwwroot/lib/
+Arkhos.Oracle/data
