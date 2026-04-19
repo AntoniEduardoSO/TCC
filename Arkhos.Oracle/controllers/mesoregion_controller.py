@@ -1,12 +1,16 @@
 import pandas as pd
 from handlers.infrastructure_handler import InfrastructureHandler
 from handlers.management_handler import ManagementHandler
+from handlers.performance_handler import PerformanceHandler
+from handlers.financial_handler import FinancialHandler
 
 class MesoregionController:
     def __init__(self, baselines: dict):
         self.handlers = [
             InfrastructureHandler(baselines),
-            ManagementHandler(baselines)
+            ManagementHandler(baselines),
+            PerformanceHandler(baselines),
+            FinancialHandler(baselines)
         ]
         
     def process_all_mesoregions(self, df: pd.DataFrame) -> list:

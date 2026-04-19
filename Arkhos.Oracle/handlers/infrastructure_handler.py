@@ -15,10 +15,6 @@ class InfrastructureHandler(BaseHandler):
     }
 
     def __init__(self, baselines: dict):
-        """
-        :param baseline_rating: A mediana ou média de acessibilidade do estado no ano base.
-        Deve ser calculada no orquestrador (ex: df['acessibility_rating'].median()) e repassada aqui.
-        """
         self.baseline_rating = baselines.get('acessibilidade', 0.5)
 
     def _format_lista(self, itens: list) -> str:
@@ -77,7 +73,7 @@ class InfrastructureHandler(BaseHandler):
                 req = {
                     "axis": "Infrastructure",
                     "level": "School",
-                    "titulo": "Defasagem na acessibilidade estrutural.",
+                    "titulo": "Alerta Crítico: Defasagem em Acessibilidade Estrutural.",
                     "valor_destaque": f"{rating * 100:.1f}%",
                     "descricao": f"é o índice desta unidade, operando severamente abaixo da mediana inclusiva do Estado ({self.baseline_rating*100:.1f}%).",
                     "recomendacao": recomendacao,
@@ -104,7 +100,7 @@ class InfrastructureHandler(BaseHandler):
         return [{
             "axis": "Infrastructure",
             "level": "Municipality",
-            "titulo": "Defasagem sistêmica na acessibilidade estrutural.",
+            "titulo": "Alerta Crítico: Defasagem Sistêmica em Acessibilidade.",
             "valor_destaque": f"{percentual:.1f}%",
             "descricao": f"das escolas da rede municipal operam abaixo da linha de base do Estado ({self.baseline_rating*100:.1f}%).",
             "recomendacao": recomendacao,
@@ -158,9 +154,25 @@ class InfrastructureHandler(BaseHandler):
         return [{
             "axis": "Infrastructure",
             "level": "Mesoregion",
-            "titulo": "Diretriz de Macrorregião: Déficit estrutural sistêmico.",
+            "titulo": "Diretriz Macrorregional: Déficit Estrutural Sistêmico.",
             "valor_destaque": f"{percentual:.1f}%",
             "descricao": f"das escolas operam abaixo da mediana estadual, indicando a necessidade urgente de políticas públicas de Estado.",
             "recomendacao": recomendacao,
+            "valor_baseline": self.baseline_rating
+        }]
+    
+    def evaluate_state(self, state_data: pd.DataFrame) -> list:
+        metrics = self._get_regional_metrics(state_data)
+        if not metrics: return []
+        
+        percentual, top_3_nomes = metrics
+        itens_formatados = self._format_lista(top_3_nomes) if top_3_nomes else "adequações críticas"
+        
+        return [{
+            "axis": "Infrastructure", "level": "State", "tipo_insight": "Prescritivo",
+            "titulo": "Diretriz Estadual: Déficit Estrutural Sistêmico.",
+            "valor_destaque": f"{percentual:.1f}%",
+            "descricao": f"das escolas do Estado operam abaixo da linha base de infraestrutura e acessibilidade.",
+            "recomendacao": f"Pautar o Plano de Obras da SEDUC para focar na erradicação da falta de {itens_formatados} em todo o território alagoano.",
             "valor_baseline": self.baseline_rating
         }]

@@ -47,7 +47,7 @@ class ManagementHandler(BaseHandler):
                 req = {
                     "axis": "Management",
                     "level": "School",
-                    "titulo": "ALERTA GRAVE: Maioria docente provisória.",
+                    "titulo": "Alerta Crítico: Maioria Docente com Vínculo Provisório.",
                     "valor_destaque": f"{instabilidade * 100:.1f}%",
                     "descricao": "do quadro não possui vínculo efetivo, inviabilizando a continuidade do Projeto Político Pedagógico (PPP).",
                     "recomendacao": f"Solicitar substituição gradativa por servidores concursados, com prioridade {texto_etapas}.",
@@ -59,7 +59,7 @@ class ManagementHandler(BaseHandler):
                 req = {
                     "axis": "Management",
                     "level": "School",
-                    "titulo": "Fragilidade no vínculo pedagógico.",
+                    "titulo": "Atenção: Fragilidade no Vínculo Pedagógico.",
                     "valor_destaque": f"{instabilidade * 100:.1f}%",
                     "descricao": f"do corpo docente atua sob contratos precários, operando acima da mediana estadual ({self.baseline_instabilidade*100:.1f}%).",
                     "recomendacao": f"Monitorar renovações e priorizar a lotação de efetivos {texto_etapas} nas próximas janelas de remoção da rede.",
@@ -79,7 +79,7 @@ class ManagementHandler(BaseHandler):
             req = {
                 "axis": "Management",
                 "level": "Municipality",
-                "titulo": "PENALIDADE MÁXIMA: Teto de Contratos Temporários Excedido.",
+                "titulo": "Alerta Crítico: Rompimento do Teto de Contratos Temporários.",
                 "valor_destaque": f"{instabilidade_rede * 100:.1f}%",
                 "descricao": f"da folha docente é provisória. O município ultrapassou o teto legal de {self.TETO_INSTABILIDADE_REDE*100:.0f}%.",
                 "recomendacao": "Bloqueio imediato de contratações temporárias. Deflagrar planejamento urgente para Concurso Público visando o provimento efetivo da rede.",
@@ -165,7 +165,7 @@ class ManagementHandler(BaseHandler):
             req = {
                 "axis": "Management",
                 "level": "Mesoregion",
-                "titulo": "Diretriz de Macrorregião: Colapso do Plano de Carreira Docente.",
+                "titulo": "Diretriz Macrorregional: Colapso no Plano de Carreira Docente.",
                 "valor_destaque": f"{instabilidade_meso * 100:.1f}%",
                 "descricao": f"da rede atua sem estabilidade, distorcendo a linha do Estado ({self.baseline_instabilidade*100:.1f}%). Aponta falha crítica na política de valorização do magistério.",
                 "recomendacao": "Articular com a SEDUC e o Tribunal de Contas (TCE/AL) um plano de regularização de vínculos, incluindo previsão no Plano Plurianual (PPA).",
@@ -177,11 +177,29 @@ class ManagementHandler(BaseHandler):
             req = {
                 "axis": "Management",
                 "level": "Mesoregion",
-                "titulo": "Diretriz de Macrorregião: Risco Sistêmico de Compliance.",
+                "titulo": "Diretriz Macrorregional: Risco Sistêmico de Compliance Administrativo.",
                 "valor_destaque": f"{carga_admin_meso * 100:.1f}%",
                 "descricao": "da despesa educacional está concentrada em atividades meio, desviando recursos massivos das atividades fim (pedagógicas).",
                 "recomendacao": "Recomenda-se auditoria programática e orientativa pelo TCE/AL nos municípios desta macrorregião para combater o desvio de finalidade.",
                 "valor_baseline": self.baseline_admin
+            }
+            prescriptions.append(req)
+            
+        return prescriptions
+    
+
+    def evaluate_state(self, state_data: pd.DataFrame) -> list:
+        prescriptions = []
+        instabilidade_estado = state_data['teacher_instability_rating'].mean()
+        
+        if instabilidade_estado > self.baseline_instabilidade:
+            req = {
+                "axis": "Management", "level": "State", "tipo_insight": "Prescritivo",
+                "titulo": "Diretriz Estadual: Precarização do Vínculo Docente.",
+                "valor_destaque": f"{instabilidade_estado * 100:.1f}%",
+                "descricao": f"da rede pública estadual atua sob contratos temporários ou terceirizados. A precarização generalizada compromete a continuidade pedagógica.",
+                "recomendacao": "Constituir comissão conjunta (Governo, Assembleia Legislativa e Sindicatos) para o planejamento e homologação de um novo Concurso Público Estadual.",
+                "valor_baseline": self.baseline_instabilidade
             }
             prescriptions.append(req)
             

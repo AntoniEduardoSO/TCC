@@ -1,9 +1,10 @@
+import pandas as pd
 from handlers.infrastructure_handler import InfrastructureHandler
 from handlers.management_handler import ManagementHandler
 from handlers.performance_handler import PerformanceHandler
 from handlers.financial_handler import FinancialHandler
 
-class MunicipalityController:
+class StateController:
     def __init__(self, baselines: dict):
         self.handlers = [
             InfrastructureHandler(baselines),
@@ -12,15 +13,18 @@ class MunicipalityController:
             FinancialHandler(baselines)
         ]
         
-    def process_all_municipalities(self, df):
+    def process_state(self, df: pd.DataFrame) -> list:
         all_prescriptions = []
-
-        for city_id, city_df in df.groupby('id_municipio'):
-            for handler in self.handlers:
-                results = handler.evaluate_municipality(city_df)
+        
+        state_id = 27.0 
+        
+        for handler in self.handlers:
+            diagnosticos = handler.evaluate_state(df)
+            for diag in diagnosticos:
+                diag['id_alvo'] = state_id
                 
-                for res in results:
-                    res['id_alvo'] = city_id
-                    all_prescriptions.append(res)
-                    
+                diag['titulo'] = diag['titulo'].replace('🔮 ', '').replace('🚨 ', '').replace('⚠️ ', '').replace('📉 ', '').replace('⚖️ ', '')
+                
+                all_prescriptions.append(diag)
+                
         return all_prescriptions
