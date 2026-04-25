@@ -4,6 +4,7 @@ using Arkhos.Web;
 using MudBlazor.Services;
 using Arkhos.Core.Handlers;
 using Arkhos.Web.Handlers;
+using Arkhos.Core.Models;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -31,7 +32,7 @@ builder.Services.AddScoped<ISchoolInfosHandler, SchoolInfoHandler>();
 builder.Services.AddScoped<ISchoolEnrollValuesHandler, SchoolEnrollValuesHandler>();
 builder.Services.AddScoped<ISchoolInfraValuesHandler, SchoolInfraValuesHandler>();
 builder.Services.AddScoped<ISchoolRatingsHandler, SchoolRatingHandler>();
+builder.Services.AddScoped<ITargetInsightsHandler, TargetInsightHandler>();
 builder.Services.AddScoped<DashboardStateService>();
-
 
 await builder.Build().RunAsync();

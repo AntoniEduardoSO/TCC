@@ -68,6 +68,10 @@ public static class BuilderExtension
         builder
             .Services
             .AddScoped<ISchoolInfraValuesHandler, SchoolInfraValuesHandler>();
+
+        builder
+            .Services
+            .AddScoped<ITargetInsightsHandler, TargetInsightsHandler>();
     }
 
     public static void AddDataContexts(this WebApplicationBuilder builder)

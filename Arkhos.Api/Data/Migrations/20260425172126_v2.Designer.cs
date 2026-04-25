@@ -3,6 +3,7 @@ using System;
 using Arkhos.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Arkhos.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260425172126_v2")]
+    partial class v2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.5");
@@ -421,6 +424,65 @@ namespace Arkhos.Api.Migrations
                     b.HasIndex("Ano");
 
                     b.ToTable("school_rating", (string)null);
+                });
+
+            modelBuilder.Entity("Arkhos.Core.Models.TargetInsight", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Ano")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("ano");
+
+                    b.Property<string>("Axis")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("axis");
+
+                    b.Property<string>("Descricao")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("descricao");
+
+                    b.Property<int>("IdAlvo")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("id_alvo");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("level");
+
+                    b.Property<string>("Recomendacao")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("recomendacao");
+
+                    b.Property<string>("TipoInsight")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("tipo_insight");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("titulo");
+
+                    b.Property<double>("ValorBaseline")
+                        .HasColumnType("REAL")
+                        .HasColumnName("valor_baseline");
+
+                    b.Property<string>("ValorDestaque")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("valor_destaque");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("insights", (string)null);
                 });
 
             modelBuilder.Entity("Arkhos.Core.Models.SchoolEnrollValues", b =>

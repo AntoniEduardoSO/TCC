@@ -10,12 +10,12 @@ namespace Arkhos.Api.Endpoints.CityInfos;
 public class GetCityInfoByYearEndpoint : IEndpoint
 {
     public static void Map(IEndpointRouteBuilder app)
-    => app.MapGet("/{year}", handleAsync)
+    => app.MapGet("/{year}", HandleAsync)
     .WithName("CityInfos: Get By Year")
     .WithSummary("Pega o cityinfos pelo ano.")
     .Produces<Response<ICollection<CityInfoMapDto>>>();
 
-    public static async Task<IResult> handleAsync(
+    public static async Task<IResult> HandleAsync(
         int year, 
         [FromServices] ICityInfosHandler handler,
         [FromQuery] int? limit = null)

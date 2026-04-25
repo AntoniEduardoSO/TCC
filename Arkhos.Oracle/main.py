@@ -176,9 +176,8 @@ if __name__ == "__main__":
     if not os.path.exists(CAMINHO_DB):
         raise FileNotFoundError(f"Banco de dados não encontrado em: {CAMINHO_DB}")
         
-    # --- DEFINIÇÃO DE ESCOPO TEMPORAL ---
-    ANOS_PRESCRITIVOS = list(range(2017, 2025)) # Gera diagnósticos de 2017 até 2024
-    ANOS_PREDITIVOS = [2023, 2024]              # Projeta alertas futuros apenas do passado recente e presente
+    ANOS_PRESCRITIVOS = list(range(2017, 2025)) 
+    ANOS_PREDITIVOS = [2023, 2024]           
     
     print("="*50)
     print(" INICIANDO MOTOR ARKHOS (PRESCRITIVO + PREDITIVO)")
@@ -187,7 +186,7 @@ if __name__ == "__main__":
     lista_prescritiva = run_prescriptive_engine(CAMINHO_DB, ANOS_PRESCRITIVOS)
 
     lista_preditiva = []
-    df_historico_ml = carregar_historico_ml(CAMINHO_DB) # Carrega 1 única vez para economizar memória
+    df_historico_ml = carregar_historico_ml(CAMINHO_DB)
     
     for ano_pred in ANOS_PREDITIVOS:
         print(f"\n[Preditivo] Iniciando projeções a partir do ano-base {ano_pred}...")
@@ -203,13 +202,28 @@ if __name__ == "__main__":
         os.makedirs(pasta_data, exist_ok=True)
         caminho_csv = os.path.join(pasta_data, "dummy_data.csv")
         
-        # Reordena a coluna 'ano' para ficar mais visível no CSV
         cols = df_results.columns.tolist()
         if 'ano' in cols:
             cols.insert(2, cols.pop(cols.index('ano')))
             df_results = df_results[cols]
+
+        if 'id_alvo' in df_results.columns:
+            df_results['id_alvo'] = pd.to_numeric(df_results['id_alvo'], errors='coerce').fillna(0).astype(int)
             
         df_results.to_csv(caminho_csv, index=False, encoding='utf-8-sig')
+
+        try:
+            with sqlite3.connect(CAMINHO_DB) as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute("DELETE FROM insights")
+                
+                df_results.to_sql('insights', conn, if_exists='append', index=False)
+                conn.commit()
+                
+                print(f" [DB] Insights salvos com sucesso na tabela 'insights'!")
+        except Exception as e:
+            print(f" [ERRO DB] Falha ao salvar os insights no banco: {e}")
         
         print(f"\n=======================================================")
         print(f" SUCESSO! Total de {len(df_results)} registros exportados.")

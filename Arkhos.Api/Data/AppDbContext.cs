@@ -14,6 +14,7 @@ public class AppDbContext(DbContextOptions options)
     public DbSet<SchoolEnrollValues> SchoolEnrollValues {get;set;} = null!;
     public DbSet<SchoolInfraDict> SchoolInfraDict {get;set;} = null!;
     public DbSet<SchoolInfraValues> SchoolInfraValues {get;set;} = null!;
+    public DbSet<TargetInsight> TargetInsights  {get;set;} = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

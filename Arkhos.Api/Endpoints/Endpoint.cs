@@ -4,6 +4,7 @@ using Arkhos.Api.Endpoints.SchoolEnrollValues;
 using Arkhos.Api.Endpoints.SchoolInfos;
 using Arkhos.Api.Endpoints.SchoolInfraValues;
 using Arkhos.Api.Endpoints.SchoolRatings;
+using Arkhos.Api.Endpoints.TargetInsights;
 
 namespace Arkhos.Api.Endpoints;
 public static class Endpoint
@@ -41,6 +42,10 @@ public static class Endpoint
             .WithTags("SchoolInfraValues")
             .MapEndpoint<GetSchoolInfraValuesPedagogicalRoomsByYearEndpoint>()
             .MapEndpoint<GetSchoolInfraValuesWellbeingByYearEndpoint>();
+
+        endpoints.MapGroup("v1/insights")
+            .WithTags("Insights")
+            .MapEndpoint<GetTargetInsightsByFilterEndpoint>();
     }
 
     private static IEndpointRouteBuilder MapEndpoint<TEndpoint>(this IEndpointRouteBuilder app)
