@@ -2,11 +2,11 @@
 @using Arkhos.Core.Handlers
 @using Arkhos.Core.Interfaces
 @using Arkhos.Core.Models
-@using Arkhos.Core.Models.Dto
 @using Arkhos.Core.Models.Dto.SchoolEnrollValues
 @using Arkhos.Core.Models.Dto.SchoolInfo
-@using Arkhos.Core.Models.Dto.SchoolInfraValues
 @using Arkhos.Core.Models.Dto.SchoolRating
+@using Arkhos.Core.Models.Dto.SchoolInfraValues
+@using Arkhos.Core.Requests
 @using Arkhos.Core.Requests.SchoolEnrollValues
 @using Arkhos.Core.Requests.SchoolInfos
 @using Arkhos.Core.Requests.SchoolInfraValues
@@ -19,81 +19,90 @@
 @inject ISchoolInfosHandler Handler
 @inject ISchoolRatingsHandler RatingHandler
 @inject ISchoolEnrollValuesHandler EnrollHandler
-@inject ISchoolEnrollValuesHandler TeachersHandler
 @inject ISchoolInfraValuesHandler InfraHandler
 @inject DashboardStateService DashboardState
 @inject ITargetInsightsHandler TargetInsightHandler
 @inject IJSRuntime JS
 
-<PageTitle>Dashboard</PageTitle>
+<PageTitle>Dashboard - Arkhos</PageTitle>
 
 <div class="mb-6">
-    <AiInsightCard Title="@InsightTitle" 
-                   HighlightValue="@InsightHighlight"
-                   Recommendation="@InsightRecommendation" />
+    <AiInsightCard Title="@InsightTitle" HighlightValue="@InsightHighlight" Recommendation="@InsightRecommendation" />
 </div>
 
 <MudGrid Spacing="3">
-    
+
     <MudItem xs="12" lg="5" xl="6">
         <MudStack Spacing="3">
-            
             <MudPaper Elevation="3" Class="d-flex align-center justify-center mud-width-full"
-                      Style="position: relative; height: 440px;">
+                Style="position: relative; height: 440px;">
                 <div id="map" style="height:100%; width:100%; border-radius: 8px;"></div>
                 <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.ArrowBack" Label="Voltar"
-                        Size="Size.Small" Style="position: absolute; top: 10px; right: 10px; z-index: 1000;"
-                        @onclick="GoBack" />
+                    Size="Size.Small" Style="position: absolute; top: 10px; right: 10px; z-index: 1000;"
+                    @onclick="GoBack" />
             </MudPaper>
 
-            <FinancialOverviewCard AvgStudent="@AvgSpendingPerStudent" AvgTeacher="@AvgSpendingPerTeacher"
-                                   AvgInfra="@AvgInfrastructure" AvgTransport="@AvgTransport" AvgMeal="@AvgMeal"
-                                   TotalGasto="@TotalGasto" />
+            <FinancialOverviewCard AvgStudent="@(ratingSummary?.AvgSpendingPerStudent ?? 0)"
+                AvgTeacher="@(ratingSummary?.AvgSpendingPerTeacher ?? 0)"
+                AvgInfra="@(ratingSummary?.AvgInfrastructureSpending ?? 0)"
+                AvgTransport="@((ratingSummary?.AvgSpendingPerStudent ?? 0) * 0.15)"
+                AvgMeal="@((ratingSummary?.AvgSpendingPerStudent ?? 0) * 0.10)"
+                TotalGasto="@(((ratingSummary?.AvgSpendingPerStudent ?? 0) * (regionSummary?.MatriculaTotal ?? 0)) / 12.0)" />
         </MudStack>
     </MudItem>
 
     <MudItem xs="12" lg="7" xl="6">
         <MudGrid Spacing="3">
-            
             <MudItem xs="12" sm="6">
                 <MudStack Spacing="3">
-                    <EnrollmentOverviewCard Ano="@DashboardState.SelectedYear" TotalCreche="@TotalCreche"
-                                            TotalPreEscola="@TotalPreEscola" TotalFundIniciais="@TotalFundIniciais"
-                                            TotalFundFinais="@TotalFundFinais" TotalMedio="@TotalMedio" />
-                    
-                    <TeachersOverviewCard Ano="@DashboardState.SelectedYear" TotalCreche="@ProfCreche"
-                                          TotalPreEscola="@ProfPreEscola" TotalFundIniciais="@ProfFundIniciais"
-                                          TotalFundFinais="@ProfFundFinais" TotalMedio="@ProfMedio" TotalEspecial="@ProfEspecial" />
+                    <EnrollmentOverviewCard Ano="@DashboardState.SelectedYear"
+                        TotalCreche="@(regionSummary?.MatriculaCreche ?? 0)"
+                        TotalPreEscola="@(regionSummary?.MatriculaPreEscola ?? 0)"
+                        TotalFundIniciais="@(regionSummary?.MatriculaEnsinoFundamentalAI ?? 0)"
+                        TotalFundFinais="@(regionSummary?.MatriculaEnsinoFundamentalAF ?? 0)"
+                        TotalMedio="@(regionSummary?.MatriculaEnsinoMedio ?? 0)" />
+
+                    <TeachersOverviewCard Ano="@DashboardState.SelectedYear"
+                        TotalCreche="@(regionSummary?.ProfessorCreche ?? 0)"
+                        TotalPreEscola="@(regionSummary?.ProfessorPreEscola ?? 0)"
+                        TotalFundIniciais="@(regionSummary?.ProfessorEFIniciais ?? 0)"
+                        TotalFundFinais="@(regionSummary?.ProfessorEFFinais ?? 0)"
+                        TotalMedio="@(regionSummary?.ProfessorMedio ?? 0)"
+                        TotalEspecial="@(regionSummary?.ProfessorEspecial ?? 0)" />
                 </MudStack>
             </MudItem>
 
             <MudItem xs="12" sm="6">
                 <MudStack Spacing="3">
-                    <PieChartDropoutRateCard TotalAbandonos="@TotalAbandonos" TotalAprovados="@TotalAprovados"
-                                             TotalReprovados="@TotalReprovados" Ano="@DashboardState.SelectedYear" />
+                    <PieChartDropoutRateCard TotalAbandonos="@(ratingSummary?.DropoutRate ?? 0)"
+                        TotalAprovados="@(ratingSummary?.ApprovalRate ?? 0)"
+                        TotalReprovados="@(ratingSummary?.FailureRate ?? 0)" Ano="@DashboardState.SelectedYear" />
 
-                    <InfrastructureQualityCard Accessibility="@AcessibilityRating" Pedagogical="@TotalPedagogicalRooms"
-                                               WellBeing="@TotalWellbeing" />
+                    <InfrastructureQualityCard Accessibility="@(ratingSummary?.AvgAccessibilityRating ?? 0)"
+                        Pedagogical="@((infraSummary?.AvgPedagogicalRating ?? 0) / 10.0)"
+                        WellBeing="@((infraSummary?.AvgWellbeingRating ?? 0) / 14.0)" />
 
-                    <GovernanceSupportCard Psychologists="8" SocialAssistants="12" Libras="5" HasCouncil="true"
-                                           HasParentsAssociation="true" HasStudentUnion="false" />
+                    <GovernanceSupportCard Psychologists="@((int)(regionSummary?.Psicologo ?? 0))"
+                        SocialAssistants="@((int)(regionSummary?.AssistenteSocial ?? 0))"
+                        Libras="@((int)(regionSummary?.TradutorLibras ?? 0))"
+                        HasCouncil="@((regionSummary?.ConselhoEscolar ?? 0) > 0)"
+                        HasParentsAssociation="@((regionSummary?.AssociacaoPaiMestres ?? 0) > 0)"
+                        HasStudentUnion="@((regionSummary?.GremioEstudantil ?? 0) > 0)" />
                 </MudStack>
             </MudItem>
-
         </MudGrid>
     </MudItem>
-
 </MudGrid>
 
 @code {
-    private Response<ICollection<SchoolInfoMapDto>>? response;
-    private Response<ICollection<SchoolRatingSpendingDto>>? spendingRatings;
-    private Response<ICollection<SchoolRatingMapDto>>? ratings;
-    private Response<ICollection<SchoolEnrollValuesStudentsDto>>? enrollments;
-    private Response<ICollection<SchoolEnrollValuesTeachersDto>>? teachers;
-    private Response<ICollection<SchoolInfraValuesPedagogicalRoomsDto>>? pedagogicalRooms;
-    private Response<ICollection<SchoolInfraValuesWellbeingDto>>? wellbeingInfra;
-    private Response<ICollection<SchoolRatingDropDto>>? dropouts;
+    private Dictionary<string, RegionEnrollmentSummaryDto> _enrollmentCache = new();
+    private Dictionary<string, RegionRatingSummaryDto> _ratingCache = new();
+    private Dictionary<string, RegionInfraSummaryDto> _infraCache = new();
+
+    private RegionEnrollmentSummaryDto? regionSummary;
+    private RegionRatingSummaryDto? ratingSummary;
+    private RegionInfraSummaryDto? infraSummary;
+    private Response<ICollection<SchoolInfoMapDto>>? mapMarkersResponse;
 
     private bool _mapRendered = false;
     private DotNetObjectReference<Home>? _objRef;
@@ -101,284 +110,191 @@
     private int? _currentId;
     private TargetInsight? CurrentInsight;
 
-
-    private IEnumerable<SchoolRatingSpendingDto> FilteredSpending => GetFilteredSpendingRatings();
-    private IEnumerable<SchoolEnrollValuesStudentsDto> FilteredEnrollments => GetFilteredEnrollments();
-    private IEnumerable<SchoolEnrollValuesTeachersDto> FilteredTeachers => GetFilteredTeachers();
-    private IEnumerable<SchoolRatingMapDto> FilteredRatings => GetFilteredRatings();
-    private IEnumerable<SchoolInfraValuesPedagogicalRoomsDto> FilteredPedagogicalRooms => GetFilteredPedagogicalRooms();
-    private IEnumerable<SchoolInfraValuesWellbeingDto> FilteredWellbeing => GetFilteredWellbeing();
-
-    private double TotalCreche { get; set; }
-    private double TotalPreEscola { get; set; }
-    private double TotalFundIniciais { get; set; }
-    private double TotalFundFinais { get; set; }
-    private double TotalMedio { get; set; }
-    private double TotalAlunos { get; set; }
-
-    // Professores
-    private double ProfCreche { get; set; }
-    private double ProfPreEscola { get; set; }
-    private double ProfFundIniciais { get; set; }
-    private double ProfFundFinais { get; set; }
-    private double ProfMedio { get; set; }
-    private double ProfEspecial { get; set; }
-
-    // Desempenho e Avaliações
-    private double? TotalAbandonos { get; set; }
-    private double? TotalAprovados { get; set; }
-    private double? TotalReprovados { get; set; }
-    private double AcessibilityRating { get; set; }
-
-    // Financeiro
-    private double AvgSpendingPerStudent { get; set; }
-    private double AvgSpendingPerTeacher { get; set; }
-    private double AvgInfrastructure { get; set; }
-    private double AvgTransport { get; set; }
-    private double AvgMeal { get; set; }
-    private double TotalGasto { get; set; }
-
-    // Infraestrutura
-    private double TotalWellbeing { get; set; }
-    private double TotalPedagogicalRooms { get; set; }
-
-    // === Insights ===
-    private string InsightTitle => CurrentInsight?.Titulo ?? "Analisando dados da região...";
+    private string InsightTitle => CurrentInsight?.Titulo ?? "Analisando dados...";
     private string InsightHighlight => CurrentInsight?.ValorDestaque ?? "-";
-    private string InsightDescription => CurrentInsight?.Descricao ?? "-";
-    private string InsightRecommendation => CurrentInsight?.Recomendacao ?? "Selecione uma região ou aguarde o motor processar os dados.";
+    private string InsightRecommendation => CurrentInsight?.Recomendacao ?? "Selecione uma região no mapa.";
 
     protected override async Task OnInitializedAsync()
     {
         _objRef = DotNetObjectReference.Create(this);
         DashboardState.OnYearChanged += ReloadByYear;
-        await LoadDashboardDataAsync();
-    }
+        DashboardState.OnFilterChanged += ReloadByFilter;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!_mapRendered && response?.Data != null)
+        await LoadDashboardDataAsync(isInitial: true, reloadMarkers: true);
+
+        _ = Task.Run(async () =>
         {
-            _mapRendered = true;
-
-            await JS.InvokeVoidAsync("initMap", "municipios.json", _objRef);
-            await JS.InvokeVoidAsync("updateMarkers", response.Data);
-        }
+            foreach (var id in new[] { 1, 2, 3 })
+                await GetEnrollmentWithCache(id, "meso");
+        });
     }
 
-    public void Dispose()
+    private async Task LoadDashboardDataAsync(bool isInitial = false, bool reloadMarkers = false)
     {
-        DashboardState.OnYearChanged -= ReloadByYear;
-        _objRef?.Dispose();
-    }
+        if (isInitial) DashboardState.SetLoading(true);
 
-    private async void ReloadByYear()
-    {
-        await LoadDashboardDataAsync();
-        if (response?.Data != null)
-            await JS.InvokeVoidAsync("updateMarkers", response.Data);
-
-        await InvokeAsync(StateHasChanged);
-    }
-
-    private async Task LoadDashboardDataAsync()
-    {
-        DashboardState.SetLoading(true);
         try
         {
-            var yearReq = DashboardState.SelectedYear;
+            var year = DashboardState.SelectedYear;
+            var dep = DashboardState.SelectedDependency;
 
-            response = await Handler.GetByYearAsync(new GetSchoolInfoByYearRequest { Year = yearReq });
-
-            spendingRatings = await RatingHandler.GetSpendingByYearAsync(new GetSchoolRatingSpendingByYearRequest
+            if (reloadMarkers || mapMarkersResponse == null)
             {
-                Year = yearReq
+                var mapRequest = new GetSchoolInfoByYearRequest
+                {
+                    Year = year,
+                    Dependencia = dep
+                };
+                mapMarkersResponse = await Handler.GetByYearAsync(mapRequest);
+            }
+
+            regionSummary = await GetEnrollmentWithCache(_currentId, _currentLevel);
+            ratingSummary = await GetRatingWithCache(_currentId, _currentLevel);
+            infraSummary = await GetInfraWithCache(_currentId, _currentLevel);
+
+            await JS.InvokeVoidAsync("updateMapSummary", regionSummary);
+
+            var listResponse = await EnrollHandler.GetRegionSummariesListAsync(new GetRegionSummariesListRequest
+            {
+                Year = year,
+                ParentLevel = _currentLevel,
+                ParentId = _currentId
             });
 
-            ratings = await RatingHandler.GetRatingByYearAsync(new GetSchoolRatingMapByYearRequest { Year = yearReq });
-
-            wellbeingInfra = await InfraHandler.GetWellbeingByYearAsync(new GetSchoolInfraValuesWellbeingByYearRequest
+            if (_mapRendered && mapMarkersResponse?.Data != null)
             {
-                Year =
-            yearReq
-            });
+                await JS.InvokeVoidAsync("updateMarkers", mapMarkersResponse.Data);
+            }
 
-            pedagogicalRooms = await InfraHandler.GetPedagogicalRoomsByYearAsync(new
-            GetSchoolInfraValuesPedagogicalRoomsByYearRequest
-            { Year = yearReq });
-
-            enrollments = await EnrollHandler.GetStudentsWithSeriesByYearAsync(new GetStudentsWithSeriesByYearRequest
-            {
-                Year =
-            yearReq
-            });
-
-            teachers = await TeachersHandler.GetTeachersWithSeriesByYearAsync(new GetTeachersWithSeriesByYearRequest
-            {
-                Year =
-            yearReq
-            });
-
-            dropouts = await RatingHandler.GetDropByYearAsync(new GetSchoolRatingDropByYearRequest { Year = yearReq });
+            if (listResponse.Data != null)
+                await JS.InvokeVoidAsync("updateHoverCache", listResponse.Data);
 
             await LoadInsightsAsync();
-
-            CalculateMetrics();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao carregar dashboard: {ex.Message}");
         }
         finally
         {
-            DashboardState.SetLoading(false);
+            if (isInitial) DashboardState.SetLoading(false);
+            StateHasChanged();
         }
     }
-
-    private void CalculateMetrics()
-    {
-        var currentEnrollments = GetFilteredEnrollments().ToList();
-        var currentTeachers = GetFilteredTeachers().ToList();
-        var currentDropouts = GetFilteredDropouts().ToList();
-        var currentSpending = GetFilteredSpendingRatings().ToList();
-        var currentRatings = GetFilteredRatings().ToList();
-        var currentWellbeing = GetFilteredWellbeing().ToList();
-        var currentPedagogical = GetFilteredPedagogicalRooms().ToList();
-
-        // 2. Cálculo de Matrículas (Sum retorna 0 se a lista for vazia, não precisa de .Any)
-        TotalCreche = currentEnrollments.Sum(x => x.MatriculaCreche);
-        TotalPreEscola = currentEnrollments.Sum(x => x.MatriculaPreEscola);
-        TotalFundIniciais = currentEnrollments.Sum(x => x.Matricula1Ano + x.Matricula2Ano + x.Matricula3Ano + x.Matricula4Ano +
-        x.Matricula5Ano);
-        TotalFundFinais = currentEnrollments.Sum(x => x.Matricula6Ano + x.Matricula7Ano + x.Matricula8Ano + x.Matricula9Ano);
-        TotalMedio = currentEnrollments.Sum(x => x.MatriculaMedio1Ano + x.MatriculaMedio2Ano + x.MatriculaMedio3Ano);
-        TotalAlunos = TotalCreche + TotalPreEscola + TotalFundIniciais + TotalFundFinais + TotalMedio;
-
-        // 3. Cálculo de Professores
-        ProfCreche = currentTeachers.Sum(x => x.ProfessorCreche);
-        ProfPreEscola = currentTeachers.Sum(x => x.ProfessorPreEscola);
-        ProfFundIniciais = currentTeachers.Sum(x => x.ProfessorEFIniciais);
-        ProfFundFinais = currentTeachers.Sum(x => x.ProfessorEFFinais);
-        ProfMedio = currentTeachers.Sum(x => x.ProfessorMedio);
-        ProfEspecial = currentTeachers.Sum(x => x.ProfessorEspecial);
-
-        // 4. Cálculo de Desempenho (Average quebra se a lista for vazia, usamos .Any() para proteger)
-        TotalAbandonos = currentDropouts.Any() ? currentDropouts.Average(x => x.DropoutRate) : 0;
-        TotalAprovados = currentDropouts.Any() ? currentDropouts.Average(x => x.ApprovalRate) : 0;
-        TotalReprovados = currentDropouts.Any() ? currentDropouts.Average(x => x.FailureRate) : 0;
-        AcessibilityRating = currentRatings.Any() ? currentRatings.Average(x => x.RatingAcessibilidade) : 0;
-
-        // 5. Cálculo Financeiro
-        AvgSpendingPerStudent = currentSpending.Any() ? currentSpending.Average(x => x.SpendingPerStudent) / 12 : 0;
-        AvgSpendingPerTeacher = currentSpending.Any() ? currentSpending.Average(x => x.SpendingPerTeacher) / 12 : 0;
-        AvgInfrastructure = currentSpending.Any() ? currentSpending.Average(x => x.InfrastructureSpendingPerStudent) / 12 : 0;
-        AvgTransport = currentSpending.Any() ? currentSpending.Average(x => x.TransportSpendingPerStudent) / 12 : 0;
-        AvgMeal = currentSpending.Any() ? currentSpending.Average(x => x.MealSpendingPerStudent) / 12 : 0;
-        TotalGasto = (TotalAlunos * AvgSpendingPerStudent) / 12;
-
-        // 6. Cálculo de Infraestrutura
-        TotalWellbeing = currentWellbeing.Any() ? currentWellbeing.Average(SumWellbeingProperties) / 14.0 : 0;
-        TotalPedagogicalRooms = currentPedagogical.Any() ? currentPedagogical.Average(SumPedagogicalRoomsProperties) / 10.0 : 0;
-    }
-
-
-    private async Task GoBack() => await JS.InvokeVoidAsync("goBack");
 
     [JSInvokable]
     public async void ApplyFilter(string? level, int? id)
     {
         _currentLevel = level;
         _currentId = id;
-        CalculateMetrics();
-        await LoadInsightsAsync();
-        StateHasChanged(); // Força a atualização dos cards
-    }
 
-    private IEnumerable<SchoolEnrollValuesTeachersDto> GetFilteredTeachers() => FilterList(teachers?.Data);
-    private IEnumerable<SchoolRatingDropDto> GetFilteredDropouts() => FilterList(dropouts?.Data);
-    private IEnumerable<SchoolRatingSpendingDto> GetFilteredSpendingRatings() => FilterList(spendingRatings?.Data);
-    private IEnumerable<SchoolRatingMapDto> GetFilteredRatings() => FilterList(ratings?.Data);
-    private IEnumerable<SchoolEnrollValuesStudentsDto> GetFilteredEnrollments() => FilterList(enrollments?.Data);
+        var e = await GetEnrollmentWithCache(id, level);
+        var r = await GetRatingWithCache(id, level);
+        var i = await GetInfraWithCache(id, level);
 
-    
-    private async Task LoadInsightsAsync()
-    {
-        // Converte o nível do front-end para o formato esperado pelo backend
-        string insightLevel = _currentLevel switch
+        if (e != null && r != null && i != null)
         {
-            "meso" => "Mesoregion",
-            "micro" => "Microregion",
-            "municipio" => "Municipality",
-            "escola" => "School",
-            _ => "State"
-        };
-
-        // Se não tiver ID (Visão Geral), o alvo é o estado de Alagoas (27)
-        int targetId = _currentId ?? 27;
-
-        var request = new GetTargetInsightsByFilterRequest
-        {
-            Year = DashboardState.SelectedYear,
-            Level = insightLevel,
-            Target = targetId,
-            Limit = 1 // Queremos apenas 1 aleatório por vez, como configurado na API
-        };
-
-        var insightResponse = await TargetInsightHandler.GetInsightsByFilterAsync(request);
-
-        if (insightResponse?.IsSuccess == true && insightResponse.Data != null && insightResponse.Data.Any())
-        {
-            CurrentInsight = insightResponse.Data.First();
+            regionSummary = e; ratingSummary = r; infraSummary = i;
+            await JS.InvokeVoidAsync("updateMapSummary", regionSummary);
+            StateHasChanged();
+            _ = LoadDashboardDataAsync(isInitial: false, reloadMarkers: false);
         }
         else
         {
-            CurrentInsight = null; // Limpa se não encontrar nada
+            await LoadDashboardDataAsync(isInitial: true, reloadMarkers: false);
         }
     }
 
-    private IEnumerable<SchoolInfraValuesPedagogicalRoomsDto> GetFilteredPedagogicalRooms()
+    private string GetCacheKey(string? level, int? id) =>
+        $"{level ?? "state"}_{id ?? 0}_{DashboardState.SelectedYear}_{DashboardState.SelectedDependency ?? 0}";
+
+    private async Task<RegionEnrollmentSummaryDto?> GetEnrollmentWithCache(int? id, string? level)
     {
-        if (pedagogicalRooms?.Data == null) return Enumerable.Empty<SchoolInfraValuesPedagogicalRoomsDto>();
-        if (_currentId == null) return pedagogicalRooms.Data;
-        return _currentLevel switch
+        var key = GetCacheKey(level, id);
+        if (_enrollmentCache.TryGetValue(key, out var val)) return val;
+
+        var request = new GetRegionEnrollmentSummaryByFilterRequest
         {
-            "micro" => pedagogicalRooms.Data.Where(x => x.MicrorregiaoId == _currentId),
-            "municipio" => pedagogicalRooms.Data.Where(x => x.MunicipioId == _currentId),
-            _ => pedagogicalRooms.Data
+            Year = DashboardState.SelectedYear,
+            MesorregiaoId = level == "meso" ? id : null,
+            MicrorregiaoId = level == "micro" ? id : null,
+            MunicipioId = level == "municipio" ? id : null,
+            Depedencia = DashboardState.SelectedDependency
         };
+
+        var res = await EnrollHandler.GetRegionEnrollmentSummaryByFilterAsync(request);
+        if (res.Data != null) _enrollmentCache[key] = res.Data;
+        return res.Data;
     }
 
-    private IEnumerable<SchoolInfraValuesWellbeingDto> GetFilteredWellbeing()
+    private async Task<RegionRatingSummaryDto?> GetRatingWithCache(int? id, string? level)
     {
-        if (wellbeingInfra?.Data == null) return Enumerable.Empty<SchoolInfraValuesWellbeingDto>();
-        if (_currentId == null) return wellbeingInfra.Data;
-        return _currentLevel switch
-        {
-            "micro" => wellbeingInfra.Data.Where(x => x.MicrorregiaoId == _currentId),
-            "municipio" => wellbeingInfra.Data.Where(x => x.MunicipioId == _currentId),
-            _ => wellbeingInfra.Data
-        };
+        var key = GetCacheKey(level, id);
+        if (_ratingCache.TryGetValue(key, out var val)) return val;
+
+        var res = await RatingHandler.GetRegionRatingSummaryAsync(CreateRequest(id, level));
+        if (res.Data != null) _ratingCache[key] = res.Data;
+        return res.Data;
     }
 
-    private IEnumerable<T> FilterList<T>(IEnumerable<T>? list) where T : class, ILocationContext
+    private async Task<RegionInfraSummaryDto?> GetInfraWithCache(int? id, string? level)
     {
-        if (list == null) return Enumerable.Empty<T>();
-        if (_currentId == null) return list;
+        var key = GetCacheKey(level, id);
+        if (_infraCache.TryGetValue(key, out var val)) return val;
 
-        return _currentLevel switch
-        {
-            "meso" => list.Where(x => x.MesorregiaoId == _currentId),
-            "micro" => list.Where(x => x.MicrorregiaoId == _currentId),
-            "municipio" => list.Where(x => x.MunicipioId == _currentId),
-            _ => list
-        };
+        var res = await InfraHandler.GetRegionSummaryAsync(CreateRequest(id, level));
+        if (res.Data != null) _infraCache[key] = res.Data;
+        return res.Data;
     }
 
+    private GetRegionSummaryRequest CreateRequest(int? id, string? level) => new()
+    {
+        Year = DashboardState.SelectedYear,
+        MesorregiaoId = level == "meso" ? id : null,
+        MunicipioId = level == "municipio" ? id : null,
+        Dependencia = DashboardState.SelectedDependency
+    };
 
-    private double SumWellbeingProperties(SchoolInfraValuesWellbeingDto x) =>
-    x.AlimentacaoEscolar + x.AreaVerde + x.BanheiroAlunos + x.BanheiroEducacaoInfantil +
-    x.Cozinha + x.Despensa + x.ParqueInfantil + x.PatioCoberto + x.PatioDescoberto +
-    x.Piscina + x.QuadraEsportes + x.Refeitorio + x.SalaRepousoAluno + x.Terreirao;
+    private async Task LoadInsightsAsync()
+    {
+        var request = new GetTargetInsightsByFilterRequest
+        {
+            Year = DashboardState.SelectedYear,
+            Level = _currentLevel == "meso" ? "Mesoregion" : _currentLevel == "municipio" ? "Municipality" : "State",
+            Target = _currentId ?? 27,
+            Limit = 1
+        };
+        var res = await TargetInsightHandler.GetInsightsByFilterAsync(request);
+        CurrentInsight = res?.Data?.FirstOrDefault();
+    }
 
-    private double SumPedagogicalRoomsProperties(SchoolInfraValuesPedagogicalRoomsDto x) =>
-    x.Auditorio + x.Biblioteca + x.LaboratorioCiencias + x.LaboratorioInformatica +
-    x.SalaAtelieArtes + x.SalaMusicaCoral + x.SalaEstudioDanca + x.SalaLeitura +
-    x.SalaMultiuso + x.SalaEstudioGravacao;
+    private async void ReloadByYear() => await LoadDashboardDataAsync(isInitial: true, reloadMarkers: true);
 
+    private async void ReloadByFilter()
+    {
+        _enrollmentCache.Clear();
+        _ratingCache.Clear();
+        _infraCache.Clear();
+
+        await LoadDashboardDataAsync(isInitial: true, reloadMarkers: true);
+    }
+
+    private async Task GoBack() => await JS.InvokeVoidAsync("goBack");
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_mapRendered && mapMarkersResponse?.Data != null)
+        {
+            _mapRendered = true;
+            await JS.InvokeVoidAsync("initMap", "municipios.json", _objRef);
+            await JS.InvokeVoidAsync("updateMarkers", mapMarkersResponse.Data);
+        }
+    }
+
+    public void Dispose()
+    {
+        DashboardState.OnYearChanged -= ReloadByYear;
+        DashboardState.OnFilterChanged -= ReloadByFilter;
+        _objRef?.Dispose();
+    }
 }

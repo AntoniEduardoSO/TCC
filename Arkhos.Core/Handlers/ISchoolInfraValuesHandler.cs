@@ -1,4 +1,5 @@
 using Arkhos.Core.Models.Dto.SchoolInfraValues;
+using Arkhos.Core.Requests;
 using Arkhos.Core.Requests.SchoolInfraValues;
 using Arkhos.Core.Responses;
 
@@ -10,5 +11,10 @@ public interface ISchoolInfraValuesHandler
     
     Task<Response<ICollection<SchoolInfraValuesWellbeingDto>>> 
         GetWellbeingByYearAsync(GetSchoolInfraValuesWellbeingByYearRequest request);
+
+    Task<Response<RegionInfraSummaryDto>> 
+        GetRegionSummaryAsync(GetRegionSummaryRequest request);
+    
+    Task<Response<SchoolInfraDetailDto>> GetSchoolDetailAsync(int schoolId, int year);
     
 }

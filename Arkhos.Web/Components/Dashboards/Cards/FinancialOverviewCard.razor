@@ -1,19 +1,18 @@
 @using MudBlazor
 @using Arkhos.Web.Models
+@using System.Globalization
 
 @inject IDialogService DialogService
 
 <MudPaper Elevation="0" Class="pa-4"
-          Style="background-color: #1a1f2e; height: 100%; color: white; border-radius: 12px; border: 1px solid #2d3748;">
-    
+    Style="background-color: #1a1f2e; height: 100%; color: white; border-radius: 12px; border: 1px solid #2d3748;">
+
     <div class="d-flex justify-space-between align-start mb-4">
         <div>
-            <MudText Typo="Typo.h6" Style="font-weight: 500; color: #e2e8f0;">
-                @Title 
-            </MudText>
+            <MudText Typo="Typo.h6" Style="font-weight: 500; color: #e2e8f0;">@Title</MudText>
             <MudText Typo="Typo.caption" Style="color: #a0aec0;">@Description</MudText>
         </div>
-        
+
         <div
             style="background-color: #111420; color: #e2e8f0; border-radius: 8px; border: 1px solid #2d3748; display: flex; align-items: center; padding: 6px 10px; gap: 8px;">
             <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Size="Size.Small" Style="color: #48bb78;" />
@@ -21,26 +20,27 @@
                 <MudText Typo="Typo.caption" Style="color: #a0aec0; font-size: 0.65rem;">Gasto Médio Consolidado
                 </MudText>
                 <MudText Typo="Typo.body2" Style="font-weight: 600;">
-                    @TotalGasto.ToString("C2", new System.Globalization.CultureInfo("pt-BR"))
+                    @FormatCurrency(TotalGasto) @* Função de formatação segura *@
                 </MudText>
             </div>
         </div>
     </div>
 
     <div class="d-flex flex-wrap gap-2" style="justify-content: space-between;">
-        <DashboardMetricCard Icon="@Icons.Material.Filled.Face" Title="Gasto Por\nAluno"
-                             Value="@AvgStudent.ToString("C2", new System.Globalization.CultureInfo("pt-BR"))"
-                             OnInfoClick="@(() => OpenInfo("gastoAluno"))" />
-        <DashboardMetricCard Icon="@Icons.Material.Filled.School" Title="Gasto Por\nProfessor"
-                             Value="@AvgTeacher.ToString("C2", new System.Globalization.CultureInfo("pt-BR"))" 
-                             OnInfoClick="@(() => OpenInfo("gastoProfessor"))"/>
-        <DashboardMetricCard Icon="@Icons.Material.Filled.Build" Title="Gasto\nInfraestrutura"
-                             Value="@AvgInfra.ToString("C2", new System.Globalization.CultureInfo("pt-BR"))" 
-                              OnInfoClick="@(() => OpenInfo("gastoInfraestrutura"))"/>
-        <DashboardMetricCard Icon="@Icons.Material.Filled.DirectionsBus" Title="Gasto\nTransporte Por Aluno"
-                             Value="@AvgTransport.ToString("C2", new System.Globalization.CultureInfo("pt-BR"))" />
-        <DashboardMetricCard Icon="@Icons.Material.Filled.Fastfood" Title="Gasto\nMerenda Por Aluno"
-                             Value="@AvgMeal.ToString("C2", new System.Globalization.CultureInfo("pt-BR"))" />
+        <DashboardMetricCard Icon="@Icons.Material.Filled.Person" Title="Gasto Por\nAluno"
+            Value="@FormatCurrency(AvgStudent)" OnInfoClick="@(() => OpenInfo("gastoAluno"))" />
+
+        <DashboardMetricCard Icon="@Icons.Material.Filled.Badge" Title="Gasto Por\nProfessor"
+            Value="@FormatCurrency(AvgTeacher)" OnInfoClick="@(() => OpenInfo("gastoProfessor"))" />
+
+        <DashboardMetricCard Icon="@Icons.Material.Filled.Engineering" Title="Gasto\nInfraestrutura"
+            Value="@FormatCurrency(AvgInfra)" OnInfoClick="@(() => OpenInfo("gastoInfraestrutura"))" />
+
+        <DashboardMetricCard Icon="@Icons.Material.Filled.DirectionsBus" Title="Gasto\nTransporte"
+            Value="@FormatCurrency(AvgTransport)" />
+
+        <DashboardMetricCard Icon="@Icons.Material.Filled.Restaurant" Title="Gasto\nMerenda"
+            Value="@FormatCurrency(AvgMeal)" />
     </div>
 
 </MudPaper>
@@ -70,5 +70,17 @@
         {
             ["Data"] = InfoDialogs.Data[key]
         });
+    }
+
+    private string FormatCurrency(double value)
+    {
+        var nfi = new System.Globalization.NumberFormatInfo
+        {
+            NumberGroupSeparator = ".",
+            NumberDecimalSeparator = ",",
+            NumberDecimalDigits = 2
+        };
+
+        return $"R$ {value.ToString("N", nfi)}";
     }
 }

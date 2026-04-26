@@ -11,7 +11,7 @@
 <style>
     .top-filter-box {
         height: 42px;
-        background: #21283a;
+        background: #21283a; 
         border: 1px solid #2d3748;
         border-radius: 8px;
         display: flex;
@@ -20,59 +20,48 @@
     }
 
     .search-bar-container {
-        width: 650px;
-        max-width: 50vw;
+        width: 500px;
+        max-width: 45vw;
     }
 
-    .custom-search .mud-input-control,
-    .year-select .mud-input-control {
+    .clean-select .mud-input-control {
         margin: 0 !important;
         width: 100%;
     }
 
-    .custom-search .mud-input-slot,
-    .year-select .mud-input-slot,
-    .year-select .mud-select-input {
+    .clean-select .mud-input-slot {
         color: #e2e8f0 !important;
-        font-size: 0.95rem;
+        font-size: 0.9rem;
+        padding-top: 2px;
     }
 
-    .custom-search .mud-input-label,
-    .year-select .mud-input-label {
+    .clean-select .mud-input-label {
         color: #94a3b8 !important;
+        font-size: 0.75rem;
     }
 
-    .custom-search .mud-input-underline:before,
-    .custom-search .mud-input-underline:after,
-    .year-select .mud-input-underline:before,
-    .year-select .mud-input-underline:after {
+    .clean-select .mud-input-underline:before, 
+    .clean-select .mud-input-underline:after {
         display: none !important;
-    }
-
-    .year-select .mud-icon-root {
-        color: #e2e8f0 !important;
     }
 
     .global-loading-overlay {
         position: absolute;
         inset: 0;
-        background: rgba(17, 20, 32, 0.72);
-        backdrop-filter: blur(3px);
+        background: rgba(17, 20, 32, 0.8);
+        backdrop-filter: blur(4px);
         z-index: 2000;
         display: flex;
         justify-content: center;
         align-items: center;
     }
 </style>
+
 <MudLayout>
-
     <MudAppBar Elevation="0" Style="background-color: #1a1f2e; border-bottom: 1px solid #2d3748; padding: 0 16px;">
-
-        <!-- Menu -->
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Style="color: #94a3b8;" Edge="Edge.Start"
                        OnClick="@((e) => DrawerToggle())" />
 
-        <!-- Título -->
         <MudText Typo="Typo.h6" Style="color: #e2e8f0; font-weight: 600; margin-left: 8px;">
             Dashboard Educacional
         </MudText>
@@ -80,41 +69,46 @@
         <MudSpacer />
 
         <div class="d-flex align-center gap-3">
-
-
             <div class="top-filter-box search-bar-container">
                 <MudIcon Icon="@Icons.Material.Filled.Search" Style="color: #a0aec0; margin-right: 12px;" />
-
-                <MudAutocomplete T="string" Placeholder="Buscar microrregião, município ou escola..."
-                                 Variant="Variant.Text" DisableUnderLine="true" Class="custom-search" Margin="Margin.None"
-                                 Dense="true" SearchFunc="BuscarEscopo" ResetValueOnEmptyText="true" Clearable="true"
-                                 CoerceText="true" ToStringFunc="@(x => x)" />
+                <MudAutocomplete T="string" Placeholder="Buscar região ou escola..."
+                                 Variant="Variant.Text" Class="clean-select" Margin="Margin.None"
+                                 Dense="true" SearchFunc="BuscarEscopo" />
             </div>
 
-            <MudSelect T="int" Label="Ano" Variant="Variant.Text" Value="DashboardState.SelectedYear"
-                       ValueChanged="@(year => DashboardState.SetYear(year))" Class="year-select" Style="width: 150px;">
-                @foreach (var year in _years)
-                {
-                    <MudSelectItem Value="@year">@year</MudSelectItem>
-                }
-            </MudSelect>
+            @* Filtro de Rede *@
+            <div class="top-filter-box" style="width: 160px;">
+                <MudSelect T="int?" Label="Rede Ensino" Variant="Variant.Text" 
+                           Value="@DashboardState.SelectedDependency"
+                           ValueChanged="@(dep => DashboardState.SetDependency(dep))" 
+                           Class="clean-select" Dense="true" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem T="int?" Value="null">Todas</MudSelectItem>
+                    <MudSelectItem T="int?" Value="2">Estadual</MudSelectItem>
+                    <MudSelectItem T="int?" Value="3">Municipal</MudSelectItem>
+                </MudSelect>
+            </div>
+
+            <div class="top-filter-box" style="width: 100px;">
+                <MudSelect T="int" Label="Ano" Variant="Variant.Text" 
+                           Value="DashboardState.SelectedYear"
+                           ValueChanged="@(year => DashboardState.SetYear(year))" 
+                           Class="clean-select" Dense="true" AnchorOrigin="Origin.BottomCenter">
+                    @foreach (var year in _years)
+                    {
+                        <MudSelectItem Value="@year">@year</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
         </div>
 
         <MudSpacer />
-
-        <!-- Limpar -->
-        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.FilterAltOff" Style="color: #60a5fa;">
-            Limpar
-        </MudButton>
-
     </MudAppBar>
 
     <MudDrawer @bind-Open="_drawerOpen" Elevation="0"
                Style="background-color: #111420; border-right: 1px solid #2d3748;">
-        <div class="pa-4">
-            <MudText Typo="Typo.h6" Style="color: white; font-weight: 700;">Arkhos.Web</MudText>
+        <div class="pa-6">
+             <MudText Typo="Typo.h6" Style="color: white; font-weight: 700;">Arkhos.Web</MudText>
         </div>
-        
         <NavMenu />
     </MudDrawer>
 
@@ -122,59 +116,31 @@
         @if (DashboardState.IsLoading)
         {
             <div class="global-loading-overlay">
-                <MudProgressCircular Indeterminate="true" Size="Size.Large" Color="Color.Primary" />
+                <MudStack AlignItems="AlignItems.Center">
+                    <MudProgressCircular Indeterminate="true" Size="Size.Large" Color="Color.Primary" />
+                    <MudText Style="color: #e2e8f0;">Atualizando dados...</MudText>
+                </MudStack>
             </div>
         }
-
         <div class="pa-4">
             @Body
         </div>
     </MudMainContent>
-
 </MudLayout>
 
 @code {
-    private readonly int[] _years ={
-        2024,2023,2022,2021,2020,2019,2018,2017
-    };
+    private readonly int[] _years = { 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017 };
+    bool _drawerOpen = false;
 
-    protected override void OnInitialized()
-    {
-        DashboardState.OnLoadingChanged += RefreshLayout;
-    }
+    protected override void OnInitialized() => DashboardState.OnLoadingChanged += RefreshLayout;
+    private void RefreshLayout() => InvokeAsync(StateHasChanged);
+    void DrawerToggle() => _drawerOpen = !_drawerOpen;
+    public void Dispose() => DashboardState.OnLoadingChanged -= RefreshLayout;
 
-    private void RefreshLayout()
-    {
-        InvokeAsync(StateHasChanged);
-    }
-    private List<string> Escopos = new()
-    {
-        "Serrana do Sertão",
-        "Leste Alagoano",
-        "Água Branca",
-        "Delmiro Gouveia",
-        "E.E. João XXIII"
-    };
-
+    private List<string> Escopos = new() { "Serrana do Sertão", "Leste Alagoano", "Água Branca", "Delmiro Gouveia", "E.E. João XXIII" };
     private Task<IEnumerable<string>> BuscarEscopo(string value, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return Task.FromResult(Escopos.AsEnumerable());
-
-        var resultado = Escopos
-            .Where(x => x.Contains(value, StringComparison.OrdinalIgnoreCase));
-
-        return Task.FromResult(resultado);
-    }
-    bool _drawerOpen = true;
-
-    void DrawerToggle()
-    {
-        _drawerOpen = !_drawerOpen;
-    }
-
-    public void Dispose()
-    {
-        DashboardState.OnLoadingChanged -= RefreshLayout;
+        if (string.IsNullOrWhiteSpace(value)) return Task.FromResult(Escopos.AsEnumerable());
+        return Task.FromResult(Escopos.Where(x => x.Contains(value, StringComparison.OrdinalIgnoreCase)));
     }
 }

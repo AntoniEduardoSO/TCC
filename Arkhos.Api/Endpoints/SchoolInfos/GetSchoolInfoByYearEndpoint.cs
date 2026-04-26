@@ -18,11 +18,13 @@ public class GetSchoolInfoByYearEndpoint : IEndpoint
     public static async Task<IResult> HandleAsync(
         int year,
         [FromServices] ISchoolInfosHandler handler,
+        [FromQuery] int? dependencia = null,
         [FromQuery] int? limit = null)
     {
         var request = new GetSchoolInfoByYearRequest
         {
             Year = year,
+            Dependencia = dependencia,
             Limit = limit ?? null
             
         };

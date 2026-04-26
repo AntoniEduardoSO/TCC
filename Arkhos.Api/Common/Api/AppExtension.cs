@@ -108,11 +108,8 @@ public static class AppExtension
 
         Console.WriteLine($"[LOG] Procurando DB em: {dbPath}");
 
-        bool bancoRecemExtraido = false;
-
         if (!File.Exists(dbPath))
         {
-            bancoRecemExtraido = true;
             Console.WriteLine("[LOG] Banco não encontrado no disco.");
             if (!File.Exists(zipPath))
             {

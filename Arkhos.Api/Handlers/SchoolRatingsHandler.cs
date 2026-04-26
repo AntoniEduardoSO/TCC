@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Arkhos.Api.Data;
 using Arkhos.Core.Handlers;
 using Arkhos.Core.Models.Dto.SchoolRating;
+using Arkhos.Core.Requests;
 using Arkhos.Core.Requests.SchoolRatings;
 using Arkhos.Core.Responses;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +11,53 @@ namespace Arkhos.Api.Handlers;
 
 public class SchoolRatingsHandler(AppDbContext context) : ISchoolRatingsHandler
 {
+    public async Task<Response<RegionRatingSummaryDto>> GetRegionRatingSummaryAsync(GetRegionSummaryRequest request)
+    {
+        try
+        {
+            var query = context.SchoolRatings.AsNoTracking().Where(x => x.Ano == request.Year);
+
+            if (request.MunicipioId.HasValue) query = query.Where(x => x.SchoolInfo.CityInfo.MunicipioId == request.MunicipioId);
+            if (request.Dependencia.HasValue) query = query.Where(x => x.SchoolInfo.Dependencia == request.Dependencia);
+
+            var result = await query
+                .GroupBy(x => x.Ano)
+                .Select(g => new RegionRatingSummaryDto
+                {
+                    Ano = g.Key,
+                    AvgSpendingPerStudent = g.Average(x => x.SpendingPerStudent),
+                    AvgSpendingPerTeacher = g.Average(x => x.SpendingPerTeacher),
+                    AvgInfrastructureSpending = g.Average(x => x.InfrastructureSpendingPerStudent),
+                    ApprovalRate = g.Average(x => x.ApprovalRate),
+                    FailureRate = g.Average(x => x.FailureRate),
+                    DropoutRate = g.Average(x => x.DropoutRate),
+                    AvgAccessibilityRating = g.Average(x => x.AcessibilityRating)
+                }).FirstOrDefaultAsync();
+
+            return new Response<RegionRatingSummaryDto>(result);
+        }
+        catch { return new Response<RegionRatingSummaryDto>(null, 500, "Erro ao processar ratings regionais."); }
+    }
+
+    public async Task<Response<SchoolRatingDetailDto>> GetSchoolDetailAsync(int schoolId, int year)
+    {
+        var result = await context.SchoolRatings
+            .AsNoTracking()
+            .Where(x => x.SchoolInfoId == schoolId && x.Ano == year)
+            .Select(x => new SchoolRatingDetailDto
+            {
+                EscolaId = x.SchoolInfoId,
+                NomeEscola = x.SchoolInfo.NomeEscola,
+                Ano = x.Ano,
+                SpendingPerStudent = x.SpendingPerStudent,
+                ApprovalRate = x.ApprovalRate,
+                DropoutRate = x.DropoutRate,
+                AccessibilityRating = x.AcessibilityRating
+            }).FirstOrDefaultAsync();
+
+        return new Response<SchoolRatingDetailDto>(result);
+    }
+    
     public async Task<Response<ICollection<SchoolRatingSpendingDto>>> GetSpendingByYearAsync(GetSchoolRatingSpendingByYearRequest request)
     {
         var swTotal = Stopwatch.StartNew();

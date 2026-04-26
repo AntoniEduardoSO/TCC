@@ -1,33 +1,19 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">Arkhos.Web</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
-</div>
+﻿<div class="nav-scrollable" style="background-color: #0f172a; height: 100vh;">
+    <nav class="nav flex-column pa-2">
+        <div class="nav-item px-3 py-4">
+            <MudText Typo="Typo.subtitle2" Style="color: #64748b; text-transform: uppercase; letter-spacing: 1px;">Menu Principal</MudText>
+        </div>
 
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="nav flex-column">
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+            <NavLink class="nav-link d-flex align-center" href="" Match="NavLinkMatch.All" Style="border-radius: 8px; color: #cbd5e1;">
+                <MudIcon Icon="@Icons.Material.Filled.Dashboard" Class="mr-3" Size="Size.Small"/> Home
             </NavLink>
         </div>
+
+        <MudDivider Class="my-4 mx-3" Style="background-color: #1e293b;"/>
+        
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="schoolinfo-test">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> School info - teste
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="schoolrating-test">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> School rating - teste
-            </NavLink>
+            <MudText Typo="Typo.caption" Style="color: #475569;">SISTEMA ARKHOS v1.0</MudText>
         </div>
     </nav>
 </div>

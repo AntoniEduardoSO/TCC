@@ -30,18 +30,25 @@ public static class Endpoint
         .WithTags("SchoolRating")
             .MapEndpoint<GetSchoolRatingSpendingByYearEndpoint>()
             .MapEndpoint<GetSchoolRatingDropoutByYearEndpoint>()
-            .MapEndpoint<GetSchoolRatingMapByYearEndpoint>();
+            .MapEndpoint<GetSchoolRatingMapByYearEndpoint>()
+            .MapEndpoint<GetRegionRatingSummaryEndpoint>()
+            .MapEndpoint<GetSchoolRatingDetailEndpoint>();
 
         endpoints.MapGroup("v1/schoolenrollvalues")
             .WithTags("SchoolEnrollValues")
             .MapEndpoint<GetStudentWithSeriesByYearEndpoint>()
             .MapEndpoint<GetTeachersWithSeriesByYearEndpoint>()
-            .MapEndpoint<GetSchoolEnrollValuesGovernanceByYearEndpoint>();
+            .MapEndpoint<GetSchoolEnrollValuesGovernanceByYearEndpoint>()
+            .MapEndpoint<GetSchoolEnrollmentDetailEndpoint>()
+            .MapEndpoint<GetRegionEnrollmentSummaryEndpoint>()
+            .MapEndpoint<GetRegionSummariesListEndpoint>();
 
         endpoints.MapGroup("v1/schoolinfravalues")
             .WithTags("SchoolInfraValues")
             .MapEndpoint<GetSchoolInfraValuesPedagogicalRoomsByYearEndpoint>()
-            .MapEndpoint<GetSchoolInfraValuesWellbeingByYearEndpoint>();
+            .MapEndpoint<GetSchoolInfraValuesWellbeingByYearEndpoint>()
+            .MapEndpoint<GetRegionInfraSummaryEndpoint>()
+            .MapEndpoint<GetSchoolInfraDetailEndpoint>();
 
         endpoints.MapGroup("v1/insights")
             .WithTags("Insights")

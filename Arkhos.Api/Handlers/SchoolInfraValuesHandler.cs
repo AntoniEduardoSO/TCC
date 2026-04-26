@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Arkhos.Api.Data;
 using Arkhos.Core.Handlers;
 using Arkhos.Core.Models.Dto.SchoolInfraValues;
+using Arkhos.Core.Requests;
 using Arkhos.Core.Requests.SchoolInfraValues;
 using Arkhos.Core.Responses;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,58 @@ namespace Arkhos.Api.Handlers;
 
 public class SchoolInfraValuesHandler(AppDbContext context) : ISchoolInfraValuesHandler
 {
+    public async Task<Response<RegionInfraSummaryDto>> GetRegionSummaryAsync(GetRegionSummaryRequest request)
+    {
+        try
+        {
+            var pedagogicalIds = new[] { 29, 36, 40, 41, 49, 50, 51, 52, 53, 56 };
+            var wellbeingIds = new[] { 27, 30, 31, 37, 38, 43, 44, 45, 46, 47, 48, 61, 101 };
+
+            var query = context.SchoolInfraValues
+                .AsNoTracking()
+                .Where(x => x.Ano == request.Year);
+
+            if (request.MunicipioId.HasValue) query = query.Where(x => x.SchoolInfo.CityInfo.MunicipioId == request.MunicipioId);
+            else if (request.MesorregiaoId.HasValue) query = query.Where(x => x.SchoolInfo.CityInfo.IdMesorregiao == request.MesorregiaoId);
+            
+            if (request.Dependencia.HasValue) query = query.Where(x => x.SchoolInfo.Dependencia == request.Dependencia);
+
+            var schoolScores = await query
+                .GroupBy(x => x.IdEscolaInfraValues)
+                .Select(g => new
+                {
+                    WellbeingSum = g.Where(x => wellbeingIds.Contains(x.AtributoId)).Sum(x => x.Valor),
+                    PedagogicalSum = g.Where(x => pedagogicalIds.Contains(x.AtributoId)).Sum(x => x.Valor)
+                }).ToListAsync();
+
+            var summary = new RegionInfraSummaryDto
+            {
+                Ano = request.Year,
+                AvgWellbeingRating = schoolScores.Any() ? schoolScores.Average(x => x.WellbeingSum) : 0,
+                AvgPedagogicalRating = schoolScores.Any() ? schoolScores.Average(x => x.PedagogicalSum) : 0
+            };
+
+            return new Response<RegionInfraSummaryDto>(summary);
+        }
+        catch { return new Response<RegionInfraSummaryDto>(null, 500, "Erro ao processar infra regional."); }
+    }
+    public async Task<Response<SchoolInfraDetailDto>> GetSchoolDetailAsync(int schoolId, int year)
+    {
+        var data = await context.SchoolInfraValues
+            .AsNoTracking()
+            .Where(x => x.IdEscolaInfraValues == schoolId && x.Ano == year)
+            .GroupBy(x => x.IdEscolaInfraValues)
+            .Select(g => new SchoolInfraDetailDto
+            {
+                EscolaId = g.Key,
+                NomeEscola = g.First().SchoolInfo.NomeEscola,
+                Ano = year,
+                WellbeingRating = g.Where(x => x.AtributoId >= 27 && x.AtributoId <= 101).Sum(x => x.Valor),
+                PedagogicalRating = g.Where(x => x.AtributoId >= 29 && x.AtributoId <= 56).Sum(x => x.Valor)
+            }).FirstOrDefaultAsync();
+
+        return new Response<SchoolInfraDetailDto>(data);
+    }
     public async Task<Response<ICollection<SchoolInfraValuesPedagogicalRoomsDto>>>
         GetPedagogicalRoomsByYearAsync(GetSchoolInfraValuesPedagogicalRoomsByYearRequest request)
     {

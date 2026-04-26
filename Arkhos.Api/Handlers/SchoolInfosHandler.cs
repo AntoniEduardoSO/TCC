@@ -15,53 +15,42 @@ public class SchoolInfosHandler(AppDbContext context) : ISchoolInfosHandler
         var swTotal = Stopwatch.StartNew();
         try
         {
-            var swDb = Stopwatch.StartNew();
-            
             var query = context.SchoolInfos
                 .AsNoTracking()
-                .Where(x => x.Ano == request.Year)
-                .Select(x => new SchoolInfoMapDto
-                {
-                    IdEscola = x.IdEscola,
-                    NomeEscola = x.NomeEscola,
-                    Endereco= x.Endereco ?? string.Empty,
-                    Ano = x.Ano,
-                    MunicipioId = x.CityInfoId,
-                    Lat = x.Lat,
-                    Lon = x.Lon,
-                    MicrorregiaoId = x.CityInfo.IdMicrorregiao,
-                    MesorregiaoId = x.CityInfo.IdMesorregiao
-                });
+                .Where(x => x.Ano == request.Year);
+
+            if (request.Dependencia.HasValue)
+            {
+                query = query.Where(x => x.Dependencia == request.Dependencia.Value);
+            }
+
+            var projection = query.Select(x => new SchoolInfoMapDto
+            {
+                IdEscola = x.IdEscola,
+                NomeEscola = x.NomeEscola,
+                Endereco = x.Endereco ?? "Endereço não disponível",
+                Ano = x.Ano,
+                MunicipioId = x.CityInfoId,
+                Lat = x.Lat,
+                Lon = x.Lon,
+                MicrorregiaoId = x.CityInfo.IdMicrorregiao,
+                MesorregiaoId = x.CityInfo.IdMesorregiao,
+                Dependencia = x.Dependencia 
+            });
 
             if (request.Limit.HasValue)
             {
-                query = query.Take(request.Limit.Value);
+                projection = projection.Take(request.Limit.Value);
             }
 
-            var schoolinfos = await query.ToListAsync();
-
-            swDb.Stop();
-
-            Console.WriteLine($"DB + Materialização: {swDb.ElapsedMilliseconds} ms");
-            Console.WriteLine($"Quantidade: {schoolinfos.Count}");
-
-            var swSerialize = Stopwatch.StartNew();
-
-            var json = System.Text.Json.JsonSerializer.Serialize(schoolinfos);
-
-            swSerialize.Stop();
-
-            Console.WriteLine($"Serialização: {swSerialize.ElapsedMilliseconds} ms");
-            Console.WriteLine($"Tamanho JSON: {System.Text.Encoding.UTF8.GetByteCount(json) / 1024.0 / 1024.0:F2} MB");
+            var schoolinfos = await projection.ToListAsync();
 
             swTotal.Stop();
-            Console.WriteLine($"TOTAL (até aqui): {swTotal.ElapsedMilliseconds} ms");
-
-            return new Response<ICollection<SchoolInfoMapDto>>(schoolinfos, message: "Retornado com sucesso o schoolinfos.");
+            return new Response<ICollection<SchoolInfoMapDto>>(schoolinfos, message: "Schoolinfos carregados com sucesso.");
         }
-        catch
+        catch (Exception ex)
         {
-            return new Response<ICollection<SchoolInfoMapDto>>(null, 500, "Não foi possível consultar as categorias");
+            return new Response<ICollection<SchoolInfoMapDto>>(null, 500, "Erro ao consultar informações das escolas.");
         }
     }
 }

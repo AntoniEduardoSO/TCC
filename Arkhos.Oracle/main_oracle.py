@@ -12,6 +12,33 @@ from controllers.mesoregion_controller import MesoregionController
 
 from models.predictor import RiskPredictor
 
+def init_insights_db(db_path: str):
+    try:
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS insights (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    axis TEXT,
+                    level TEXT,
+                    ano INTEGER,
+                    tipo_insight TEXT,
+                    titulo TEXT,
+                    valor_destaque REAL,
+                    descricao TEXT,
+                    recomendacao TEXT,
+                    valor_baseline REAL,
+                    id_alvo INTEGER
+                );
+            """)
+
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_insights_filter ON insights(level, id_alvo, ano);")
+            conn.commit()
+            print(f" [INIT] Tabela 'insights' verificada/criada com sucesso.")
+    except Exception as e:
+        print(f" [ERRO INIT] Falha ao inicializar tabela de insights: {e}")
+
 def salvar_insights(df_results: pd.DataFrame, db_path: str):
     if df_results.empty: return
 
@@ -201,6 +228,8 @@ def run_oracle():
     PASTA_DATA = os.path.join(diretorio_oracle, "data")
     CAMINHO_CSV = os.path.join(PASTA_DATA, "dummy_data.csv")
     CAMINHO_DB = os.path.abspath(os.path.join(diretorio_oracle, "..", "arkhos.db"))
+
+    init_insights_db(CAMINHO_DB)
 
     if os.path.exists(CAMINHO_CSV):
         print(f"\n[ORACLE - CACHE] Arquivo '{CAMINHO_CSV}' encontrado!")

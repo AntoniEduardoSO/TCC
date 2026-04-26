@@ -405,6 +405,7 @@ def exec_school_info( conn, cur):
             nome_escola TEXT,
             id_municipio_fk INTEGER,
             dependencia INTEGER,
+            localizacao INTEGER, -- Coluna que faltava!
             funcionamento INTEGER,
             sede INTEGER,
             alocacao INTEGER,
@@ -433,13 +434,13 @@ def exec_school_info( conn, cur):
     query = """
         INSERT OR REPLACE INTO school_info (
             escola_id, nome_escola, id_municipio_fk,
-            dependencia, funcionamento, sede,
+            dependencia, localizacao, funcionamento, sede,
             alocacao, ocupacao, ano,
             endereco, telefone,
             lat, lon
         ) VALUES (
             :id_escola, :nome_escola, :municipio_id,
-            :dependencia, :funcionamento, :sede,
+            :dependencia, :localizacao, :funcionamento, :sede,
             :alocacao, :ocupacao, :ano,
             :endereco, :telefone,
             :lat, :lon

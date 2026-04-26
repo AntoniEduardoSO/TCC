@@ -1,4 +1,5 @@
 using Arkhos.Core.Models.Dto.SchoolRating;
+using Arkhos.Core.Requests;
 using Arkhos.Core.Requests.SchoolRatings;
 using Arkhos.Core.Responses;
 
@@ -8,4 +9,8 @@ public interface ISchoolRatingsHandler
     Task<Response<ICollection<SchoolRatingSpendingDto>>> GetSpendingByYearAsync(GetSchoolRatingSpendingByYearRequest request);
     Task<Response<ICollection<SchoolRatingMapDto>>> GetRatingByYearAsync(GetSchoolRatingMapByYearRequest request);
     Task<Response<ICollection<SchoolRatingDropDto>>> GetDropByYearAsync(GetSchoolRatingDropByYearRequest request);
+
+    Task<Response<RegionRatingSummaryDto>> GetRegionRatingSummaryAsync(GetRegionSummaryRequest request);
+
+    Task<Response<SchoolRatingDetailDto>> GetSchoolDetailAsync(int schoolId, int year);
 }

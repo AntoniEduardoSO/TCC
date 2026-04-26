@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
+using System.Text;
 using Arkhos.Core.Handlers;
 using Arkhos.Core.Models.Dto.SchoolInfo;
 using Arkhos.Core.Requests.SchoolInfos;
@@ -13,16 +14,19 @@ public class SchoolInfoHandler(IHttpClientFactory httpClientFactory) : ISchoolIn
 
     public async Task<Response<ICollection<SchoolInfoMapDto>>> GetByYearAsync(GetSchoolInfoByYearRequest request)
     {
-        var stopwatch = Stopwatch.StartNew();
+        var url = new StringBuilder($"v1/schoolinfo/{request.Year}");
 
-        var result = await _client.GetFromJsonAsync<Response<ICollection<SchoolInfoMapDto>>>(
-            $"v1/schoolinfo/{request.Year}"
-        );
+        var queryParams = new List<string>();
+        if (request.Dependencia.HasValue) queryParams.Add($"dependencia={request.Dependencia}");
+        if (request.Limit.HasValue) queryParams.Add($"limit={request.Limit}");
 
-        stopwatch.Stop();
+        if (queryParams.Any())
+        {
+            url.Append("?");
+            url.Append(string.Join("&", queryParams));
+        }
 
-        Console.WriteLine($"Tempo da requisição: {stopwatch.ElapsedMilliseconds} ms");
-
-        return result ?? new Response<ICollection<SchoolInfoMapDto>>(null, 400, "Não foi possível obter os schoolinfos.");
+        return await _client.GetFromJsonAsync<Response<ICollection<SchoolInfoMapDto>>>(url.ToString())
+               ?? new Response<ICollection<SchoolInfoMapDto>>(null, 400, "Erro ao obter markers.");
     }
 }

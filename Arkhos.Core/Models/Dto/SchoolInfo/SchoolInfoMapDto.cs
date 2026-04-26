@@ -21,6 +21,8 @@ public class SchoolInfoMapDto : ILocationContext
 
     [JsonPropertyName("municipio_id")]
     public int MunicipioId {get;set;}
+    [JsonPropertyName("dependencia")]
+    public int Dependencia { get; set; }
 
     public double? Lat {get;set;}
     public double? Lon {get;set;}

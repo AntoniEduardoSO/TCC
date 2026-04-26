@@ -13,4 +13,15 @@ public interface ISchoolEnrollValuesHandler
 
     Task<Response<ICollection<SchoolEnrollValuesGovernanceDto>>> 
         GetGovernanceByYearAsync(GetSchoolEnrollValuesGovernanceByYearRequest request);
+
+
+    Task<Response<SchoolEnrollmentDetailDto>>
+        GetSchoolEnrollmentDetailByFilterAsync(GetSchoolEnrollmentSummaryByFilterRequest request);
+
+    Task<Response<RegionEnrollmentSummaryDto>> 
+        GetRegionEnrollmentSummaryByFilterAsync (GetRegionEnrollmentSummaryByFilterRequest request);
+
+    Task<Response<ICollection<RegionEnrollmentSummaryDto>>> 
+        GetRegionSummariesListAsync(GetRegionSummariesListRequest request);
+    
 }
