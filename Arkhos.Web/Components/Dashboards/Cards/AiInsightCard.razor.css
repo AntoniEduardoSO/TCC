@@ -1,0 +1,75 @@
+
+.glass-insight-card {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden; 
+    z-index: 1;
+}
+
+.glass-insight-card::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    /* Criamos um quadrado gigante perfeito para não distorcer o círculo em telas ultrawide */
+    width: 3000px; 
+    height: 3000px;
+    /* Usamos graus (deg) para garantir que o cometa tenha o tamanho exato, sem duplicar */
+    background: conic-gradient(
+        from 0deg,
+        rgba(154, 134, 253, 0.25) 0deg,      /* Base roxa sutil permanente */
+        rgba(154, 134, 253, 0.25) 300deg,    /* Mantém a base roxa por quase toda a volta */
+        rgba(154, 134, 253, 0.8) 345deg,     /* Começa o rastro brilhante do fluido */
+        rgba(0, 176, 255, 1) 360deg          /* A "cabeça" do fluido em Ciano puro */
+    );
+    /* A animação agora translada e rotaciona a partir do centro absoluto */
+    animation: flowLiquidEdge 5s linear infinite;
+    z-index: -2;
+}
+
+
+.glass-insight-card::after {
+    content: "";
+    position: absolute;
+    /* Aumentado de 1.5px para 2.5px para deixar a borda e o fluido bem mais grossos/marcados! */
+    inset: 2.5px; 
+    background-color: #1a1f2e; 
+    border-radius: 9px; /* Raio interno ajustado para encaixar com a borda mais grossa */
+    z-index: -1;
+}
+
+
+@keyframes flowLiquidEdge {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Garante que os textos fiquem acima das máscaras */
+.card-content-wrapper {
+    position: relative;
+    z-index: 10;
+}
+
+.insight-highlight {
+    color: #00B0FF;
+    font-size: 1.35em;
+    font-weight: 800;
+    margin: 0 6px;
+    vertical-align: baseline;
+    white-space: nowrap;
+    display: inline-block;
+    text-shadow: 0 0 10px rgba(0, 176, 255, 0.2); 
+}
+
+/* Cursor piscando para a digitação da IA */
+.blinking-cursor::after {
+    content: '|';
+    animation: blink 1s step-end infinite;
+    color: #9A86FD;
+    margin-left: 2px;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}

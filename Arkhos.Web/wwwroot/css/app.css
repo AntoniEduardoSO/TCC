@@ -327,3 +327,56 @@ code {
     font-size: 1.1em;
     margin: 0 4px;
 }
+
+.custom-dark-tooltip {
+    background-color: #1a1f2e !important;
+    color: #e2e8f0 !important;
+    border: 1px solid #38bdf8 !important;
+    border-radius: 6px;
+    padding: 4px 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+.custom-dark-tooltip::before {
+    border-top-color: #1a1f2e !important; /* A setinha apontando pra baixo */
+}
+
+/* Customiza o Popup (O balão branco quando clica no pino de escola) */
+.leaflet-popup-content-wrapper {
+    background-color: #1a1f2e !important;
+    color: #e2e8f0 !important;
+    border: 1px solid #2d3748 !important;
+    border-radius: 8px !important;
+}
+.leaflet-popup-tip {
+    background-color: #1a1f2e !important;
+}
+.leaflet-popup-close-button {
+    color: #94a3b8 !important;
+}
+
+/* Estilo do Card Informativo dentro do Mapa */
+.custom-map-info-card {
+    background-color: rgba(26, 31, 46, 0.85); /* Fundo dark translúcido */
+    backdrop-filter: blur(8px); /* Efeito de vidro */
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid #2d3748;
+    border-radius: 8px;
+    padding: 16px;
+    color: #cbd5e1;
+    width: 220px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    pointer-events: auto; /* Permite clicar no card sem interagir com o mapa atrás dele */
+}
+
+.custom-map-info-card .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12.5px;
+    margin-bottom: 6px;
+}
+
+.custom-map-info-card .info-row b {
+    color: #e2e8f0;
+    font-weight: 600;
+}

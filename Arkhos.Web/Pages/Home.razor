@@ -27,57 +27,60 @@
 
 <PageTitle>Dashboard</PageTitle>
 
-<AiInsightCard Title="@InsightTitle" HighlightValue="@InsightHighlight"
-    Recommendation="@InsightRecommendation" />
+<div class="mb-6">
+    <AiInsightCard Title="@InsightTitle" 
+                   HighlightValue="@InsightHighlight"
+                   Recommendation="@InsightRecommendation" />
+</div>
 
-<MudGrid Spacing="2">
-    <MudItem xs="12" md="6">
-        <MudStack Spacing="4">
+<MudGrid Spacing="3">
+    
+    <MudItem xs="12" lg="5" xl="6">
+        <MudStack Spacing="3">
+            
             <MudPaper Elevation="3" Class="d-flex align-center justify-center mud-width-full"
-                Style="position: relative; height: 500px">
+                      Style="position: relative; height: 440px;">
                 <div id="map" style="height:100%; width:100%; border-radius: 8px;"></div>
                 <MudFab Color="Color.Primary" StartIcon="@Icons.Material.Filled.ArrowBack" Label="Voltar"
-                    Size="Size.Small" Style="position: absolute; top: 10px; right: 10px; z-index: 1000;"
-                    @onclick="GoBack" />
+                        Size="Size.Small" Style="position: absolute; top: 10px; right: 10px; z-index: 1000;"
+                        @onclick="GoBack" />
             </MudPaper>
 
             <FinancialOverviewCard AvgStudent="@AvgSpendingPerStudent" AvgTeacher="@AvgSpendingPerTeacher"
-                AvgInfra="@AvgInfrastructure" AvgTransport="@AvgTransport" AvgMeal="@AvgMeal"
-                TotalGasto="@TotalGasto" />
-
+                                   AvgInfra="@AvgInfrastructure" AvgTransport="@AvgTransport" AvgMeal="@AvgMeal"
+                                   TotalGasto="@TotalGasto" />
         </MudStack>
     </MudItem>
 
-    <MudItem xs="12" md="6">
-        <MudGrid Spacing="2">
-            <MudItem xs="12" md="6">
-                <MudStack Spacing="2">
+    <MudItem xs="12" lg="7" xl="6">
+        <MudGrid Spacing="3">
+            
+            <MudItem xs="12" sm="6">
+                <MudStack Spacing="3">
                     <EnrollmentOverviewCard Ano="@DashboardState.SelectedYear" TotalCreche="@TotalCreche"
-                        TotalPreEscola="@TotalPreEscola" TotalFundIniciais="@TotalFundIniciais"
-                        TotalFundFinais="@TotalFundFinais" TotalMedio="@TotalMedio" />
-
-
-                    <GovernanceSupportCard Psychologists="8" SocialAssistants="12" Libras="5" HasCouncil="true"
-                        HasParentsAssociation="true" HasStudentUnion="false" />
+                                            TotalPreEscola="@TotalPreEscola" TotalFundIniciais="@TotalFundIniciais"
+                                            TotalFundFinais="@TotalFundFinais" TotalMedio="@TotalMedio" />
+                    
+                    <TeachersOverviewCard Ano="@DashboardState.SelectedYear" TotalCreche="@ProfCreche"
+                                          TotalPreEscola="@ProfPreEscola" TotalFundIniciais="@ProfFundIniciais"
+                                          TotalFundFinais="@ProfFundFinais" TotalMedio="@ProfMedio" TotalEspecial="@ProfEspecial" />
                 </MudStack>
             </MudItem>
 
-            <MudItem xs="12" md="6">
-                <MudStack Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudStack Spacing="3">
                     <PieChartDropoutRateCard TotalAbandonos="@TotalAbandonos" TotalAprovados="@TotalAprovados"
-                        TotalReprovados="@TotalReprovados" />
+                                             TotalReprovados="@TotalReprovados" Ano="@DashboardState.SelectedYear" />
 
                     <InfrastructureQualityCard Accessibility="@AcessibilityRating" Pedagogical="@TotalPedagogicalRooms"
-                        WellBeing="@TotalWellbeing" />
+                                               WellBeing="@TotalWellbeing" />
 
-                    <TeachersOverviewCard Ano="@DashboardState.SelectedYear" TotalCreche="@ProfCreche"
-                        TotalPreEscola="@ProfPreEscola" TotalFundIniciais="@ProfFundIniciais"
-                        TotalFundFinais="@ProfFundFinais" TotalMedio="@ProfMedio" TotalEspecial="@ProfEspecial" />
-
+                    <GovernanceSupportCard Psychologists="8" SocialAssistants="12" Libras="5" HasCouncil="true"
+                                           HasParentsAssociation="true" HasStudentUnion="false" />
                 </MudStack>
             </MudItem>
-        </MudGrid>
 
+        </MudGrid>
     </MudItem>
 
 </MudGrid>
@@ -142,6 +145,7 @@
     // === Insights ===
     private string InsightTitle => CurrentInsight?.Titulo ?? "Analisando dados da região...";
     private string InsightHighlight => CurrentInsight?.ValorDestaque ?? "-";
+    private string InsightDescription => CurrentInsight?.Descricao ?? "-";
     private string InsightRecommendation => CurrentInsight?.Recomendacao ?? "Selecione uma região ou aguarde o motor processar os dados.";
 
     protected override async Task OnInitializedAsync()

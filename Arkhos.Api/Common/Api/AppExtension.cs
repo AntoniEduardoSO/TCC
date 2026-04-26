@@ -12,6 +12,7 @@ using System.Text.Json;
 
 public static class AppExtension
 {
+    
     private static bool IsScrapingDone(string scriptDirectory)
     {
         var flagPath = Path.Combine(scriptDirectory, "status", "scraping_done.flag");
@@ -107,8 +108,11 @@ public static class AppExtension
 
         Console.WriteLine($"[LOG] Procurando DB em: {dbPath}");
 
+        bool bancoRecemExtraido = false;
+
         if (!File.Exists(dbPath))
         {
+            bancoRecemExtraido = true;
             Console.WriteLine("[LOG] Banco não encontrado no disco.");
             if (!File.Exists(zipPath))
             {
@@ -161,9 +165,11 @@ public static class AppExtension
 
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
+        // if(!bancoRecemExtraido)
+        //     context.Database.Migrate();
+
         Console.WriteLine($"[LOG] O EF ESTÁ CONECTANDO EM: {context.Database.GetDbConnection().ConnectionString}");
 
-        context.Database.Migrate();
 
         if (!context.CityInfos.Any())
         {

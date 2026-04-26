@@ -12,6 +12,32 @@ from controllers.mesoregion_controller import MesoregionController
 
 from models.predictor import RiskPredictor
 
+def salvar_insights(df_results: pd.DataFrame, db_path: str):
+    if df_results.empty: return
+
+    if 'id_alvo' in df_results.columns:
+        df_results['id_alvo'] = pd.to_numeric(df_results['id_alvo'], errors='coerce').fillna(0).astype(int)
+
+    colunas_banco = [
+        'axis', 'level', 'ano', 'tipo_insight', 'titulo', 
+        'valor_destaque', 'descricao', 'recomendacao', 'valor_baseline', 'id_alvo'
+    ]
+    
+    for col in colunas_banco:
+        if col not in df_results.columns:
+            df_results[col] = None
+            
+    df_banco = df_results[colunas_banco]
+
+    try:
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM insights")
+            df_banco.to_sql('insights', conn, if_exists='append', index=False)
+            conn.commit()
+            print(f" [DB] Insights salvos com sucesso na tabela 'insights'!")
+    except Exception as e:
+        print(f" [ERRO DB] Falha ao salvar os insights no banco: {e}")
 
 def carregar_dados_prescritivos(db_path: str, ano: int) -> pd.DataFrame:
     if not os.path.exists(db_path):
@@ -170,65 +196,61 @@ def run_predictive_engine(df_historico: pd.DataFrame, ano_atual: int, df_detalha
     
     return prescricoes_ml
 
-if __name__ == "__main__":
-    CAMINHO_DB = "../arkhos.db" 
-    
-    if not os.path.exists(CAMINHO_DB):
-        raise FileNotFoundError(f"Banco de dados não encontrado em: {CAMINHO_DB}")
-        
-    ANOS_PRESCRITIVOS = list(range(2017, 2025)) 
-    ANOS_PREDITIVOS = [2023, 2024]           
-    
-    print("="*50)
-    print(" INICIANDO MOTOR ARKHOS (PRESCRITIVO + PREDITIVO)")
-    print("="*50)
-    
-    lista_prescritiva = run_prescriptive_engine(CAMINHO_DB, ANOS_PRESCRITIVOS)
+def run_oracle():
+    diretorio_oracle = os.path.dirname(os.path.abspath(__file__))
+    PASTA_DATA = os.path.join(diretorio_oracle, "data")
+    CAMINHO_CSV = os.path.join(PASTA_DATA, "dummy_data.csv")
+    CAMINHO_DB = os.path.abspath(os.path.join(diretorio_oracle, "..", "arkhos.db"))
 
-    lista_preditiva = []
-    df_historico_ml = carregar_historico_ml(CAMINHO_DB)
-    
-    for ano_pred in ANOS_PREDITIVOS:
-        print(f"\n[Preditivo] Iniciando projeções a partir do ano-base {ano_pred}...")
-        df_ano_detalhado = carregar_dados_prescritivos(CAMINHO_DB, ano_pred)
-        alertas_ano = run_predictive_engine(df_historico_ml, ano_pred, df_ano_detalhado)
-        lista_preditiva.extend(alertas_ano)
-    
-    todas_prescricoes = lista_prescritiva + lista_preditiva
-    df_results = pd.DataFrame(todas_prescricoes)
-    
-    if not df_results.empty:
-        pasta_data = "data"
-        os.makedirs(pasta_data, exist_ok=True)
-        caminho_csv = os.path.join(pasta_data, "dummy_data.csv")
+    if os.path.exists(CAMINHO_CSV):
+        print(f"\n[ORACLE - CACHE] Arquivo '{CAMINHO_CSV}' encontrado!")
+        print("[ORACLE - CACHE] Pulando geração pesada. Enviando dados direto para o banco...")
         
-        cols = df_results.columns.tolist()
-        if 'ano' in cols:
-            cols.insert(2, cols.pop(cols.index('ano')))
-            df_results = df_results[cols]
-
-        if 'id_alvo' in df_results.columns:
-            df_results['id_alvo'] = pd.to_numeric(df_results['id_alvo'], errors='coerce').fillna(0).astype(int)
-            
-        df_results.to_csv(caminho_csv, index=False, encoding='utf-8-sig')
-
-        try:
-            with sqlite3.connect(CAMINHO_DB) as conn:
-                cursor = conn.cursor()
-                
-                cursor.execute("DELETE FROM insights")
-                
-                df_results.to_sql('insights', conn, if_exists='append', index=False)
-                conn.commit()
-                
-                print(f" [DB] Insights salvos com sucesso na tabela 'insights'!")
-        except Exception as e:
-            print(f" [ERRO DB] Falha ao salvar os insights no banco: {e}")
+        df_csv = pd.read_csv(CAMINHO_CSV, encoding='utf-8-sig')
+        salvar_insights(df_csv, CAMINHO_DB)
         
-        print(f"\n=======================================================")
-        print(f" SUCESSO! Total de {len(df_results)} registros exportados.")
-        print(f" Motor cobriu regras de {min(ANOS_PRESCRITIVOS)} a {max(ANOS_PRESCRITIVOS)} e projeções de {ANOS_PREDITIVOS}.")
-        print(f" Arquivo consolidado em: {caminho_csv}")
-        print(f"=======================================================")
+        print("\n[ORACLE - OK] Processo finalizado usando dados cacheados.")
+    
     else:
-        print("\nNenhuma prescrição foi gerada pelos motores.")
+        
+        ANOS_PRESCRITIVOS = list(range(2017, 2025)) 
+        ANOS_PREDITIVOS = [2023, 2024]           
+        
+        print("="*50)
+        print(" INICIANDO MOTOR ARKHOS (PRESCRITIVO + PREDITIVO)")
+        print("="*50)
+        
+        lista_prescritiva = run_prescriptive_engine(CAMINHO_DB, ANOS_PRESCRITIVOS)
+
+        lista_preditiva = []
+        df_historico_ml = carregar_historico_ml(CAMINHO_DB)
+        
+        for ano_pred in ANOS_PREDITIVOS:
+            print(f"\n[Preditivo] Iniciando projeções a partir do ano-base {ano_pred}...")
+            df_ano_detalhado = carregar_dados_prescritivos(CAMINHO_DB, ano_pred)
+            alertas_ano = run_predictive_engine(df_historico_ml, ano_pred, df_ano_detalhado)
+            lista_preditiva.extend(alertas_ano)
+        
+        todas_prescricoes = lista_prescritiva + lista_preditiva
+        df_results = pd.DataFrame(todas_prescricoes)
+    
+        if not df_results.empty:
+
+            if 'id_alvo' in df_results.columns:
+                df_results['id_alvo'] = pd.to_numeric(df_results['id_alvo'], errors='coerce').fillna(0).astype(int)
+            
+            df_results.to_csv(CAMINHO_CSV, index=False, encoding='utf-8-sig')
+            salvar_insights(df_results, CAMINHO_DB)
+
+            
+            print(f"\n=======================================================")
+            print(f" SUCESSO! Total de {len(df_results)} registros exportados.")
+            print(f" Motor cobriu regras de {min(ANOS_PRESCRITIVOS)} a {max(ANOS_PRESCRITIVOS)} e projeções de {ANOS_PREDITIVOS}.")
+            print(f" Arquivo consolidado em: {CAMINHO_CSV}")
+            print(f"=======================================================")
+        else:
+            print("\nNenhuma prescrição foi gerada pelos motores.")
+
+
+if __name__ == "__main__":
+    run_oracle()

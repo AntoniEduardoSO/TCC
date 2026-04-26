@@ -53,6 +53,28 @@ namespace Arkhos.Api.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "insights",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    axis = table.Column<string>(type: "TEXT", nullable: false),
+                    level = table.Column<string>(type: "TEXT", nullable: false),
+                    ano = table.Column<int>(type: "INTEGER", nullable: false),
+                    tipo_insight = table.Column<string>(type: "TEXT", nullable: false),
+                    titulo = table.Column<string>(type: "TEXT", nullable: false),
+                    valor_destaque = table.Column<string>(type: "TEXT", nullable: false),
+                    descricao = table.Column<string>(type: "TEXT", nullable: false),
+                    recomendacao = table.Column<string>(type: "TEXT", nullable: false),
+                    valor_baseline = table.Column<double>(type: "REAL", nullable: false),
+                    id_alvo = table.Column<int>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_insights", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "school_infra_dict",
                 columns: table => new
                 {
@@ -245,6 +267,9 @@ namespace Arkhos.Api.Migrations
         {
             migrationBuilder.DropTable(
                 name: "city_transparency_portal");
+
+            migrationBuilder.DropTable(
+                name: "insights");
 
             migrationBuilder.DropTable(
                 name: "school_enroll_values");

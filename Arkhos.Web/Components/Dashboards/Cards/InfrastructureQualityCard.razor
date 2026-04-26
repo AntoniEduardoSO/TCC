@@ -1,103 +1,55 @@
 @using MudBlazor
 
-<MudPaper Class="infra-card-compact" Elevation="1">
-    <div class="infra-header">
+<MudPaper Elevation="0" Class="pa-4" Style="background-color: #1a1f2e; border-radius: 12px; border: 1px solid #2d3748; height: 100%;">
+    
+    <div class="mb-5">
+        <div class="d-flex justify-space-between align-center w-100">
+            <MudText Typo="Typo.h6" Style="font-weight: 500; color: #e2e8f0; font-size: 1.1rem;">
+                Infraestrutura.
+            </MudText>
+            <MudText Typo="Typo.h5" Style="font-weight: 800; color: #38bdf8; line-height: 1;">
+                @($"{(OverallScore*100):0.00}%")
+            </MudText>
+        </div>
+        
+        <MudText Typo="Typo.caption" Style="color: #a0aec0; display: block; margin-top: 6px;">
+            Indicadores médios de acessibilidade, pedagogia e convivência.
+        </MudText>
+    </div>
+
+    <div class="d-flex flex-column gap-3">
+        
         <div>
-            <MudText Typo="Typo.h6" Style="color: #e2e8f0;">
-                Infraestrutura Escolar.
-            </MudText>
-
-            <MudText Class="infra-subtitle" Style="color: #94a3b8;">
-                Indicadores médios de acessibilidade, pedagogia e convivência.
-            </MudText>
+            <div class="d-flex justify-space-between align-center mb-1 w-100">
+                <MudText Typo="Typo.body2" Style="color: #e2e8f0;">Acessibilidade</MudText>
+                <MudText Typo="Typo.body2" Style="color: #ffffff; font-weight: 600;">@($"{(Accessibility*100):0.00}%")</MudText>
+            </div>
+            <MudProgressLinear Value="@(Accessibility*100)" Rounded="true" Color="Color.Info" Style="height: 6px; background: rgba(255, 255, 255, 0.08);" />
         </div>
 
-        <MudText Class="infra-score">@($"{(OverallScore*100):0.00}%")</MudText>
-    </div>
-
-    <div class="infra-line">
-        <div class="infra-label-row">
-            <span>Acessibilidade</span>
-            <span>@($"{(Accessibility*100):0.00}%")</span>
+        <div>
+            <div class="d-flex justify-space-between align-center mb-1 w-100">
+                <MudText Typo="Typo.body2" Style="color: #e2e8f0;">Espaços pedagógicos</MudText>
+                <MudText Typo="Typo.body2" Style="color: #ffffff; font-weight: 600;">@($"{(Pedagogical*100):0.00}%")</MudText>
+            </div>
+            <MudProgressLinear Value="@(Pedagogical*100)" Rounded="true" Color="Color.Info" Style="height: 6px; background: rgba(255, 255, 255, 0.08);" />
         </div>
-        <MudProgressLinear Value="@(Accessibility*100)"   Rounded="true" Color="Color.Info" class="infra-progress"/>
-    </div>
 
-    <div class="infra-line">
-        <div class="infra-label-row">
-            <span>Espaços pedagógicos</span>
-            <span>@($"{(Pedagogical*100):0.00}%")</span>
+        <div>
+            <div class="d-flex justify-space-between align-center mb-1 w-100">
+                <MudText Typo="Typo.body2" Style="color: #e2e8f0;">Bem-estar e convivência</MudText>
+                <MudText Typo="Typo.body2" Style="color: #ffffff; font-weight: 600;">@($"{(WellBeing*100):0.00}%")</MudText>
+            </div>
+            <MudProgressLinear Value="@(WellBeing*100)" Rounded="true" Color="Color.Info" Style="height: 6px; background: rgba(255, 255, 255, 0.08);" />
         </div>
-        <MudProgressLinear Value="@(Pedagogical*100)"  Rounded="true" Color="Color.Info" class="infra-progress" />
-    </div>
 
-    <div class="infra-line">
-        <div class="infra-label-row">
-            <span>Bem-estar e convivência</span>
-            <span>@($"{(WellBeing*100):0.00}%")</span>
-        </div>
-        <MudProgressLinear Value="@(WellBeing*100)" Rounded="true" Color="Color.Info" class="infra-progress" />
     </div>
 </MudPaper>
-
-<style>
-    .infra-card-compact {
-        padding: 14px 16px;
-        border-radius: 12px;
-        background: #1a1f2e;
-    }
-
-    .infra-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 10px;
-    }
-
-    .infra-title span {
-        color: #22c55e;
-    }
-
-    .infra-line {
-        margin-top: 8px;
-    }
-
-    .infra-label-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 3px;
-        font-size: 13px;
-        color: white;
-    }
-
-    .infra-subtitle {
-        font-size: 12px;
-        color: #94a3b8;
-        max-width: 220px;
-    }
-
-    .infra-score {
-        font-size: 22px;
-        font-weight: 800;
-        color: #38bdf8;
-    }
-
-    .infra-progress {
-        height: 6px !important;
-        border-radius: 8px;
-    }
-
-    .infra-progress .mud-progress-linear-buffer {
-        background: rgba(255, 255, 255, 0.08) !important;
-    }
-</style>
 
 @code {
     [Parameter] public double Accessibility { get; set; }
     [Parameter] public double Pedagogical { get; set; }
     [Parameter] public double WellBeing { get; set; }
 
-    private double OverallScore =>
-        (Accessibility + Pedagogical + WellBeing) / 3;
+    private double OverallScore => (Accessibility + Pedagogical + WellBeing) / 3;
 }

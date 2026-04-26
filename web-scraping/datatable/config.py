@@ -1,8 +1,35 @@
 # -*- coding: utf-8 -*-
 
+import os
+import sys
 import csv
 import pandas as pd
+import sqlite3
 from sqlalchemy import create_engine
+
+diretorio_atual = os.path.dirname(os.path.abspath(__file__))
+
+caminho_oracle = os.path.abspath(os.path.join(diretorio_atual, '..', '..', 'Arkhos.Oracle'))
+
+if os.path.exists(caminho_oracle):
+    print("[DEBUG] SUCESSO: O sistema operacional confirmou que a pasta Arkhos.Oracle existe neste local!")
+else:
+    try:
+        pasta_caiu = os.path.abspath(os.path.join(diretorio_atual, '..', '..'))
+        print(os.listdir(pasta_caiu))
+    except Exception as e:
+        print(f"Não foi possível listar: {e}")
+
+if caminho_oracle not in sys.path:
+    sys.path.insert(0, caminho_oracle)
+
+try:
+    from main_oracle import run_oracle
+
+except ModuleNotFoundError as e:
+    for path in sys.path:
+        print(f" - {path}")
+
 
 import sqlite3
 
@@ -571,5 +598,7 @@ def exec_datatables():
     exec_transparency_portal(conn,cur)
 
     create_sqlite_indexes(conn,cur)
+
+    run_oracle()
 
     conn.commit()
