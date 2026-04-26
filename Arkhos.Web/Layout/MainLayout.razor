@@ -1,6 +1,8 @@
 ﻿@inherits LayoutComponentBase
+@using Arkhos.Core.Models.Dto.SchoolInfo
 @using MudBlazor
 @inject DashboardStateService DashboardState
+@inject IJSRuntime JS
 @implements IDisposable
 
 <MudThemeProvider />
@@ -10,39 +12,58 @@
 
 <style>
     .top-filter-box {
-        height: 42px;
-        background: #21283a; 
-        border: 1px solid #2d3748;
+        height: 40px; 
+        background: #21283a;
+        border: 1px solid #334155; 
         border-radius: 8px;
         display: flex;
         align-items: center;
-        padding: 0 14px;
+        padding: 0 12px;
+        transition: border-color 0.2s;
+    }
+
+    .top-filter-box:focus-within {
+        border-color: #3b82f6;
     }
 
     .search-bar-container {
-        width: 500px;
-        max-width: 45vw;
+        width: 480px;
+        max-width: 40vw;
     }
 
-    .clean-select .mud-input-control {
-        margin: 0 !important;
-        width: 100%;
+    .clean-select .mud-input {
+        margin-top: 0 !important;
+    }
+
+    .clean-select .mud-input-adornment-start .mud-icon-root {
+        color: #a0aec0 !important;
     }
 
     .clean-select .mud-input-slot {
-        color: #e2e8f0 !important;
-        font-size: 0.9rem;
-        padding-top: 2px;
+        color: #f1f5f9 !important;
+        font-size: 0.875rem !important;
+        padding: 4px 0 !important;
+    }
+
+    .clean-select .mud-input-underline:before,
+    .clean-select .mud-input-underline:after {
+        display: none !important;
     }
 
     .clean-select .mud-input-label {
-        color: #94a3b8 !important;
-        font-size: 0.75rem;
+        color: #94a3b8 !important; 
+        font-size: 0.85rem !important;
+        transform: translate(0, 8px) scale(1);
     }
 
-    .clean-select .mud-input-underline:before, 
-    .clean-select .mud-input-underline:after {
+    .clean-select .mud-input-label-filled, 
+    .clean-select .mud-input-label-inputcontrol {
         display: none !important;
+    }
+
+    .clean-select .mud-input-adornment .mud-icon-root {
+        color: #64748b !important;
+        font-size: 1.25rem;
     }
 
     .global-loading-overlay {
@@ -55,59 +76,88 @@
         justify-content: center;
         align-items: center;
     }
+
+    .custom-search-popover {
+        background-color: #1e293b !important;
+        border: 1px solid #334155 !important;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
+        margin-top: 8px !important;
+        border-radius: 8px !important;
+    }
+
+    .custom-search-popover .mud-list-item:hover {
+        background-color: #334155 !important;
+    }
+    
 </style>
 
 <MudLayout>
     <MudAppBar Elevation="0" Style="background-color: #1a1f2e; border-bottom: 1px solid #2d3748; padding: 0 16px;">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Style="color: #94a3b8;" Edge="Edge.Start"
-                       OnClick="@((e) => DrawerToggle())" />
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Style="color: #94a3b8;" Edge="Edge.Start" OnClick="@DrawerToggle" />
 
-        <MudText Typo="Typo.h6" Style="color: #e2e8f0; font-weight: 600; margin-left: 8px;">
-            Dashboard Educacional
-        </MudText>
+        <MudText Typo="Typo.h6" Style="color: #e2e8f0; font-weight: 600; margin-left: 8px;">Arkhos</MudText>
 
         <MudSpacer />
 
         <div class="d-flex align-center gap-3">
             <div class="top-filter-box search-bar-container">
-                <MudIcon Icon="@Icons.Material.Filled.Search" Style="color: #a0aec0; margin-right: 12px;" />
-                <MudAutocomplete T="string" Placeholder="Buscar região ou escola..."
-                                 Variant="Variant.Text" Class="clean-select" Margin="Margin.None"
-                                 Dense="true" SearchFunc="BuscarEscopo" />
+                <MudAutocomplete T="SearchResult" 
+                    Placeholder="Buscar região ou escola..." 
+                    SearchFunc="@SearchData"
+                    ToStringFunc="@(x => x?.Name ?? string.Empty)" 
+                    ValueChanged="OnSearchItemSelected"
+                    Adornment="Adornment.Start"
+                    AdornmentIcon="@Icons.Material.Filled.Search" 
+                    Variant="Variant.Text" 
+                    Class="clean-select"
+                    Margin="Margin.None" 
+                    Dense="true" 
+                    ShowProgressIndicator="true"
+                    PopoverClass="custom-search-popover" 
+                    Clearable="true">
+                    <ItemTemplate Context="item">
+                        <div class="d-flex align-center py-1">
+                            <MudIcon Icon="@GetSearchIcon(item.Type)" Size="Size.Small" Class="mr-3" Color="Color.Primary" />
+                            <div class="d-flex flex-column">
+                                <MudText Typo="Typo.body2" Style="font-weight: 600; color: #e2e8f0;">@item.Name</MudText>
+                                <MudText Typo="Typo.caption" Style="color: #94a3b8;">@item.Type • @item.Subtitle</MudText>
+                            </div>
+                        </div>
+                    </ItemTemplate>
+                </MudAutocomplete>
             </div>
 
             @* Filtro de Rede *@
             <div class="top-filter-box" style="width: 160px;">
-                <MudSelect T="int?" Label="Rede Ensino" Variant="Variant.Text" 
-                           Value="@DashboardState.SelectedDependency"
-                           ValueChanged="@(dep => DashboardState.SetDependency(dep))" 
-                           Class="clean-select" Dense="true" AnchorOrigin="Origin.BottomCenter">
+                <MudSelect T="int?" Label="Rede Ensino" Variant="Variant.Text"
+                    Value="@DashboardState.SelectedDependency"
+                    ValueChanged="@(dep => DashboardState.SetDependency(dep))" Class="clean-select" Dense="true"
+                    AnchorOrigin="Origin.BottomCenter">
                     <MudSelectItem T="int?" Value="null">Todas</MudSelectItem>
                     <MudSelectItem T="int?" Value="2">Estadual</MudSelectItem>
                     <MudSelectItem T="int?" Value="3">Municipal</MudSelectItem>
                 </MudSelect>
             </div>
 
+            @* Filtro de Ano *@
             <div class="top-filter-box" style="width: 100px;">
-                <MudSelect T="int" Label="Ano" Variant="Variant.Text" 
-                           Value="DashboardState.SelectedYear"
-                           ValueChanged="@(year => DashboardState.SetYear(year))" 
-                           Class="clean-select" Dense="true" AnchorOrigin="Origin.BottomCenter">
+                <MudSelect T="int" Label="Ano" Variant="Variant.Text" Value="@DashboardState.SelectedYear"
+                    ValueChanged="@(year => DashboardState.SetYear(year))" Class="clean-select" Dense="true"
+                    AnchorOrigin="Origin.BottomCenter">
                     @foreach (var year in _years)
                     {
-                        <MudSelectItem Value="@year">@year</MudSelectItem>
+                        <MudSelectItem T="int" Value="@year">@year</MudSelectItem>
                     }
                 </MudSelect>
             </div>
         </div>
-
         <MudSpacer />
     </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerOpen" Elevation="0"
-               Style="background-color: #111420; border-right: 1px solid #2d3748;">
+    @* Drawer e Content permanecem iguais *@
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="0" Style="background-color: #111420; border-right: 1px solid #2d3748;">
         <div class="pa-6">
-             <MudText Typo="Typo.h6" Style="color: white; font-weight: 700;">Arkhos.Web</MudText>
+            <MudText Typo="Typo.h6" Style="color: white; font-weight: 700;">Arkhos</MudText>
         </div>
         <NavMenu />
     </MudDrawer>
@@ -122,13 +172,20 @@
                 </MudStack>
             </div>
         }
-        <div class="pa-4">
-            @Body
-        </div>
+        <div class="pa-4">@Body</div>
     </MudMainContent>
 </MudLayout>
 
 @code {
+    public class SearchResult
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public int Id { get; set; }
+        public string Subtitle { get; set; } = string.Empty;
+        public SchoolInfoMapDto? RawSchool { get; set; }
+    }
+
     private readonly int[] _years = { 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017 };
     bool _drawerOpen = false;
 
@@ -137,10 +194,60 @@
     void DrawerToggle() => _drawerOpen = !_drawerOpen;
     public void Dispose() => DashboardState.OnLoadingChanged -= RefreshLayout;
 
-    private List<string> Escopos = new() { "Serrana do Sertão", "Leste Alagoano", "Água Branca", "Delmiro Gouveia", "E.E. João XXIII" };
-    private Task<IEnumerable<string>> BuscarEscopo(string value, CancellationToken token)
+    private async Task<IEnumerable<SearchResult>> SearchData(string value, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(value)) return Task.FromResult(Escopos.AsEnumerable());
-        return Task.FromResult(Escopos.Where(x => x.Contains(value, StringComparison.OrdinalIgnoreCase)));
+        if (string.IsNullOrEmpty(value) || DashboardState.AllSchools == null)
+            return Enumerable.Empty<SearchResult>();
+
+        var schools = DashboardState.AllSchools;
+        var search = value.Trim().ToLower();
+        var result = new List<SearchResult>();
+
+        // Agrupamento por Mesorregião
+        var mesos = schools
+            .Where(s => !string.IsNullOrEmpty(s.NomeMesorregiao) && s.NomeMesorregiao.ToLower().Contains(search))
+            .GroupBy(s => s.MesorregiaoId)
+            .Select(g => new SearchResult { Name = g.First().NomeMesorregiao, Type = "Mesorregião", Id = g.Key, Subtitle = "Alagoas" })
+            .Take(2);
+        result.AddRange(mesos);
+
+        // Municípios
+        var cities = schools
+            .Where(s => !string.IsNullOrEmpty(s.NomeMunicipio) && s.NomeMunicipio.ToLower().Contains(search))
+            .GroupBy(s => s.MunicipioId)
+            .Select(g => new SearchResult { Name = g.First().NomeMunicipio, Type = "Município", Id = (int)g.Key, Subtitle = g.First().NomeMesorregiao })
+            .Take(5);
+        result.AddRange(cities);
+
+        // Escolas
+        var schoolResults = schools
+            .Where(s => s.NomeEscola.ToLower().Contains(search))
+            .Select(s => new SearchResult { Name = s.NomeEscola, Type = "Escola", Id = s.IdEscola, Subtitle = s.NomeMunicipio, RawSchool = s })
+            .Take(10);
+        result.AddRange(schoolResults);
+
+        return result;
     }
+
+    private async Task OnSearchItemSelected(SearchResult item)
+    {
+        if (item == null) return;
+        if (item.Type == "Escola" && item.RawSchool != null)
+        {
+            var s = item.RawSchool;
+            await JS.InvokeVoidAsync("directSchoolNavigation", s.IdEscola, s.NomeEscola, s.Endereco, s.Lat, s.Lon, s.Dependencia, s.Localizacao, s.NomeMunicipio);
+        }
+        else
+        {
+            string level = item.Type switch { "Mesorregião" => "meso", "Microrregião" => "micro", _ => "municipio" };
+            await JS.InvokeVoidAsync("directRegionNavigation", level, item.Id, item.Name);
+        }
+    }
+
+    private string GetSearchIcon(string type) => type switch
+    {
+        "Mesorregião" => Icons.Material.Filled.Public,
+        "Município" => Icons.Material.Filled.LocationCity,
+        _ => Icons.Material.Filled.School
+    };
 }

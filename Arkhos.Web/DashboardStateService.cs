@@ -1,7 +1,10 @@
+using Arkhos.Core.Models.Dto.SchoolInfo;
+
 namespace Arkhos.Web;
 
 public class DashboardStateService
 {
+    public ICollection<SchoolInfoMapDto>? AllSchools { get; private set; }
     public int SelectedYear { get; private set; } = 2024;
     public int? SelectedDependency { get; private set; } = null;
     public bool IsLoading { get; private set; } = false;
@@ -32,5 +35,10 @@ public class DashboardStateService
 
         IsLoading = loading;
         OnLoadingChanged?.Invoke();
+    }
+
+    public void UpdateSchools(ICollection<SchoolInfoMapDto>? schools)
+    {
+        AllSchools = schools;
     }
 }

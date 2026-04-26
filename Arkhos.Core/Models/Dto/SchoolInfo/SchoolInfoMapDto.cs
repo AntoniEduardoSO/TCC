@@ -23,7 +23,11 @@ public class SchoolInfoMapDto : ILocationContext
     public int MunicipioId {get;set;}
     [JsonPropertyName("dependencia")]
     public int Dependencia { get; set; }
+    public short Localizacao { get; set; }
 
     public double? Lat {get;set;}
     public double? Lon {get;set;}
+    public string NomeMunicipio { get; set; } = string.Empty;
+    public string NomeMicrorregiao { get; set; } = string.Empty;
+    public string NomeMesorregiao { get; set; } = string.Empty;
 }

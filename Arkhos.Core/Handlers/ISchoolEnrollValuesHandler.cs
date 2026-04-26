@@ -16,7 +16,7 @@ public interface ISchoolEnrollValuesHandler
 
 
     Task<Response<SchoolEnrollmentDetailDto>>
-        GetSchoolEnrollmentDetailByFilterAsync(GetSchoolEnrollmentSummaryByFilterRequest request);
+        GetSchoolEnrollmentDetailByFilterAsync(int schoolId, int year);
 
     Task<Response<RegionEnrollmentSummaryDto>> 
         GetRegionEnrollmentSummaryByFilterAsync (GetRegionEnrollmentSummaryByFilterRequest request);

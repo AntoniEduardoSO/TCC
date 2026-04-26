@@ -82,6 +82,8 @@ public class RegionEnrollmentSummaryDto : ILocationContext
     public double MatriculaTotal { get; set; }
 
     // Corpo Docente.
+    [JsonPropertyName("professor_total")]
+    public double ProfessorTotal { get; set; }
 
     [JsonPropertyName("professor_creche")]
     public double ProfessorCreche { get; set; }

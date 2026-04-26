@@ -31,8 +31,12 @@ public class SchoolInfosHandler(AppDbContext context) : ISchoolInfosHandler
                 Endereco = x.Endereco ?? "Endereço não disponível",
                 Ano = x.Ano,
                 MunicipioId = x.CityInfoId,
+                NomeMunicipio = x.CityInfo.NomeMunicipio,
+                NomeMicrorregiao = x.CityInfo.NomeMicrorregiao, 
+                NomeMesorregiao = x.CityInfo.NomeMesorregiao,
                 Lat = x.Lat,
                 Lon = x.Lon,
+                Localizacao = x.Localizacao ?? 0,
                 MicrorregiaoId = x.CityInfo.IdMicrorregiao,
                 MesorregiaoId = x.CityInfo.IdMesorregiao,
                 Dependencia = x.Dependencia 

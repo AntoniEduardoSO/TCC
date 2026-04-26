@@ -22,15 +22,8 @@ public class GetSchoolEnrollmentDetailEndpoint : IEndpoint
         [FromQuery] int year = 2024
         )
     {
-        // Monta o Request bonitinho igual ao TargetInsights
-        var request = new GetSchoolEnrollmentSummaryByFilterRequest
-        {
-            SchoolId = schoolId,
-            Year = year,
-        };
 
-        // Passa o Request inteiro para o Handler
-        var result = await handler.GetSchoolEnrollmentDetailByFilterAsync(request);
+        var result = await handler.GetSchoolEnrollmentDetailByFilterAsync(schoolId, year);
 
         return result.IsSuccess
             ? TypedResults.Ok(result)

@@ -36,9 +36,9 @@ public class SchoolEnrollValuesHandler(IHttpClientFactory httpClientFactory) : I
                ?? new Response<ICollection<RegionEnrollmentSummaryDto>>(null, 400, "Erro ao obter lista de resumos.");
     }
 
-    public async Task<Response<SchoolEnrollmentDetailDto>> GetSchoolEnrollmentDetailByFilterAsync(GetSchoolEnrollmentSummaryByFilterRequest request)
+    public async Task<Response<SchoolEnrollmentDetailDto>> GetSchoolEnrollmentDetailByFilterAsync(int schoolId, int year)
     {
-        var url = $"v1/schoolenrollvalues/summary/{request.SchoolId}?year={request.Year}";
+        var url = $"v1/schoolenrollvalues/summary/{schoolId}?year={year}";
 
         return await _client.GetFromJsonAsync<Response<SchoolEnrollmentDetailDto>>(url)
                ?? new Response<SchoolEnrollmentDetailDto>(null, 400, "Erro ao obter detalhes da escola.");

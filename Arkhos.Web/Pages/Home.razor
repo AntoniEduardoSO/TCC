@@ -112,21 +112,16 @@
 
     private string InsightTitle => CurrentInsight?.Titulo ?? "Analisando dados...";
     private string InsightHighlight => CurrentInsight?.ValorDestaque ?? "-";
-    private string InsightRecommendation => CurrentInsight?.Recomendacao ?? "Selecione uma região no mapa.";
+    private string InsightRecommendation => CurrentInsight?.Recomendacao ?? "Selecione uma região ou escola no mapa.";
+
+    private string _currentName = "Estado de Alagoas";
 
     protected override async Task OnInitializedAsync()
     {
         _objRef = DotNetObjectReference.Create(this);
         DashboardState.OnYearChanged += ReloadByYear;
         DashboardState.OnFilterChanged += ReloadByFilter;
-
         await LoadDashboardDataAsync(isInitial: true, reloadMarkers: true);
-
-        _ = Task.Run(async () =>
-        {
-            foreach (var id in new[] { 1, 2, 3 })
-                await GetEnrollmentWithCache(id, "meso");
-        });
     }
 
     private async Task LoadDashboardDataAsync(bool isInitial = false, bool reloadMarkers = false)
@@ -140,89 +135,151 @@
 
             if (reloadMarkers || mapMarkersResponse == null)
             {
-                var mapRequest = new GetSchoolInfoByYearRequest
-                {
-                    Year = year,
-                    Dependencia = dep
-                };
-                mapMarkersResponse = await Handler.GetByYearAsync(mapRequest);
+                mapMarkersResponse = await Handler.GetByYearAsync(new GetSchoolInfoByYearRequest { Year = year, Dependencia = dep });
+
+                if (mapMarkersResponse.Data != null)
+                    DashboardState.UpdateSchools(mapMarkersResponse.Data);
             }
 
-            regionSummary = await GetEnrollmentWithCache(_currentId, _currentLevel);
-            ratingSummary = await GetRatingWithCache(_currentId, _currentLevel);
-            infraSummary = await GetInfraWithCache(_currentId, _currentLevel);
+            if (_currentLevel == "school" && _currentId.HasValue)
+            {
+                // Busca os detalhes específicos (USANDO O HANDLER CORRETO)
+                var enrollRes = await EnrollHandler.GetSchoolEnrollmentDetailByFilterAsync(_currentId.Value, year);
+                var infraRes = await InfraHandler.GetSchoolDetailAsync(_currentId.Value, year);
+                var ratingRes = await RatingHandler.GetSchoolDetailAsync(_currentId.Value, year);
 
+                // IMPORTANTE: Adicionamos chaves { } para garantir a execução correta
+                if (enrollRes.Data != null)
+                {
+                    _currentName = enrollRes.Data.NomeEscola;
+                    regionSummary = MapEnrollDetailToSummary(enrollRes.Data);
+                }
+
+                if (infraRes.Data != null)
+                {
+                    infraSummary = new RegionInfraSummaryDto
+                    {
+                        AvgWellbeingRating = infraRes.Data.WellbeingRating,
+                        AvgPedagogicalRating = infraRes.Data.PedagogicalRating
+                    };
+                }
+
+                if (ratingRes.Data != null)
+                {
+                    ratingSummary = new RegionRatingSummaryDto
+                    {
+                        AvgSpendingPerStudent = ratingRes.Data.SpendingPerStudent,
+                        AvgSpendingPerTeacher = ratingRes.Data.SpendingPerTeacher,
+                        ApprovalRate = ratingRes.Data.ApprovalRate ?? 0,
+                        FailureRate = ratingRes.Data.FailureRate ?? 0,
+                        DropoutRate = ratingRes.Data.DropoutRate ?? 0,
+                        AvgAccessibilityRating = ratingRes.Data.AccessibilityRating
+                    };
+                }
+            }
+            else
+            {
+                _currentName = _currentLevel switch
+                {
+                    "meso" => "Mesorregião",
+                    "micro" => "Microrregião",
+                    "municipio" => "Município",
+                    _ => "Estado de Alagoas"
+                };
+                regionSummary = await GetEnrollmentWithCache(_currentId, _currentLevel);
+                ratingSummary = await GetRatingWithCache(_currentId, _currentLevel);
+                infraSummary = await GetInfraWithCache(_currentId, _currentLevel);
+            }
+
+            // Sincroniza dados com o Card flutuante do mapa
             await JS.InvokeVoidAsync("updateMapSummary", regionSummary);
 
-            var listResponse = await EnrollHandler.GetRegionSummariesListAsync(new GetRegionSummariesListRequest
-            {
-                Year = year,
-                ParentLevel = _currentLevel,
-                ParentId = _currentId
-            });
-
+            // Atualiza os pontos no mapa (Isso vai aplicar o filtro de uma única escola no JS)
             if (_mapRendered && mapMarkersResponse?.Data != null)
-            {
                 await JS.InvokeVoidAsync("updateMarkers", mapMarkersResponse.Data);
-            }
-
-            if (listResponse.Data != null)
-                await JS.InvokeVoidAsync("updateHoverCache", listResponse.Data);
 
             await LoadInsightsAsync();
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Erro ao carregar dashboard: {ex.Message}");
-        }
+        catch (Exception ex) { Console.WriteLine($"Erro ao carregar: {ex.Message}"); }
         finally
         {
             if (isInitial) DashboardState.SetLoading(false);
-            StateHasChanged();
+            StateHasChanged(); // Força o refresh de todos os cards
         }
     }
 
     [JSInvokable]
-    public async void ApplyFilter(string? level, int? id)
+    public async Task ApplyFilter(string? level, int? id)
     {
         _currentLevel = level;
         _currentId = id;
+        CurrentInsight = null;
 
-        var e = await GetEnrollmentWithCache(id, level);
-        var r = await GetRatingWithCache(id, level);
-        var i = await GetInfraWithCache(id, level);
-
-        if (e != null && r != null && i != null)
-        {
-            regionSummary = e; ratingSummary = r; infraSummary = i;
-            await JS.InvokeVoidAsync("updateMapSummary", regionSummary);
-            StateHasChanged();
-            _ = LoadDashboardDataAsync(isInitial: false, reloadMarkers: false);
-        }
-        else
+        if (level == "school")
         {
             await LoadDashboardDataAsync(isInitial: true, reloadMarkers: false);
         }
+        else
+        {
+            var e = await GetEnrollmentWithCache(id, level);
+            var r = await GetRatingWithCache(id, level);
+            var i = await GetInfraWithCache(id, level);
+
+            if (e != null && r != null && i != null)
+            {
+                regionSummary = e; ratingSummary = r; infraSummary = i;
+                await JS.InvokeVoidAsync("updateMapSummary", regionSummary);
+                StateHasChanged();
+                await LoadDashboardDataAsync(isInitial: false, reloadMarkers: false);
+            }
+            else { await LoadDashboardDataAsync(isInitial: true, reloadMarkers: false); }
+        }
     }
 
-    private string GetCacheKey(string? level, int? id) =>
-        $"{level ?? "state"}_{id ?? 0}_{DashboardState.SelectedYear}_{DashboardState.SelectedDependency ?? 0}";
+    private RegionEnrollmentSummaryDto MapEnrollDetailToSummary(SchoolEnrollmentDetailDto d)
+    {
+        return new RegionEnrollmentSummaryDto
+        {
+            TotalEscolas = 1,
+            MatriculaTotal = d.MatriculaCreche + d.MatriculaPreEscola + d.MatriculaEnsinoFundamentalAI +
+        d.MatriculaEnsinoFundamentalAF + d.MatriculaEnsinoMedio,
+            MatriculaCreche = d.MatriculaCreche,
+            MatriculaPreEscola = d.MatriculaPreEscola,
+            MatriculaEnsinoFundamentalAI = d.MatriculaEnsinoFundamentalAI,
+            MatriculaEnsinoFundamentalAF = d.MatriculaEnsinoFundamentalAF,
+            MatriculaEnsinoMedio = d.MatriculaEnsinoMedio,
+            ProfessorTotal = d.ProfessorCreche + d.ProfessorPreEscola + d.ProfessorEFIniciais + d.ProfessorEFFinais +
+        d.ProfessorMedio + d.ProfessorEspecial,
+            ProfessorCreche = d.ProfessorCreche,
+            ProfessorPreEscola = d.ProfessorPreEscola,
+            ProfessorEFIniciais = d.ProfessorEFIniciais,
+            ProfessorEFFinais = d.ProfessorEFFinais,
+            ProfessorMedio = d.ProfessorMedio,
+            ProfessorEspecial = d.ProfessorEspecial,
+            Psicologo = d.Psicologo,
+            AssistenteSocial = d.AssistenteSocial,
+            TradutorLibras = d.TradutorLibras,
+            ConselhoEscolar = d.ConselhoEscolar,
+            AssociacaoPaiMestres = d.AssociacaoPaiMestres,
+            GremioEstudantil = d.GremioEstudantil
+        };
+    }
+
+    private string GetCacheKey(string? level, int? id) => $"{level ?? "state"}_{id ??
+    0}_{DashboardState.SelectedYear}_{DashboardState.SelectedDependency ?? 0}";
 
     private async Task<RegionEnrollmentSummaryDto?> GetEnrollmentWithCache(int? id, string? level)
     {
         var key = GetCacheKey(level, id);
         if (_enrollmentCache.TryGetValue(key, out var val)) return val;
-
-        var request = new GetRegionEnrollmentSummaryByFilterRequest
+        var res = await EnrollHandler.GetRegionEnrollmentSummaryByFilterAsync(new GetRegionEnrollmentSummaryByFilterRequest
         {
             Year = DashboardState.SelectedYear,
             MesorregiaoId = level == "meso" ? id : null,
             MicrorregiaoId = level == "micro" ? id : null,
             MunicipioId = level == "municipio" ? id : null,
             Depedencia = DashboardState.SelectedDependency
-        };
-
-        var res = await EnrollHandler.GetRegionEnrollmentSummaryByFilterAsync(request);
+        });
         if (res.Data != null) _enrollmentCache[key] = res.Data;
         return res.Data;
     }
@@ -231,7 +288,6 @@
     {
         var key = GetCacheKey(level, id);
         if (_ratingCache.TryGetValue(key, out var val)) return val;
-
         var res = await RatingHandler.GetRegionRatingSummaryAsync(CreateRequest(id, level));
         if (res.Data != null) _ratingCache[key] = res.Data;
         return res.Data;
@@ -241,7 +297,6 @@
     {
         var key = GetCacheKey(level, id);
         if (_infraCache.TryGetValue(key, out var val)) return val;
-
         var res = await InfraHandler.GetRegionSummaryAsync(CreateRequest(id, level));
         if (res.Data != null) _infraCache[key] = res.Data;
         return res.Data;
@@ -251,34 +306,39 @@
     {
         Year = DashboardState.SelectedYear,
         MesorregiaoId = level == "meso" ? id : null,
+        MicrorregiaoId = level == "micro" ? id : null,
         MunicipioId = level == "municipio" ? id : null,
         Dependencia = DashboardState.SelectedDependency
     };
 
     private async Task LoadInsightsAsync()
     {
-        var request = new GetTargetInsightsByFilterRequest
+        string dbLevel = _currentLevel switch
+        {
+            "meso" => "Mesoregion",
+            "micro" => "Microregion",
+            "municipio" => "Municipality",
+            "school" => "School",
+            _ => "State"
+        };
+        int? dbTarget = (dbLevel == "State") ? 27 : _currentId;
+        var res = await TargetInsightHandler.GetInsightsByFilterAsync(new GetTargetInsightsByFilterRequest
         {
             Year = DashboardState.SelectedYear,
-            Level = _currentLevel == "meso" ? "Mesoregion" : _currentLevel == "municipio" ? "Municipality" : "State",
-            Target = _currentId ?? 27,
+            Level = dbLevel,
+            Target = dbTarget,
             Limit = 1
-        };
-        var res = await TargetInsightHandler.GetInsightsByFilterAsync(request);
+        });
         CurrentInsight = res?.Data?.FirstOrDefault();
+        StateHasChanged();
     }
 
     private async void ReloadByYear() => await LoadDashboardDataAsync(isInitial: true, reloadMarkers: true);
-
     private async void ReloadByFilter()
     {
-        _enrollmentCache.Clear();
-        _ratingCache.Clear();
-        _infraCache.Clear();
-
-        await LoadDashboardDataAsync(isInitial: true, reloadMarkers: true);
+        _enrollmentCache.Clear(); _ratingCache.Clear(); _infraCache.Clear(); await
+    LoadDashboardDataAsync(isInitial: true, reloadMarkers: true);
     }
-
     private async Task GoBack() => await JS.InvokeVoidAsync("goBack");
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -293,8 +353,7 @@
 
     public void Dispose()
     {
-        DashboardState.OnYearChanged -= ReloadByYear;
-        DashboardState.OnFilterChanged -= ReloadByFilter;
+        DashboardState.OnYearChanged -= ReloadByYear; DashboardState.OnFilterChanged -= ReloadByFilter;
         _objRef?.Dispose();
     }
 }

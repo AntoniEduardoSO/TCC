@@ -50,6 +50,9 @@ public class SchoolInfraValuesHandler(AppDbContext context) : ISchoolInfraValues
     }
     public async Task<Response<SchoolInfraDetailDto>> GetSchoolDetailAsync(int schoolId, int year)
     {
+        var pedagogicalIds = new[] { 29, 36, 40, 41, 49, 50, 51, 52, 53, 56 };
+        var wellbeingIds = new[] { 27, 30, 31, 37, 38, 43, 44, 45, 46, 47, 48, 61, 101 };
+
         var data = await context.SchoolInfraValues
             .AsNoTracking()
             .Where(x => x.IdEscolaInfraValues == schoolId && x.Ano == year)
@@ -59,8 +62,8 @@ public class SchoolInfraValuesHandler(AppDbContext context) : ISchoolInfraValues
                 EscolaId = g.Key,
                 NomeEscola = g.First().SchoolInfo.NomeEscola,
                 Ano = year,
-                WellbeingRating = g.Where(x => x.AtributoId >= 27 && x.AtributoId <= 101).Sum(x => x.Valor),
-                PedagogicalRating = g.Where(x => x.AtributoId >= 29 && x.AtributoId <= 56).Sum(x => x.Valor)
+                WellbeingRating = g.Where(x => wellbeingIds.Contains(x.AtributoId)).Sum(x => x.Valor),
+                PedagogicalRating = g.Where(x => pedagogicalIds.Contains(x.AtributoId)).Sum(x => x.Valor)
             }).FirstOrDefaultAsync();
 
         return new Response<SchoolInfraDetailDto>(data);

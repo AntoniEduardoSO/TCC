@@ -147,7 +147,7 @@ public class SchoolEnrollValuesHandler(AppDbContext context) : ISchoolEnrollValu
                     MatriculaEnsinoFundamentalAI = g.Sum(x => x.AtributoId == 123 ? x.Valor : 0),
                     MatriculaEnsinoFundamentalAF = g.Sum(x => x.AtributoId == 124 ? x.Valor : 0),
                     MatriculaEnsinoMedio = g.Sum(x => x.AtributoId == 125 ? x.Valor : 0),
-                    
+
                     // --------- PROFESSORES --------- //
                     ProfessorCreche = g.Sum(x => x.AtributoId == 83 ? x.Valor : 0),
                     ProfessorPreEscola = g.Sum(x => x.AtributoId == 84 ? x.Valor : 0),
@@ -240,13 +240,13 @@ public class SchoolEnrollValuesHandler(AppDbContext context) : ISchoolEnrollValu
         }
     }
 
-    public async Task<Response<SchoolEnrollmentDetailDto>> GetSchoolEnrollmentDetailByFilterAsync(GetSchoolEnrollmentSummaryByFilterRequest request)
+    public async Task<Response<SchoolEnrollmentDetailDto>> GetSchoolEnrollmentDetailByFilterAsync(int schoolId, int year)
     {
         try
         {
             var detailQuery = context.SchoolEnrollValues
                 .AsNoTracking()
-                .Where(x => x.Ano == request.Year && x.IdEscolaEnrollValues == request.SchoolId)
+                .Where(x => x.Ano == year && x.IdEscolaEnrollValues == schoolId)
                 .GroupBy(x => new
                 {
                     x.IdEscolaEnrollValues,
