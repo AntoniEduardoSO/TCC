@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework> <BlazorCacheBootResources>false</BlazorCacheBootResources>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <PublishTrimmed>true</PublishTrimmed>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
     <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
   </PropertyGroup>

@@ -22,3 +22,4 @@ Arkhos.Core/bin/
 Arkhos.Api/bin/
 Arkhos.Web/wwwroot/lib/
 Arkhos.Oracle/data
+.vercel
