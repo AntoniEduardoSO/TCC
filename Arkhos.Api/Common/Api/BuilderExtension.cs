@@ -69,7 +69,7 @@ public static class BuilderExtension
     {
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                                ?? string.Empty;
-
+        
         builder.Services.AddDbContext<AppDbContext>(options =>
         {
             if (connectionString.Contains("libsql://"))
