@@ -52,7 +52,7 @@ public class SchoolInfosHandler(AppDbContext context) : ISchoolInfosHandler
             swTotal.Stop();
             return new Response<ICollection<SchoolInfoMapDto>>(schoolinfos, message: "Schoolinfos carregados com sucesso.");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return new Response<ICollection<SchoolInfoMapDto>>(null, 500, "Erro ao consultar informações das escolas.");
         }

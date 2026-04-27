@@ -14,12 +14,17 @@ jobs:
         with:
           dotnet-version: '10.0.x'
           dotnet-quality: 'preview'
-
-      - name: Publish Project
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+        
+      - name: Publish Arkhos Web
         run: dotnet publish Arkhos.Web/Arkhos.Web.csproj -c Release -o release
 
       - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v20
+        uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
