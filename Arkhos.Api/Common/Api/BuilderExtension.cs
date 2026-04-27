@@ -73,19 +73,20 @@ public static class BuilderExtension
         {
             if (isProduction)
             {
-                Console.WriteLine("[DEBUG] NUVEM DETECTADA: Usando Turso LibSql (Hardcoded)");
+                Console.WriteLine("[DEBUG] NUVEM DETECTADA: Usando Turso LibSql");
 
-                string tursoUrl = "https://arkhos-antonieduardoso.aws-us-east-1.turso.io";
+                string tursoUrl = "https://arkhos-antonieduardoso.aws-us-east-1.turso.io/";
+
                 string authToken = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicm8iLCJleHAiOjE3ODUwODU1NDEsImlhdCI6MTc3NzMwOTU0MSwiaWQiOiIwMTlkY2YxNi01OTAxLTc5NzQtOTI0Zi0xZThiNmZmMjhiOTciLCJyaWQiOiI1MGU0NDk4ZS04YWNhLTQ0NDUtYmU1Mi0zMjA5NmI4NDM0MTYifQ.qf6I8DV05ZP_orB7FJ1d2SYGfi22vqDRE3bkWzxiJGdukoLY9Tm76cdU31yhrq7cmgFjfq_OyQCAIauR0aFHCA";
 
-                string connectionString = $"url={tursoUrl};jwt={authToken}";
-
-                Console.WriteLine($"[DEBUG] String formatada: url={tursoUrl};jwt=[PROTECTED]");
+                // Formato exigido pela BMDRM, agora protegido pela barra.
+                string connectionString = $"{tursoUrl};jwt={authToken}";
 
                 options.UseLibSql(connectionString);
             }
             else
             {
+                Console.WriteLine("[DEBUG] PC LOCAL DETECTADO: Usando SQLite");
                 options.UseSqlite("Data Source=../arkhos.db");
             }
         });
