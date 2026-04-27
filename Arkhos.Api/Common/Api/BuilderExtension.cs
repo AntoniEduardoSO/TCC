@@ -66,19 +66,14 @@ public static class BuilderExtension
 
     public static void AddDataContexts(this WebApplicationBuilder builder)
     {
-        var isProduction = builder.Environment.IsProduction();
+        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+                               ?? string.Empty;
 
-        var connectionString = isProduction
-            ? "Data Source=arkhos.db"
-            : "Data Source=../arkhos.db";
+        builder.Services.AddDbContext<AppDbContext>(x =>
+        {
 
-        builder.Services.AddDbContext<AppDbContext>(
-            x =>
-            {
-
-                x.UseSqlite(connectionString);
-            }
-        );
+            x.UseSqlite(connectionString);
+        });
     }
 
     public static void AddCrossOrigin(this WebApplicationBuilder builder)
