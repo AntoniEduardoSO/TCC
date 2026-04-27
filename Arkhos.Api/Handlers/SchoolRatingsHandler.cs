@@ -6,33 +6,41 @@ using Arkhos.Core.Requests;
 using Arkhos.Core.Requests.SchoolRatings;
 using Arkhos.Core.Responses;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Arkhos.Api.Handlers;
 
-public class SchoolRatingsHandler(AppDbContext context) : ISchoolRatingsHandler
+public class SchoolRatingsHandler(AppDbContext context, IMemoryCache cache) : ISchoolRatingsHandler
 {
     public async Task<Response<RegionRatingSummaryDto>> GetRegionRatingSummaryAsync(GetRegionSummaryRequest request)
     {
+        string cacheKey = $"RatingRegion_{request.Year}_{request.MesorregiaoId}_{request.MunicipioId}_{request.Dependencia}";
+
         try
         {
-            var query = context.SchoolRatings.AsNoTracking().Where(x => x.Ano == request.Year);
+            var result = await cache.GetOrCreateAsync(cacheKey, async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2);
 
-            if (request.MunicipioId.HasValue) query = query.Where(x => x.SchoolInfo.CityInfo.MunicipioId == request.MunicipioId);
-            if (request.Dependencia.HasValue) query = query.Where(x => x.SchoolInfo.Dependencia == request.Dependencia);
+                var query = context.SchoolRatings.AsNoTracking().Where(x => x.Ano == request.Year);
 
-            var result = await query
-                .GroupBy(x => x.Ano)
-                .Select(g => new RegionRatingSummaryDto
-                {
-                    Ano = g.Key,
-                    AvgSpendingPerStudent = g.Average(x => x.SpendingPerStudent),
-                    AvgSpendingPerTeacher = g.Average(x => x.SpendingPerTeacher),
-                    AvgInfrastructureSpending = g.Average(x => x.InfrastructureSpendingPerStudent),
-                    ApprovalRate = g.Average(x => x.ApprovalRate),
-                    FailureRate = g.Average(x => x.FailureRate),
-                    DropoutRate = g.Average(x => x.DropoutRate),
-                    AvgAccessibilityRating = g.Average(x => x.AcessibilityRating)
-                }).FirstOrDefaultAsync();
+                if (request.MunicipioId.HasValue) query = query.Where(x => x.SchoolInfo.CityInfo.MunicipioId == request.MunicipioId);
+                if (request.Dependencia.HasValue) query = query.Where(x => x.SchoolInfo.Dependencia == request.Dependencia);
+
+                return await query
+                    .GroupBy(x => x.Ano)
+                    .Select(g => new RegionRatingSummaryDto
+                    {
+                        Ano = g.Key,
+                        AvgSpendingPerStudent = g.Average(x => x.SpendingPerStudent),
+                        AvgSpendingPerTeacher = g.Average(x => x.SpendingPerTeacher),
+                        AvgInfrastructureSpending = g.Average(x => x.InfrastructureSpendingPerStudent),
+                        ApprovalRate = g.Average(x => x.ApprovalRate),
+                        FailureRate = g.Average(x => x.FailureRate),
+                        DropoutRate = g.Average(x => x.DropoutRate),
+                        AvgAccessibilityRating = g.Average(x => x.AcessibilityRating)
+                    }).FirstOrDefaultAsync();
+            });
 
             return new Response<RegionRatingSummaryDto>(result);
         }

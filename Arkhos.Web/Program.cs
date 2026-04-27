@@ -18,9 +18,6 @@ var backendUrl = isDev
     ? "http://localhost:5040" 
     : "https://arkhos-ub0p.onrender.com";
 
-Console.WriteLine($"[LOG BLAZOR] Ambiente atual: {(isDev ? "Desenvolvimento (PC)" : "Produção (Nuvem)")}");
-Console.WriteLine($"[LOG BLAZOR] A API alvo é: {backendUrl}");
-
 builder.Services.AddHttpClient(Configuration.HttpClientName, options =>
 {
     Console.WriteLine($"Conectando na API: {backendUrl}");

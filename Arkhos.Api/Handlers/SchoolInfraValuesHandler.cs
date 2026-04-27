@@ -6,43 +6,51 @@ using Arkhos.Core.Requests;
 using Arkhos.Core.Requests.SchoolInfraValues;
 using Arkhos.Core.Responses;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Arkhos.Api.Handlers;
 
 
 
-public class SchoolInfraValuesHandler(AppDbContext context) : ISchoolInfraValuesHandler
+public class SchoolInfraValuesHandler(AppDbContext context, IMemoryCache cache) : ISchoolInfraValuesHandler
 {
     public async Task<Response<RegionInfraSummaryDto>> GetRegionSummaryAsync(GetRegionSummaryRequest request)
     {
+        string cacheKey = $"InfraRegion_{request.Year}_{request.MesorregiaoId}_{request.MunicipioId}_{request.Dependencia}";
+
         try
         {
-            var pedagogicalIds = new[] { 29, 36, 40, 41, 49, 50, 51, 52, 53, 56 };
-            var wellbeingIds = new[] { 27, 30, 31, 37, 38, 43, 44, 45, 46, 47, 48, 61, 101 };
-
-            var query = context.SchoolInfraValues
-                .AsNoTracking()
-                .Where(x => x.Ano == request.Year);
-
-            if (request.MunicipioId.HasValue) query = query.Where(x => x.SchoolInfo.CityInfo.MunicipioId == request.MunicipioId);
-            else if (request.MesorregiaoId.HasValue) query = query.Where(x => x.SchoolInfo.CityInfo.IdMesorregiao == request.MesorregiaoId);
-            
-            if (request.Dependencia.HasValue) query = query.Where(x => x.SchoolInfo.Dependencia == request.Dependencia);
-
-            var schoolScores = await query
-                .GroupBy(x => x.IdEscolaInfraValues)
-                .Select(g => new
-                {
-                    WellbeingSum = g.Where(x => wellbeingIds.Contains(x.AtributoId)).Sum(x => x.Valor),
-                    PedagogicalSum = g.Where(x => pedagogicalIds.Contains(x.AtributoId)).Sum(x => x.Valor)
-                }).ToListAsync();
-
-            var summary = new RegionInfraSummaryDto
+            var summary = await cache.GetOrCreateAsync(cacheKey, async entry =>
             {
-                Ano = request.Year,
-                AvgWellbeingRating = schoolScores.Any() ? schoolScores.Average(x => x.WellbeingSum) : 0,
-                AvgPedagogicalRating = schoolScores.Any() ? schoolScores.Average(x => x.PedagogicalSum) : 0
-            };
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2);
+
+                var pedagogicalIds = new[] { 29, 36, 40, 41, 49, 50, 51, 52, 53, 56 };
+                var wellbeingIds = new[] { 27, 30, 31, 37, 38, 43, 44, 45, 46, 47, 48, 61, 101 };
+
+                var query = context.SchoolInfraValues
+                    .AsNoTracking()
+                    .Where(x => x.Ano == request.Year);
+
+                if (request.MunicipioId.HasValue) query = query.Where(x => x.SchoolInfo.CityInfo.MunicipioId == request.MunicipioId);
+                else if (request.MesorregiaoId.HasValue) query = query.Where(x => x.SchoolInfo.CityInfo.IdMesorregiao == request.MesorregiaoId);
+                
+                if (request.Dependencia.HasValue) query = query.Where(x => x.SchoolInfo.Dependencia == request.Dependencia);
+
+                var schoolScores = await query
+                    .GroupBy(x => x.IdEscolaInfraValues)
+                    .Select(g => new
+                    {
+                        WellbeingSum = g.Where(x => wellbeingIds.Contains(x.AtributoId)).Sum(x => x.Valor),
+                        PedagogicalSum = g.Where(x => pedagogicalIds.Contains(x.AtributoId)).Sum(x => x.Valor)
+                    }).ToListAsync();
+
+                return new RegionInfraSummaryDto
+                {
+                    Ano = request.Year,
+                    AvgWellbeingRating = schoolScores.Any() ? schoolScores.Average(x => x.WellbeingSum) : 0,
+                    AvgPedagogicalRating = schoolScores.Any() ? schoolScores.Average(x => x.PedagogicalSum) : 0
+                };
+            });
 
             return new Response<RegionInfraSummaryDto>(summary);
         }

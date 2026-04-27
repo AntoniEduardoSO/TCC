@@ -4,10 +4,11 @@ using Arkhos.Core.Models.Dto.SchoolEnrollValues;
 using Arkhos.Core.Requests.SchoolEnrollValues;
 using Arkhos.Core.Responses;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Arkhos.Api.Handlers;
 
-public class SchoolEnrollValuesHandler(AppDbContext context) : ISchoolEnrollValuesHandler
+public class SchoolEnrollValuesHandler(AppDbContext context, IMemoryCache cache) : ISchoolEnrollValuesHandler
 {
     public async Task<Response<ICollection<SchoolEnrollValuesGovernanceDto>>> GetGovernanceByYearAsync(GetSchoolEnrollValuesGovernanceByYearRequest request)
     {
@@ -62,116 +63,101 @@ public class SchoolEnrollValuesHandler(AppDbContext context) : ISchoolEnrollValu
 
     public async Task<Response<RegionEnrollmentSummaryDto>> GetRegionEnrollmentSummaryByFilterAsync(GetRegionEnrollmentSummaryByFilterRequest request)
     {
+        string cacheKey = $"Enrollment_{request.Year}_{request.MesorregiaoId}_{request.MicrorregiaoId}_{request.MunicipioId}_{request.Depedencia}";
         try
         {
-            var query = context.SchoolEnrollValues
-                .AsNoTracking()
-                .Where(x => x.Ano == request.Year && x.SchoolInfo.Funcionamento == 1);
+            var resultDto = await cache.GetOrCreateAsync(cacheKey, async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2); 
 
-            // Filtros de Região
-            if (request.MesorregiaoId.HasValue)
-                query = query.Where(x => x.SchoolInfo.CityInfo.IdMesorregiao == request.MesorregiaoId.Value);
+                var query = context.SchoolEnrollValues
+                    .AsNoTracking()
+                    .Where(x => x.Ano == request.Year && x.SchoolInfo.Funcionamento == 1);
 
-            if (request.MicrorregiaoId.HasValue)
-                query = query.Where(x => x.SchoolInfo.CityInfo.IdMicrorregiao == request.MicrorregiaoId.Value);
+                if (request.MesorregiaoId.HasValue) query = query.Where(x => x.SchoolInfo.CityInfo.IdMesorregiao == request.MesorregiaoId.Value);
+                if (request.MicrorregiaoId.HasValue) query = query.Where(x => x.SchoolInfo.CityInfo.IdMicrorregiao == request.MicrorregiaoId.Value);
+                if (request.MunicipioId.HasValue) query = query.Where(x => x.SchoolInfo.CityInfo.MunicipioId == request.MunicipioId.Value);
+                if (request.Depedencia.HasValue) query = query.Where(x => x.SchoolInfo.Dependencia == request.Depedencia.Value);
 
-            if (request.MunicipioId.HasValue)
-                query = query.Where(x => x.SchoolInfo.CityInfo.MunicipioId == request.MunicipioId.Value);
+                var schoolsData = await query
+                    .GroupBy(x => new { x.IdEscolaEnrollValues, x.SchoolInfo.Dependencia, x.SchoolInfo.Localizacao })
+                    .Select(g => new
+                    {
+                        IdEscola = g.Key.IdEscolaEnrollValues,
+                        Dependencia = g.Key.Dependencia,
+                        Localizacao = g.Key.Localizacao,
+                        TemCreche = g.Any(x => (x.AtributoId == 31 || x.AtributoId == 32) && x.Valor > 0),
+                        TemFundamental = g.Any(x => ((x.AtributoId >= 33 && x.AtributoId <= 41) || x.AtributoId == 123 || x.AtributoId == 124) && x.Valor > 0),
+                        TemMedio = g.Any(x => ((x.AtributoId >= 42 && x.AtributoId <= 44) || x.AtributoId == 125) && x.Valor > 0),
+                        MatriculaTotal = g.Sum(x => (x.AtributoId == 31 || x.AtributoId == 32 || x.AtributoId == 123 || x.AtributoId == 124 || x.AtributoId == 125) ? x.Valor : 0),
+                        MatriculaCreche = g.Sum(x => x.AtributoId == 31 ? x.Valor : 0),
+                        MatriculaPreEscola = g.Sum(x => x.AtributoId == 32 ? x.Valor : 0),
+                        MatriculaEnsinoFundamentalAI = g.Sum(x => x.AtributoId == 123 ? x.Valor : 0),
+                        MatriculaEnsinoFundamentalAF = g.Sum(x => x.AtributoId == 124 ? x.Valor : 0),
+                        MatriculaEnsinoMedio = g.Sum(x => x.AtributoId == 125 ? x.Valor : 0),
+                        ProfessorCreche = g.Sum(x => x.AtributoId == 83 ? x.Valor : 0),
+                        ProfessorPreEscola = g.Sum(x => x.AtributoId == 84 ? x.Valor : 0),
+                        ProfessorEFIniciais = g.Sum(x => x.AtributoId == 86 ? x.Valor : 0),
+                        ProfessorEFFinais = g.Sum(x => x.AtributoId == 87 ? x.Valor : 0),
+                        ProfessorMedio = g.Sum(x => x.AtributoId == 88 ? x.Valor : 0),
+                        ProfessorEspecial = g.Sum(x => x.AtributoId == 94 ? x.Valor : 0),
+                        Psicologo = g.Sum(x => x.AtributoId == 8 ? (x.Valor >= 8888 ? 3 : x.Valor) : 0),
+                        Fonaudiologo = g.Sum(x => x.AtributoId == 6 ? (x.Valor >= 8888 ? 3 : x.Valor) : 0),
+                        AssistenteSocial = g.Sum(x => x.AtributoId == 15 ? (x.Valor >= 8888 ? 3 : x.Valor) : 0),
+                        TradutorLibras = g.Sum(x => x.AtributoId == 16 ? (x.Valor >= 8888 ? 3 : x.Valor) : 0),
+                        AssociacaoPaiMestres = g.Sum(x => x.AtributoId == 19 ? (x.Valor >= 8888 ? 1 : x.Valor) : 0),
+                        ConselhoEscolar = g.Sum(x => x.AtributoId == 20 ? (x.Valor >= 8888 ? 1 : x.Valor) : 0),
+                        GremioEstudantil = g.Sum(x => x.AtributoId == 21 ? (x.Valor >= 8888 ? 1 : x.Valor) : 0)
+                    })
+                    .ToListAsync();
 
-            if (request.Depedencia.HasValue)
-                query = query.Where(x => x.SchoolInfo.Dependencia == request.Depedencia.Value);
+                if (!schoolsData.Any()) return new RegionEnrollmentSummaryDto { Ano = request.Year };
 
-            var summaryQuery = query
-                .GroupBy(x => new { x.Ano })
-                .Select(g => new RegionEnrollmentSummaryDto
+                return new RegionEnrollmentSummaryDto
                 {
-                    Ano = g.Key.Ano,
+                    Ano = request.Year,
                     MesorregiaoId = request.MesorregiaoId ?? 0,
                     MicrorregiaoId = request.MicrorregiaoId ?? 0,
                     MunicipioId = request.MunicipioId ?? 0,
+                    TotalEscolas = schoolsData.Count,
+                    TotalEscolasUrbanas = schoolsData.Count(x => x.Localizacao == 1),
+                    TotalEscolasRurais = schoolsData.Count(x => x.Localizacao == 2),
+                    EscolasMunicipaisTotal = schoolsData.Count(x => x.Dependencia == 3),
+                    EscolasMunicipaisUrbanas = schoolsData.Count(x => x.Dependencia == 3 && x.Localizacao == 1),
+                    EscolasMunicipaisRurais = schoolsData.Count(x => x.Dependencia == 3 && x.Localizacao == 2),
+                    EscolasMunicipaisComCreche = schoolsData.Count(x => x.Dependencia == 3 && x.TemCreche),
+                    EscolasMunicipaisComFundamental = schoolsData.Count(x => x.Dependencia == 3 && x.TemFundamental),
+                    EscolasMunicipaisComMedio = schoolsData.Count(x => x.Dependencia == 3 && x.TemMedio),
+                    EscolasEstaduaisTotal = schoolsData.Count(x => x.Dependencia == 2),
+                    EscolasEstaduaisUrbanas = schoolsData.Count(x => x.Dependencia == 2 && x.Localizacao == 1),
+                    EscolasEstaduaisRurais = schoolsData.Count(x => x.Dependencia == 2 && x.Localizacao == 2),
+                    EscolasEstaduaisComCreche = schoolsData.Count(x => x.Dependencia == 2 && x.TemCreche),
+                    EscolasEstaduaisComFundamental = schoolsData.Count(x => x.Dependencia == 2 && x.TemFundamental),
+                    EscolasEstaduaisComMedio = schoolsData.Count(x => x.Dependencia == 2 && x.TemMedio),
+                    MatriculaTotal = schoolsData.Sum(x => x.MatriculaTotal),
+                    MatriculaCreche = schoolsData.Sum(x => x.MatriculaCreche),
+                    MatriculaPreEscola = schoolsData.Sum(x => x.MatriculaPreEscola),
+                    MatriculaEnsinoFundamentalAI = schoolsData.Sum(x => x.MatriculaEnsinoFundamentalAI),
+                    MatriculaEnsinoFundamentalAF = schoolsData.Sum(x => x.MatriculaEnsinoFundamentalAF),
+                    MatriculaEnsinoMedio = schoolsData.Sum(x => x.MatriculaEnsinoMedio),
+                    ProfessorCreche = schoolsData.Sum(x => x.ProfessorCreche),
+                    ProfessorPreEscola = schoolsData.Sum(x => x.ProfessorPreEscola),
+                    ProfessorEFIniciais = schoolsData.Sum(x => x.ProfessorEFIniciais),
+                    ProfessorEFFinais = schoolsData.Sum(x => x.ProfessorEFFinais),
+                    ProfessorMedio = schoolsData.Sum(x => x.ProfessorMedio),
+                    ProfessorEspecial = schoolsData.Sum(x => x.ProfessorEspecial),
+                    Psicologo = schoolsData.Sum(x => x.Psicologo),
+                    Fonaudiologo = schoolsData.Sum(x => x.Fonaudiologo),
+                    AssistenteSocial = schoolsData.Sum(x => x.AssistenteSocial),
+                    TradutorLibras = schoolsData.Sum(x => x.TradutorLibras),
+                    AssociacaoPaiMestres = schoolsData.Sum(x => x.AssociacaoPaiMestres),
+                    ConselhoEscolar = schoolsData.Sum(x => x.ConselhoEscolar),
+                    GremioEstudantil = schoolsData.Sum(x => x.GremioEstudantil)
+                };
+            });
 
-                    // TOTAIS GERAIS 
-                    TotalEscolas = g.Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
-
-                    TotalEscolasUrbanas = g.Where(x => x.SchoolInfo.Localizacao == 1)
-                                           .Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
-
-                    TotalEscolasRurais = g.Where(x => x.SchoolInfo.Localizacao == 2)
-                                          .Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
-
-                    // --------- REDE MUNICIPAL (Dependencia == 3) --------- //
-                    EscolasMunicipaisTotal = g.Where(x => x.SchoolInfo.Dependencia == 3)
-                                              .Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
-
-                    EscolasMunicipaisUrbanas = g.Where(x => x.SchoolInfo.Dependencia == 3 && x.SchoolInfo.Localizacao == 1)
-                                                .Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
-
-                    EscolasMunicipaisRurais = g.Where(x => x.SchoolInfo.Dependencia == 3 && x.SchoolInfo.Localizacao == 2)
-                                               .Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
-
-                    EscolasMunicipaisComCreche = g.Where(x => x.SchoolInfo.Dependencia == 3 && (x.AtributoId == 31 || x.AtributoId == 32) && x.Valor > 0)
-                                                  .Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
-
-                    EscolasMunicipaisComFundamental = g.Where(x => x.SchoolInfo.Dependencia == 3 && ((x.AtributoId >= 33 && x.AtributoId <= 41) || x.AtributoId == 123 || x.AtributoId == 124) && x.Valor > 0)
-                                                       .Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
-
-                    EscolasMunicipaisComMedio = g.Where(x => x.SchoolInfo.Dependencia == 3 && ((x.AtributoId >= 42 && x.AtributoId <= 44) || x.AtributoId == 125) && x.Valor > 0)
-                                                 .Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
-
-                    // --------- REDE ESTADUAL (Dependencia == 2) --------- //
-                    EscolasEstaduaisTotal = g.Where(x => x.SchoolInfo.Dependencia == 2)
-                                             .Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
-
-                    EscolasEstaduaisUrbanas = g.Where(x => x.SchoolInfo.Dependencia == 2 && x.SchoolInfo.Localizacao == 1)
-                                               .Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
-
-                    EscolasEstaduaisRurais = g.Where(x => x.SchoolInfo.Dependencia == 2 && x.SchoolInfo.Localizacao == 2)
-                                              .Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
-
-                    EscolasEstaduaisComCreche = g.Where(x => x.SchoolInfo.Dependencia == 2 && (x.AtributoId == 31 || x.AtributoId == 32) && x.Valor > 0)
-                                                 .Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
-
-                    EscolasEstaduaisComFundamental = g.Where(x => x.SchoolInfo.Dependencia == 2 && ((x.AtributoId >= 33 && x.AtributoId <= 41) || x.AtributoId == 123 || x.AtributoId == 124) && x.Valor > 0)
-                                                       .Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
-
-                    EscolasEstaduaisComMedio = g.Where(x => x.SchoolInfo.Dependencia == 2 && ((x.AtributoId >= 42 && x.AtributoId <= 44) || x.AtributoId == 125) && x.Valor > 0)
-                                                 .Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
-
-                    // --------- MATRÍCULAS GERAIS --------- //
-                    MatriculaTotal = g.Sum(x =>
-                        (x.AtributoId == 31 || x.AtributoId == 32 || x.AtributoId == 123 ||
-                        x.AtributoId == 124 || x.AtributoId == 125) ? x.Valor : 0),
-
-                    MatriculaCreche = g.Sum(x => x.AtributoId == 31 ? x.Valor : 0),
-                    MatriculaPreEscola = g.Sum(x => x.AtributoId == 32 ? x.Valor : 0),
-                    MatriculaEnsinoFundamentalAI = g.Sum(x => x.AtributoId == 123 ? x.Valor : 0),
-                    MatriculaEnsinoFundamentalAF = g.Sum(x => x.AtributoId == 124 ? x.Valor : 0),
-                    MatriculaEnsinoMedio = g.Sum(x => x.AtributoId == 125 ? x.Valor : 0),
-
-                    // --------- PROFESSORES --------- //
-                    ProfessorCreche = g.Sum(x => x.AtributoId == 83 ? x.Valor : 0),
-                    ProfessorPreEscola = g.Sum(x => x.AtributoId == 84 ? x.Valor : 0),
-                    ProfessorEFIniciais = g.Sum(x => x.AtributoId == 86 ? x.Valor : 0),
-                    ProfessorEFFinais = g.Sum(x => x.AtributoId == 87 ? x.Valor : 0),
-                    ProfessorMedio = g.Sum(x => x.AtributoId == 88 ? x.Valor : 0),
-                    ProfessorEspecial = g.Sum(x => x.AtributoId == 94 ? x.Valor : 0),
-
-                    // --------- GOVERNANÇA E EQUIPE (Band-aid para 88888) --------- //
-                    Psicologo = g.Sum(x => x.AtributoId == 8 ? (x.Valor >= 8888 ? 3 : x.Valor) : 0),
-                    Fonaudiologo = g.Sum(x => x.AtributoId == 6 ? (x.Valor >= 8888 ? 3 : x.Valor) : 0),
-                    AssistenteSocial = g.Sum(x => x.AtributoId == 15 ? (x.Valor >= 8888 ? 3 : x.Valor) : 0),
-                    TradutorLibras = g.Sum(x => x.AtributoId == 16 ? (x.Valor >= 8888 ? 3 : x.Valor) : 0),
-                    AssociacaoPaiMestres = g.Sum(x => x.AtributoId == 19 ? (x.Valor >= 8888 ? 1 : x.Valor) : 0),
-                    ConselhoEscolar = g.Sum(x => x.AtributoId == 20 ? (x.Valor >= 8888 ? 1 : x.Valor) : 0),
-                    GremioEstudantil = g.Sum(x => x.AtributoId == 21 ? (x.Valor >= 8888 ? 1 : x.Valor) : 0)
-                });
-
-            var result = await summaryQuery.FirstOrDefaultAsync();
-
-            if (result == null)
-                return new Response<RegionEnrollmentSummaryDto>(new RegionEnrollmentSummaryDto { Ano = request.Year }, 200, "Zerar");
-
-            return new Response<RegionEnrollmentSummaryDto>(result, 200, "Resumo regional carregado com sucesso.");
+            // Retorna o que achou (ou acabou de gerar) no cache
+            return new Response<RegionEnrollmentSummaryDto>(resultDto, 200, "Resumo regional carregado com sucesso.");
         }
         catch (Exception ex)
         {

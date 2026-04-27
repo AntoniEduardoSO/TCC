@@ -5,68 +5,39 @@ using Arkhos.Core.Models;
 using Arkhos.Core.Requests.TargetInsights;
 using Arkhos.Core.Responses;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Arkhos.Api.Handlers;
 
-public class TargetInsightsHandler(AppDbContext context) : ITargetInsightsHandler
+public class TargetInsightsHandler(AppDbContext context, IMemoryCache cache) : ITargetInsightsHandler
 {
     public async Task<Response<ICollection<TargetInsight>>> GetInsightsByFilterAsync(GetTargetInsightsByFilterRequest request)
     {
-        var swTotal = Stopwatch.StartNew();
+        string cacheKey = $"Insights_{request.Year}_{request.Level}_{request.Target}";
+
         try
         {
-            var swDb = Stopwatch.StartNew();
-
-            var query = context.TargetInsights
-                .AsNoTracking();
-
-            if(request.Year is not null)
+            var allInsights = await cache.GetOrCreateAsync(cacheKey, async entry =>
             {
-                query = query
-                    .Where(x => x.Ano == request.Year);
-            }
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6); 
 
-            if(request.Level is not null)
-            {
-                query = query
-                    .Where(x => x.Level == request.Level);
-            }
+                var query = context.TargetInsights.AsNoTracking();
 
-            if(request.Target is not null)
-            {
-                query = query
-                    .Where(x => x.IdAlvo == request.Target);
-            }
+                if (request.Year is not null) query = query.Where(x => x.Ano == request.Year);
+                if (request.Level is not null) query = query.Where(x => x.Level == request.Level);
+                if (request.Target is not null) query = query.Where(x => x.IdAlvo == request.Target);
 
-            query = query.OrderBy(x => EF.Functions.Random());
+                return await query.ToListAsync();
+            });
 
-            if (request.Limit.HasValue)
-            {
-                query = query.Take(request.Limit.Value);
-            }
+            if (allInsights == null || !allInsights.Any())
+                return new Response<ICollection<TargetInsight>>(new List<TargetInsight>(), 200, "Sem insights.");
 
+            var limit = request.Limit ?? 1;
+            var random = new Random();
+            var randomInsights = allInsights.OrderBy(x => random.Next()).Take(limit).ToList();
 
-            var insights = await query.ToListAsync();
-
-            swDb.Stop();
-
-
-            Console.WriteLine($"DB + Materialização: {swDb.ElapsedMilliseconds} ms");
-            Console.WriteLine($"Quantidade: {insights.Count}");
-
-            var swSerialize = Stopwatch.StartNew();
-
-            var json = System.Text.Json.JsonSerializer.Serialize(insights);
-
-            swSerialize.Stop();
-
-            Console.WriteLine($"Serialização: {swSerialize.ElapsedMilliseconds} ms");
-            Console.WriteLine($"Tamanho JSON: {System.Text.Encoding.UTF8.GetByteCount(json) / 1024.0 / 1024.0:F2} MB");
-
-            swTotal.Stop();
-            Console.WriteLine($"TOTAL (até aqui): {swTotal.ElapsedMilliseconds} ms");
-
-            return new Response<ICollection<TargetInsight>>(insights, message: "Retornado com sucesso o insights.");
+            return new Response<ICollection<TargetInsight>>(randomInsights, 200, "Retornado com sucesso o insights.");
         }
         catch
         {

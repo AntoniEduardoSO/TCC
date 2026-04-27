@@ -5,51 +5,59 @@ using Arkhos.Core.Models.Dto.SchoolInfo;
 using Arkhos.Core.Requests.SchoolInfos;
 using Arkhos.Core.Responses;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Arkhos.Api.Handlers;
 
-public class SchoolInfosHandler(AppDbContext context) : ISchoolInfosHandler
+public class SchoolInfosHandler(AppDbContext context, IMemoryCache cache) : ISchoolInfosHandler
 {
     public async Task<Response<ICollection<SchoolInfoMapDto>>> GetByYearAsync(GetSchoolInfoByYearRequest request)
     {
-        var swTotal = Stopwatch.StartNew();
+        string cacheKey = $"SchoolMarkers_{request.Year}_{request.Dependencia}_{request.Limit}";
+
         try
         {
-            var query = context.SchoolInfos
-                .AsNoTracking()
-                .Where(x => x.Ano == request.Year);
-
-            if (request.Dependencia.HasValue)
+            var schoolinfos = await cache.GetOrCreateAsync(cacheKey, async entry =>
             {
-                query = query.Where(x => x.Dependencia == request.Dependencia.Value);
-            }
+                // Deixa os marcadores em cache por 6 horas. Como é a requisição principal do mapa,
+                // ela será resolvida via RAM instantaneamente!
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6);
 
-            var projection = query.Select(x => new SchoolInfoMapDto
-            {
-                IdEscola = x.IdEscola,
-                NomeEscola = x.NomeEscola,
-                Endereco = x.Endereco ?? "Endereço não disponível",
-                Ano = x.Ano,
-                MunicipioId = x.CityInfoId,
-                NomeMunicipio = x.CityInfo.NomeMunicipio,
-                NomeMicrorregiao = x.CityInfo.NomeMicrorregiao, 
-                NomeMesorregiao = x.CityInfo.NomeMesorregiao,
-                Lat = x.Lat,
-                Lon = x.Lon,
-                Localizacao = x.Localizacao ?? 0,
-                MicrorregiaoId = x.CityInfo.IdMicrorregiao,
-                MesorregiaoId = x.CityInfo.IdMesorregiao,
-                Dependencia = x.Dependencia 
+                var query = context.SchoolInfos
+                    .AsNoTracking()
+                    .Where(x => x.Ano == request.Year);
+
+                if (request.Dependencia.HasValue)
+                {
+                    query = query.Where(x => x.Dependencia == request.Dependencia.Value);
+                }
+
+                var projection = query.Select(x => new SchoolInfoMapDto
+                {
+                    IdEscola = x.IdEscola,
+                    NomeEscola = x.NomeEscola,
+                    Endereco = x.Endereco ?? "Endereço não disponível",
+                    Ano = x.Ano,
+                    MunicipioId = x.CityInfoId,
+                    NomeMunicipio = x.CityInfo.NomeMunicipio,
+                    NomeMicrorregiao = x.CityInfo.NomeMicrorregiao, 
+                    NomeMesorregiao = x.CityInfo.NomeMesorregiao,
+                    Lat = x.Lat,
+                    Lon = x.Lon,
+                    Localizacao = x.Localizacao ?? 0,
+                    MicrorregiaoId = x.CityInfo.IdMicrorregiao,
+                    MesorregiaoId = x.CityInfo.IdMesorregiao,
+                    Dependencia = x.Dependencia 
+                });
+
+                if (request.Limit.HasValue)
+                {
+                    projection = projection.Take(request.Limit.Value);
+                }
+
+                return await projection.ToListAsync();
             });
 
-            if (request.Limit.HasValue)
-            {
-                projection = projection.Take(request.Limit.Value);
-            }
-
-            var schoolinfos = await projection.ToListAsync();
-
-            swTotal.Stop();
             return new Response<ICollection<SchoolInfoMapDto>>(schoolinfos, message: "Schoolinfos carregados com sucesso.");
         }
         catch (Exception)

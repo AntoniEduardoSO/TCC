@@ -1,6 +1,7 @@
 let map;
 let markerCluster;
-let allMarkersData = [];
+let baseYearMarkers = []; 
+let allMarkersData = []; 
 let levelStack = [];
 
 let currentLevel = "meso";
@@ -13,6 +14,7 @@ let geoLayerGroup;
 
 let currentFilterFn = null;
 let currentMarkerFilterFn = null;
+let currentDependencyFilter = null; 
 
 let blazorRef = null;
 let currentClickedLevel = "state";
@@ -28,13 +30,33 @@ const geoJsonUrls = {
     municipio: "municipios.json"
 };
 
-window.updateMarkers = (data) => {
-    allMarkersData = data;
-    if (currentMarkerFilterFn) {
-        renderMarkers(allMarkersData.filter(currentMarkerFilterFn));
-    } else {
-        renderMarkers(allMarkersData);
+window.updateBaseMarkers = (data) => {
+    baseYearMarkers = data;
+    applyFiltersAndRender();
+};
+
+window.applyDependencyFilter = (depId) => {
+    currentDependencyFilter = depId;
+    applyFiltersAndRender();
+};
+
+function applyFiltersAndRender() {
+    let filteredData = baseYearMarkers;
+
+    if (currentDependencyFilter !== null && currentDependencyFilter !== undefined) {
+        filteredData = filteredData.filter(m => m.dependencia === currentDependencyFilter);
     }
+
+    if (currentMarkerFilterFn) {
+        filteredData = filteredData.filter(currentMarkerFilterFn);
+    }
+
+    allMarkersData = filteredData;
+    renderMarkers(allMarkersData);
+}
+
+window.updateMarkers = (data) => {
+    window.updateBaseMarkers(data);
 };
 
 window.updateMapSummary = (data) => {
@@ -76,7 +98,8 @@ function handleFeatureClick(feature, level) {
     }
 };
 
-function navigateTo(level, filterFn, markerFilterFn, clickedLevel, clickedId, viewName, address = "", dependency = "", locality = "", city = "") {    levelStack.push({
+function navigateTo(level, filterFn, markerFilterFn, clickedLevel, clickedId, viewName, address = "", dependency = "", locality = "", city = "") {    
+    levelStack.push({
         level: currentLevel,
         filter: currentFilterFn,
         markerFilter: currentMarkerFilterFn,
@@ -94,24 +117,17 @@ function navigateTo(level, filterFn, markerFilterFn, clickedLevel, clickedId, vi
     currentMarkerFilterFn = markerFilterFn;
     currentClickedLevel = clickedLevel;
     currentClickedId = clickedId;
-    currentViewName = viewName;
+    if (viewName) currentViewName = viewName;
     currentAddress = address;
     currentDependency = dependency;
     currentLocality = locality;
     currentCity = city;
 
-
-    if (viewName) currentViewName = viewName;
-
     if (level !== "school") {
         loadGeoLayer(level, filterFn);
     }
 
-    if (markerFilterFn) {
-        renderMarkers(allMarkersData.filter(markerFilterFn));
-    } else {
-        renderMarkers(allMarkersData);
-    }
+    applyFiltersAndRender();
 
     if (blazorRef) {
         blazorRef.invokeMethodAsync('ApplyFilter', currentClickedLevel, currentClickedId);
@@ -140,11 +156,7 @@ window.goBack = () => {
         loadGeoLayer(currentLevel, currentFilterFn);
     }
 
-    if (currentMarkerFilterFn) {
-        renderMarkers(allMarkersData.filter(currentMarkerFilterFn));
-    } else {
-        renderMarkers(allMarkersData);
-    }
+    applyFiltersAndRender();
 
     if (blazorRef) {
         blazorRef.invokeMethodAsync('ApplyFilter', currentClickedLevel, currentClickedId);
@@ -210,8 +222,9 @@ window.initMap = async (geoJsonUrl, dotNetRef) => {
 
     createInfoCard();
 
-    if (allMarkersData && allMarkersData.length > 0) {
-        renderMarkers(allMarkersData);
+    // Se houver marcadores base carregados antes do initMap terminar
+    if (baseYearMarkers && baseYearMarkers.length > 0) {
+        applyFiltersAndRender();
     }
 
     await loadGeoLayer("meso");
@@ -305,25 +318,26 @@ function renderMarkers(data) {
         if (isNaN(lat) || isNaN(lon) || lat === 0 || lon === 0) return;
 
         const marker = L.marker([lat, lon]);
-        marker.bindPopup(`<b style="color:#0ea5e9;">${item.escola_nome}</b>`);
+        marker.bindPopup(`<b style="color:#0ea5e9;">${item.escola_nome || item.nomeEscola}</b>`);
 
         marker.on('click', () => {
             const depLabel = item.dependencia === 2 ? "Estadual" : "Municipal";
             const locLabel = item.localizacao === 1 ? "Urbana" : "Rural";
             const cityLabel = item.nomeMunicipio || "Não informado";
+            const idEscola = item.escola_id || item.idEscola;
 
             map.flyTo([lat, lon], 16);
 
-            const schoolFilter = (m) => m.escola_id == item.escola_id;
+            const schoolFilter = (m) => (m.escola_id || m.idEscola) == idEscola;
 
             navigateTo(
                 "school",
                 null,
                 schoolFilter,
                 "school",
-                item.escola_id,
-                item.escola_nome,
-                item.escola_endereco,
+                idEscola,
+                item.escola_nome || item.nomeEscola,
+                item.escola_endereco || item.endereco,
                 depLabel,
                 locLabel,
                 cityLabel
@@ -341,7 +355,7 @@ window.directSchoolNavigation = (id, nome, endereco, lat, lon, depId, locId, cit
 
     map.flyTo([lat, lon], 16);
 
-    navigateTo("school", null, (m) => m.escola_id == id, "school", id, nome, endereco, dep, loc, city);
+    navigateTo("school", null, (m) => (m.escola_id || m.idEscola) == id, "school", id, nome, endereco, dep, loc, city);
 };
 
 window.directRegionNavigation = (level, id, nome) => {
