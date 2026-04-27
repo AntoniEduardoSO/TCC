@@ -21,9 +21,9 @@ jobs:
           node-version: '20'
         
       - name: Publish Arkhos Web
-        run: dotnet publish Arkhos.Web/Arkhos.Web.csproj -c Release -o release
+        run: dotnet publish Arkhos.Web/Arkhos.Web.csproj -c Release -o publish
 
       - name: Deploy to Vercel (Direct)
         run: |
           npm install -g vercel
-          vercel --token ${{ secrets.VERCEL_TOKEN }} --prod ./Arkhos.Web/release/wwwroot --yes
+          vercel --token ${{ secrets.VERCEL_TOKEN }} --prod ./publish/wwwroot --yes
