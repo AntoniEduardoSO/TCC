@@ -62,8 +62,7 @@ public class SchoolInfosHandler(AppDbContext context, IMemoryCache cache) : ISch
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ERRO FATAL NO BANCO]: {ex.Message}");
-            return new Response<ICollection<SchoolInfoMapDto>>(null, 500, "Erro ao consultar informações das escolas.");
+            return new Response<ICollection<SchoolInfoMapDto>>(null, 500, $"Erro ao consultar informações das escolas. [ERRO FATAL NO BANCO]: {ex.Message}");
         }
     }
 }

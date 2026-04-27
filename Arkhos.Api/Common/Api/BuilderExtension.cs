@@ -67,19 +67,26 @@ public static class BuilderExtension
 
     public static void AddDataContexts(this WebApplicationBuilder builder)
     {
-        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-                               ?? string.Empty;
-        
+        var isProduction = builder.Environment.IsProduction();
+
         builder.Services.AddDbContext<AppDbContext>(options =>
         {
-            if (connectionString.Contains("libsql://"))
+            if (isProduction)
             {
-                Console.WriteLine("ENTREI CORRETAMENTE");
+                Console.WriteLine("[DEBUG] NUVEM DETECTADA: Usando Turso LibSql (Hardcoded)");
+                
+                string tursoUrl = "libsql://arkhos-antonieduardoso.aws-us-east-1.turso.io";
+                string authToken = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicm8iLCJleHAiOjE3ODUwODU1NDEsImlhdCI6MTc3NzMwOTU0MSwiaWQiOiIwMTlkY2YxNi01OTAxLTc5NzQtOTI0Zi0xZThiNmZmMjhiOTciLCJyaWQiOiI1MGU0NDk4ZS04YWNhLTQ0NDUtYmU1Mi0zMjA5NmI4NDM0MTYifQ.qf6I8DV05ZP_orB7FJ1d2SYGfi22vqDRE3bkWzxiJGdukoLY9Tm76cdU31yhrq7cmgFjfq_OyQCAIauR0aFHCA";
+                
+                string connectionString = $"{tursoUrl};jwt={authToken}";
+                
+                // Usando a sintaxe específica que a documentação pede
                 options.UseLibSql(connectionString);
             }
             else
             {
-                options.UseSqlite(connectionString);
+                Console.WriteLine("[DEBUG] PC LOCAL DETECTADO: Usando SQLite Local");
+                options.UseSqlite("Data Source=../arkhos.db");
             }
         });
     }

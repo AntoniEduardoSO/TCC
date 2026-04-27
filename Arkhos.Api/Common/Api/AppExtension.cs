@@ -68,10 +68,27 @@ public static class AppExtension
         using var scope = app.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
+        try
+        {
+            if (isProduction)
+            {
+                Console.WriteLine("[DEBUG] Tentando acessar os dados do Turso...");
+                
+                var testeConexao = context.CityInfos.Take(1).ToList();
+                Console.WriteLine($"[SUCESSO] Conectou no Turso! Cidades lidas: {testeConexao.Count}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ERRO FATAL NO EF CORE]: {ex.Message}");
+            Console.WriteLine($"[STACK TRACE DETALHADO]: {ex.StackTrace}");
+        }
+
         if (isProduction)
         {
             return;
         }
+
 
         var dbPath = "../arkhos.db";
         var scriptPath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "web-scraping", "main.py"));
