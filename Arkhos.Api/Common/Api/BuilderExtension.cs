@@ -5,6 +5,7 @@ using Arkhos.Core.Handlers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 
+
 namespace Arkhos.Api.Common.Api;
 
 public static class BuilderExtension
@@ -69,10 +70,17 @@ public static class BuilderExtension
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                                ?? string.Empty;
 
-        builder.Services.AddDbContext<AppDbContext>(x =>
+        builder.Services.AddDbContext<AppDbContext>(options =>
         {
-
-            x.UseSqlite(connectionString);
+            if (connectionString.Contains("libsql://"))
+            {
+                Console.WriteLine("ENTREI CORRETAMENTE");
+                options.UseLibSql(connectionString);
+            }
+            else
+            {
+                options.UseSqlite(connectionString);
+            }
         });
     }
 
