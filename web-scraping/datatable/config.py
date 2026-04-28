@@ -4,8 +4,11 @@ import os
 import sys
 import csv
 import pandas as pd
-import sqlite3
+import psycopg2
+import psycopg2.extras
 from sqlalchemy import create_engine
+
+DB_URL = "postgresql://postgres:311200@localhost:5432/arkhos"
 
 diretorio_atual = os.path.dirname(os.path.abspath(__file__))
 
@@ -25,51 +28,42 @@ if caminho_oracle not in sys.path:
 
 try:
     from main_oracle import run_oracle
-
 except ModuleNotFoundError as e:
     for path in sys.path:
         print(f" - {path}")
 
 
-import sqlite3
-
-
-DB_NAME = '../arkhos.db'
-
 def to_int(val):
-        try:
-            return int(float(val)) if val and val.strip() != "" else None
-        except:
-            return None
+    try:
+        return int(float(val)) if val and str(val).strip() != "" else None
+    except:
+        return None
 
 def to_float(val):
     try:
-        return float(val) if val and val.strip() != "" else None
+        return float(val) if val and str(val).strip() != "" else None
     except:
         return None
 
 def connect_to_db():
-    return sqlite3.connect(DB_NAME)
+    return psycopg2.connect(DB_URL)
 
-def create_sqlite_indexes(conn, cur):
-    
+def create_pg_indexes(conn, cur):
     queries_index = [
-        "CREATE INDEX IF NOT EXISTS idx_slite_enroll_optim ON school_enroll_values(ano, id_atributo, id_escola_fk, valor);",
-        "CREATE INDEX IF NOT EXISTS idx_slite_infra_optim ON school_infra_values(ano, id_atributo, id_escola_fk, valor);",
-        "CREATE INDEX IF NOT EXISTS idx_slite_sinfo_optim ON school_info(escola_id, ano, funcionamento, id_municipio_fk);",
-        "CREATE INDEX IF NOT EXISTS idx_slite_cinfo_optim ON city_info(municipio_id, ano, id_mesorregiao, id_microrregiao);",
-        "CREATE INDEX IF NOT EXISTS idx_slite_transp_mun_fk ON city_transparency_portal(municipio_id_fk);"
+        "CREATE INDEX IF NOT EXISTS idx_pg_enroll_optim ON school_enroll_values(ano, id_atributo, id_escola_fk, valor);",
+        "CREATE INDEX IF NOT EXISTS idx_pg_infra_optim ON school_infra_values(ano, id_atributo, id_escola_fk, valor);",
+        "CREATE INDEX IF NOT EXISTS idx_pg_sinfo_optim ON school_info(escola_id, ano, funcionamento, id_municipio_fk);",
+        "CREATE INDEX IF NOT EXISTS idx_pg_cinfo_optim ON city_info(municipio_id, ano, id_mesorregiao, id_microrregiao);",
+        "CREATE INDEX IF NOT EXISTS idx_pg_transp_mun_fk ON city_transparency_portal(municipio_id_fk);"
     ]
 
     for query in queries_index:
         cur.execute(query)
     
     conn.commit()
-    
 
 
 def exec_transparency_portal(conn, cur):
-
     cur.execute("""
         CREATE TABLE IF NOT EXISTS city_transparency_portal (
             id TEXT PRIMARY KEY,
@@ -88,41 +82,34 @@ def exec_transparency_portal(conn, cur):
     conn.commit()
 
     chunk_size = 50000
-    total_inseridos = 0
     
     for df_chunk in pd.read_csv('data/CONSOLIDADO_GERAL_FINAL.csv', encoding='utf-8-sig', chunksize=chunk_size):
-        
         df_chunk['data'] = pd.to_datetime(df_chunk['data'], format='%d/%m/%Y', errors='coerce').dt.strftime('%Y-%m-%d')
         df_chunk = df_chunk.where(pd.notnull(df_chunk), None)
 
         if 'municipio_nome' in df_chunk.columns:
             df_chunk = df_chunk.drop(columns=['municipio_nome'])
 
-
         colunas_ordem = [
             'id', 'municipio_id', 'data', 'valor', 'credor', 
             'elemento_despesa', 'detalhe', 'eixo', 'macro', 'micro', 'portal_origem'
         ]
         df_chunk = df_chunk[colunas_ordem]
-        
         data_tuples = list(df_chunk.itertuples(index=False, name=None))
 
         query = """
-            INSERT OR IGNORE INTO city_transparency_portal (
+            INSERT INTO city_transparency_portal (
                 id, municipio_id_fk, data, valor, credor,
                 elemento_despesa, detalhe, eixo, macro, micro, portal_origem
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO NOTHING
         """
 
-        cur.executemany(query, data_tuples)
-        
-        total_inseridos += len(data_tuples)
-
+        psycopg2.extras.execute_batch(cur, query, data_tuples)
     conn.commit()
 
 
 def exec_school_infra_values(conn, cur):
-
     cur.execute("""
         CREATE TABLE IF NOT EXISTS school_infra_values (
             ano INTEGER,
@@ -135,37 +122,30 @@ def exec_school_infra_values(conn, cur):
     """)
 
     query = """
-        INSERT OR IGNORE INTO school_infra_values (
+        INSERT INTO school_infra_values (
             ano, id_escola_fk, id_atributo, tipo_atributo, valor
-        ) VALUES (?, ?, ?, ?, ?)
+        ) VALUES (%s, %s, %s, %s, %s)
+        ON CONFLICT (ano, id_escola_fk, id_atributo) DO NOTHING
     """
 
     chunk_size = 50000
-    total_inseridos = 0
 
     for df_chunk in pd.read_csv('data/Infraestrutura/infrastructure_values.csv', encoding='utf-8-sig', chunksize=chunk_size):
-
         df_chunk['valor'] = pd.to_numeric(df_chunk['valor'].astype(str).str.replace(',', '.'), errors='coerce')
-
         df_chunk['ano'] = pd.to_numeric(df_chunk['ano'], errors='coerce')
         df_chunk['id_escola'] = pd.to_numeric(df_chunk['id_escola'], errors='coerce')
         df_chunk['id_atributo'] = pd.to_numeric(df_chunk['id_atributo'], errors='coerce')
         
         df_chunk = df_chunk.dropna(subset=['ano', 'id_escola', 'id_atributo'])
-
         df_chunk = df_chunk.astype(object).where(pd.notnull(df_chunk), None)
-
         df_chunk = df_chunk[['ano', 'id_escola', 'id_atributo', 'tipo_atributo', 'valor']]
 
         data = list(df_chunk.itertuples(index=False, name=None))
-        cur.executemany(query, data)
-
-        total_inseridos += len(data)
+        psycopg2.extras.execute_batch(cur, query, data)
 
     conn.commit()
 
 def exec_school_infra_dict(conn, cur):
-
     cur.execute("""
         CREATE TABLE IF NOT EXISTS school_infra_dict (
             id INTEGER PRIMARY KEY,
@@ -178,11 +158,12 @@ def exec_school_infra_dict(conn, cur):
     """)
 
     query = """
-        INSERT OR IGNORE INTO school_infra_dict (
+        INSERT INTO school_infra_dict (
             id, variavel, descricao, tipo, tamanho, grupo
         ) VALUES (
-            :id_atributo, :variavel, :descricao, :tipo, :tamanho, :grupo
+            %(id_atributo)s, %(variavel)s, %(descricao)s, %(tipo)s, %(tamanho)s, %(grupo)s
         )
+        ON CONFLICT (id) DO NOTHING
     """
 
     lote_dados = []
@@ -191,7 +172,6 @@ def exec_school_infra_dict(conn, cur):
         data_reader = csv.DictReader(file)
 
         for row in data_reader:
-
             for key, value in row.items():
                 if value is None or str(value).strip() == "":
                     row[key] = None
@@ -205,16 +185,15 @@ def exec_school_infra_dict(conn, cur):
             lote_dados.append(row)
 
             if len(lote_dados) == 5000:
-                cur.executemany(query, lote_dados)
+                psycopg2.extras.execute_batch(cur, query, lote_dados)
                 lote_dados = [] 
 
         if lote_dados:
-            cur.executemany(query, lote_dados)
+            psycopg2.extras.execute_batch(cur, query, lote_dados)
 
     conn.commit()
 
 def exec_school_enroll_dict(conn,cur):
-
     cur.execute("""
         CREATE TABLE IF NOT EXISTS school_enroll_dict (
             id INTEGER PRIMARY KEY,
@@ -227,11 +206,12 @@ def exec_school_enroll_dict(conn,cur):
     """)
 
     query = """
-        INSERT OR IGNORE INTO school_enroll_dict (
+        INSERT INTO school_enroll_dict (
             id, variavel, descricao, tipo, tamanho, grupo
         ) VALUES (
-            :id_atributo, :variavel, :descricao, :tipo, :tamanho, :grupo
+            %(id_atributo)s, %(variavel)s, %(descricao)s, %(tipo)s, %(tamanho)s, %(grupo)s
         )
+        ON CONFLICT (id) DO NOTHING
     """
 
     lote_dados = []
@@ -240,7 +220,6 @@ def exec_school_enroll_dict(conn,cur):
         data_reader = csv.DictReader(file)
 
         for row in data_reader:
-
             for key, value in row.items():
                 if value is None or str(value).strip() == "":
                     row[key] = None
@@ -254,16 +233,15 @@ def exec_school_enroll_dict(conn,cur):
             lote_dados.append(row)
 
             if len(lote_dados) == 5000:
-                cur.executemany(query, lote_dados)
+                psycopg2.extras.execute_batch(cur, query, lote_dados)
                 lote_dados = [] 
 
         if lote_dados:
-            cur.executemany(query, lote_dados)
+            psycopg2.extras.execute_batch(cur, query, lote_dados)
     
     conn.commit()
 
 def exec_school_enroll_values(conn, cur):
-
     cur.execute("""
         CREATE TABLE IF NOT EXISTS school_enroll_values (
             ano INTEGER,
@@ -276,38 +254,30 @@ def exec_school_enroll_values(conn, cur):
     """)
 
     query = """
-        INSERT OR IGNORE INTO school_enroll_values (
+        INSERT INTO school_enroll_values (
             ano, id_escola_fk, id_atributo, tipo_atributo, valor
-        ) VALUES (?, ?, ?, ?, ?)
+        ) VALUES (%s, %s, %s, %s, %s)
+        ON CONFLICT (ano, id_escola_fk, id_atributo) DO NOTHING
     """
 
     chunk_size = 50000
-    total_inseridos = 0
 
     for df_chunk in pd.read_csv('data/Matricula/enroll_values.csv', encoding='utf-8-sig', chunksize=chunk_size):
-
         df_chunk['valor'] = pd.to_numeric(df_chunk['valor'].astype(str).str.replace(',', '.'), errors='coerce')
-
         df_chunk['id_escola'] = pd.to_numeric(df_chunk['id_escola'], errors='coerce')
         df_chunk['ano'] = pd.to_numeric(df_chunk['ano'], errors='coerce')
         df_chunk['id_atributo'] = pd.to_numeric(df_chunk['id_atributo'], errors='coerce')
 
         df_chunk = df_chunk.dropna(subset=['ano', 'id_escola', 'id_atributo'])
-        
         df_chunk = df_chunk.astype(object).where(pd.notnull(df_chunk), None)
-
         df_chunk = df_chunk[['ano', 'id_escola', 'id_atributo', 'tipo_atributo', 'valor']]
 
         data = list(df_chunk.itertuples(index=False, name=None))
-
-        cur.executemany(query, data)
-        
-        total_inseridos += len(data)
+        psycopg2.extras.execute_batch(cur, query, data)
 
     conn.commit()
 
 def exec_school_rating(conn, cur):
-
     cur.execute("""
         CREATE TABLE IF NOT EXISTS school_rating (
             id_escola_fk INTEGER,
@@ -338,7 +308,7 @@ def exec_school_rating(conn, cur):
     """)
 
     query = """
-        INSERT OR IGNORE INTO school_rating (
+        INSERT INTO school_rating (
             id_escola_fk, ano, acessibility_rating, recreation_rating, 
             wellbeing_rating, human_support_rating, management_rating, 
             age_grade_distortion_rating, pedagogical_rating, teacher_stress_rating, 
@@ -348,10 +318,11 @@ def exec_school_rating(conn, cur):
             transport_spending_per_student, approval_rate, failure_rate, 
             dropout_rate, ideb_rating, saeb_rating
         ) VALUES (
-            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
-            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 
-            ?, ?, ?
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
+            %s, %s, %s
         )
+        ON CONFLICT (id_escola_fk, ano) DO NOTHING
     """
 
     lote = []
@@ -389,23 +360,22 @@ def exec_school_rating(conn, cur):
             lote.append(parsed)
 
             if len(lote) >= 10000:
-                cur.executemany(query, lote)
+                psycopg2.extras.execute_batch(cur, query, lote)
                 lote.clear()
 
         if lote:
-            cur.executemany(query, lote)
+            psycopg2.extras.execute_batch(cur, query, lote)
 
     conn.commit()
 
-def exec_school_info( conn, cur):
-
+def exec_school_info(conn, cur):
     cur.execute("""
         CREATE TABLE IF NOT EXISTS school_info (
             escola_id INTEGER,
             nome_escola TEXT,
             id_municipio_fk INTEGER,
             dependencia INTEGER,
-            localizacao INTEGER, -- Coluna que faltava!
+            localizacao INTEGER,
             funcionamento INTEGER,
             sede INTEGER,
             alocacao INTEGER,
@@ -431,20 +401,33 @@ def exec_school_info( conn, cur):
             except:
                 continue
 
+    # Postgres equivalente ao INSERT OR REPLACE
     query = """
-        INSERT OR REPLACE INTO school_info (
+        INSERT INTO school_info (
             escola_id, nome_escola, id_municipio_fk,
             dependencia, localizacao, funcionamento, sede,
             alocacao, ocupacao, ano,
             endereco, telefone,
             lat, lon
         ) VALUES (
-            :id_escola, :nome_escola, :municipio_id,
-            :dependencia, :localizacao, :funcionamento, :sede,
-            :alocacao, :ocupacao, :ano,
-            :endereco, :telefone,
-            :lat, :lon
-        )
+            %(id_escola)s, %(nome_escola)s, %(municipio_id)s,
+            %(dependencia)s, %(localizacao)s, %(funcionamento)s, %(sede)s,
+            %(alocacao)s, %(ocupacao)s, %(ano)s,
+            %(endereco)s, %(telefone)s,
+            %(lat)s, %(lon)s
+        ) ON CONFLICT (escola_id, ano) DO UPDATE SET
+            nome_escola = EXCLUDED.nome_escola,
+            id_municipio_fk = EXCLUDED.id_municipio_fk,
+            dependencia = EXCLUDED.dependencia,
+            localizacao = EXCLUDED.localizacao,
+            funcionamento = EXCLUDED.funcionamento,
+            sede = EXCLUDED.sede,
+            alocacao = EXCLUDED.alocacao,
+            ocupacao = EXCLUDED.ocupacao,
+            endereco = EXCLUDED.endereco,
+            telefone = EXCLUDED.telefone,
+            lat = EXCLUDED.lat,
+            lon = EXCLUDED.lon;
     """
 
     lote_dados = []
@@ -453,14 +436,11 @@ def exec_school_info( conn, cur):
         data_reader = csv.DictReader(file)
 
         for row in data_reader:
-
-
             for key, value in row.items():
                 if value is None or str(value).strip() == "":
                     row[key] = None
                 elif isinstance(value, str) and value.endswith('.0'):
                     row[key] = value[:-2]
-
 
             if row.get('municipio_id') is not None:
                 row['municipio_id'] = int(str(row['municipio_id']).strip())
@@ -485,16 +465,15 @@ def exec_school_info( conn, cur):
             lote_dados.append(row)
 
             if len(lote_dados) == 5000:
-                cur.executemany(query, lote_dados)
+                psycopg2.extras.execute_batch(cur, query, lote_dados)
                 lote_dados = [] 
 
         if lote_dados:
-            cur.executemany(query, lote_dados)
+            psycopg2.extras.execute_batch(cur, query, lote_dados)
     
     conn.commit()
 
 def exec_city_info(conn, cur):
-
     cur.execute("""
         CREATE TABLE IF NOT EXISTS city_info (
             municipio_id INTEGER,
@@ -521,46 +500,36 @@ def exec_city_info(conn, cur):
     df_pop_cities = pd.read_csv("data/pop_municipios.csv", encoding='utf-8-sig')
     df_territory = pd.read_csv("data/area_territorial_municipios.csv", sep=';', encoding='utf-8-sig')
 
-    # Limpeza de caracteres '', ' ' e afins para evitar erro.
     df_cities['municipio_id'] = df_cities['municipio_id'].astype(str).str.strip()
     df_territory['municipio_id'] = df_territory['municipio_id'].astype(str).str.strip()
     df_pop_cities['municipio_id'] = df_pop_cities['municipio_id'].astype(str).str.strip()
 
-    # Limpeza de tipos errados.
     df_cities['municipio_id'] = pd.to_numeric(df_cities['municipio_id'], errors='coerce')
     df_territory['municipio_id'] = pd.to_numeric(df_territory['municipio_id'], errors='coerce')
     df_pop_cities['municipio_id'] = pd.to_numeric(df_pop_cities['municipio_id'], errors='coerce')
 
-    # Limpeza de dados.
     df_cities = df_cities.drop_duplicates(subset=['municipio_id', 'ano'])
     df_cities = df_cities[cols]
 
-    # Map de municipio_id -> area, com isso colocar de maneira correta.
     map_areas = df_territory.set_index('municipio_id')['area']
     df_cities['area_territorial'] = df_cities['municipio_id'].map(map_areas)
 
     df_cities = df_cities.merge(
-        df_pop_cities[['municipio_id', 'ano', 'pop']], # Pegamos so as colunas que importam
-        on=['municipio_id', 'ano'],                    # As duas chaves de ligacao
-        how='left'                                     # Mantem todas as cidades, mesmo sem populacao
+        df_pop_cities[['municipio_id', 'ano', 'pop']], 
+        on=['municipio_id', 'ano'],                    
+        how='left'                                     
     )
     
     df_cities = df_cities.rename(columns={'pop': 'populacao_total'})
 
-    # Limpeza de erros.
     df_cities['populacao_total'] = pd.to_numeric(df_cities['populacao_total'], errors='coerce')
     df_cities['area_territorial'] = pd.to_numeric(df_cities['area_territorial'], errors='coerce')
 
-    # Padronizar os anos em que o id_mesorregiao e micro tem valores de 27001, virar o padrao mais recente (1)
     df_cities['id_mesorregiao'] = df_cities['id_mesorregiao'].apply(lambda x: int(x) % 100 if pd.notnull(x) and int(x) > 100 else x)
     df_cities['id_microrregiao'] = df_cities['id_microrregiao'].apply(lambda x: int(x) % 1000 if pd.notnull(x) and int(x) > 1000 else x)
 
-    # Sim, essa densidade pode e deve ser maior no centro da cidade, mas uma boa margem ja esta feito, podemos colocar peso de acordo com o
-    # total de pessoas pelo espaco central das escolas, mas esta maneira ja esta Ok
     df_cities['densidade_demografica'] = df_cities['populacao_total'] / df_cities['area_territorial']
-
     df_cities['densidade_demografica'] = df_cities['densidade_demografica'].round(2)
-
     df_cities = df_cities.where(pd.notnull(df_cities), None)
 
     colunas_ordem = [
@@ -573,33 +542,37 @@ def exec_city_info(conn, cur):
     data_tuples = list(df_cities[colunas_ordem].itertuples(index=False, name=None))
 
     query = """
-        INSERT OR IGNORE INTO city_info (
+        INSERT INTO city_info (
             municipio_id, ano, nome_municipio,
             id_mesorregiao, nome_mesorregiao,
             id_microrregiao, nome_microrregiao,
             area_territorial, populacao_total, densidade_demografica
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT (municipio_id, ano) DO NOTHING
     """
 
-    cur.executemany(query, data_tuples)
+    psycopg2.extras.execute_batch(cur, query, data_tuples)
     conn.commit()
 
 def exec_datatables():
-
     conn = connect_to_db()
     cur = conn.cursor()
 
-    exec_city_info( conn, cur)
-    exec_school_info( conn, cur)
+    exec_city_info(conn, cur)
+    exec_school_info(conn, cur)
     exec_school_rating(conn, cur)
     exec_school_enroll_dict(conn, cur)
     exec_school_enroll_values(conn, cur)
-    exec_school_infra_dict(conn,cur)
-    exec_school_infra_values(conn,cur)
-    exec_transparency_portal(conn,cur)
+    exec_school_infra_dict(conn, cur)
+    exec_school_infra_values(conn, cur)
+    exec_transparency_portal(conn, cur)
 
-    create_sqlite_indexes(conn,cur)
+    create_pg_indexes(conn, cur)
 
     run_oracle()
 
-    conn.commit()
+    cur.close()
+    conn.close()
+
+if __name__ == "__main__":
+    exec_datatables()

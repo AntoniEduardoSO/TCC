@@ -10,8 +10,6 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace Arkhos.Api.Handlers;
 
-
-
 public class SchoolInfraValuesHandler(AppDbContext context, IMemoryCache cache) : ISchoolInfraValuesHandler
 {
     public async Task<Response<RegionInfraSummaryDto>> GetRegionSummaryAsync(GetRegionSummaryRequest request)
@@ -24,8 +22,9 @@ public class SchoolInfraValuesHandler(AppDbContext context, IMemoryCache cache) 
             {
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2);
 
-                var pedagogicalIds = new[] { 29, 36, 40, 41, 49, 50, 51, 52, 53, 56 };
-                var wellbeingIds = new[] { 27, 30, 31, 37, 38, 43, 44, 45, 46, 47, 48, 61, 101 };
+                // CORREÇÃO: Arrays explícitos para o Npgsql
+                int[] pedagogicalIds = [29, 36, 40, 41, 49, 50, 51, 52, 53, 56];
+                int[] wellbeingIds = [27, 30, 31, 37, 38, 43, 44, 45, 46, 47, 48, 61, 101];
 
                 var query = context.SchoolInfraValues
                     .AsNoTracking()
@@ -54,36 +53,44 @@ public class SchoolInfraValuesHandler(AppDbContext context, IMemoryCache cache) 
 
             return new Response<RegionInfraSummaryDto>(summary);
         }
-        catch { return new Response<RegionInfraSummaryDto>(null, 500, "Erro ao processar infra regional."); }
+        catch (Exception ex) 
+        { 
+            return new Response<RegionInfraSummaryDto>(null, 500, $"Erro ao processar infra regional: {ex.Message}"); 
+        }
     }
+
     public async Task<Response<SchoolInfraDetailDto>> GetSchoolDetailAsync(int schoolId, int year)
     {
-        var pedagogicalIds = new[] { 29, 36, 40, 41, 49, 50, 51, 52, 53, 56 };
-        var wellbeingIds = new[] { 27, 30, 31, 37, 38, 43, 44, 45, 46, 47, 48, 61, 101 };
+        int[] pedagogicalIds = [29, 36, 40, 41, 49, 50, 51, 52, 53, 56];
+        int[] wellbeingIds = [27, 30, 31, 37, 38, 43, 44, 45, 46, 47, 48, 61, 101];
 
-        var data = await context.SchoolInfraValues
-            .AsNoTracking()
-            .Where(x => x.IdEscolaInfraValues == schoolId && x.Ano == year)
-            .GroupBy(x => x.IdEscolaInfraValues)
-            .Select(g => new SchoolInfraDetailDto
-            {
-                EscolaId = g.Key,
-                NomeEscola = g.First().SchoolInfo.NomeEscola,
-                Ano = year,
-                WellbeingRating = g.Where(x => wellbeingIds.Contains(x.AtributoId)).Sum(x => x.Valor),
-                PedagogicalRating = g.Where(x => pedagogicalIds.Contains(x.AtributoId)).Sum(x => x.Valor)
-            }).FirstOrDefaultAsync();
+        try 
+        {
+            var data = await context.SchoolInfraValues
+                .AsNoTracking()
+                .Where(x => x.IdEscolaInfraValues == schoolId && x.Ano == year)
+                .GroupBy(x => x.IdEscolaInfraValues)
+                .Select(g => new SchoolInfraDetailDto
+                {
+                    EscolaId = g.Key,
+                    NomeEscola = g.First().SchoolInfo.NomeEscola,
+                    Ano = year,
+                    WellbeingRating = g.Where(x => wellbeingIds.Contains(x.AtributoId)).Sum(x => x.Valor),
+                    PedagogicalRating = g.Where(x => pedagogicalIds.Contains(x.AtributoId)).Sum(x => x.Valor)
+                }).FirstOrDefaultAsync();
 
-        return new Response<SchoolInfraDetailDto>(data);
+            return new Response<SchoolInfraDetailDto>(data);
+        }
+        catch (Exception ex)
+        {
+            return new Response<SchoolInfraDetailDto>(null, 500, $"Erro ao processar detalhe da infraestrutura: {ex.Message}");
+        }
     }
-    public async Task<Response<ICollection<SchoolInfraValuesPedagogicalRoomsDto>>>
-        GetPedagogicalRoomsByYearAsync(GetSchoolInfraValuesPedagogicalRoomsByYearRequest request)
+
+    public async Task<Response<ICollection<SchoolInfraValuesPedagogicalRoomsDto>>> GetPedagogicalRoomsByYearAsync(GetSchoolInfraValuesPedagogicalRoomsByYearRequest request)
     {
         var swTotal = Stopwatch.StartNew();
-        var pedagogicalRoomAttributes = new[]
-            {
-                29, 36, 40, 41, 49, 50, 51, 52, 53, 56
-            };
+        int[] pedagogicalRoomAttributes = [29, 36, 40, 41, 49, 50, 51, 52, 53, 56];
 
         try
         {
@@ -91,9 +98,7 @@ public class SchoolInfraValuesHandler(AppDbContext context, IMemoryCache cache) 
 
             var query = context.SchoolInfraValues
                 .AsNoTracking()
-                .Where(x =>
-                    x.Ano == request.Year &&
-                    pedagogicalRoomAttributes.Contains(x.AtributoId))
+                .Where(x => x.Ano == request.Year && pedagogicalRoomAttributes.Contains(x.AtributoId))
                 .GroupBy(x => new
                 {
                     EscolaId = x.IdEscolaInfraValues,
@@ -124,43 +129,29 @@ public class SchoolInfraValuesHandler(AppDbContext context, IMemoryCache cache) 
 
             if (request.Limit.HasValue)
             {
-                query = query.Take(request.Limit.Value);
+                query = query.OrderBy(x => x.EscolaId).Take(request.Limit.Value);
             }
 
             var pedagogicalrooms = await query.ToListAsync();
 
             swDb.Stop();
-
-            Console.WriteLine($"DB + Materialização: {swDb.ElapsedMilliseconds} ms");
-            Console.WriteLine($"Quantidade: {pedagogicalrooms.Count}");
-
             var swSerialize = Stopwatch.StartNew();
-
             var json = System.Text.Json.JsonSerializer.Serialize(pedagogicalrooms);
-
             swSerialize.Stop();
-
-            Console.WriteLine($"Serialização: {swSerialize.ElapsedMilliseconds} ms");
-            Console.WriteLine($"Tamanho JSON: {System.Text.Encoding.UTF8.GetByteCount(json) / 1024.0 / 1024.0:F2} MB");
-
             swTotal.Stop();
-            Console.WriteLine($"TOTAL (até aqui): {swTotal.ElapsedMilliseconds} ms");
 
             return new Response<ICollection<SchoolInfraValuesPedagogicalRoomsDto>>(pedagogicalrooms, 200, $"Salas pedagógicas carregadas com sucesso em {swTotal.ElapsedMilliseconds}ms.");
         }
-        catch
+        catch (Exception ex)
         {
-            return new Response<ICollection<SchoolInfraValuesPedagogicalRoomsDto>>(null, 500, "Não foi possível consultar as salas pedagógicas. [series]");
+            return new Response<ICollection<SchoolInfraValuesPedagogicalRoomsDto>>(null, 500, $"Não foi possível consultar as salas pedagógicas: {ex.Message}");
         }
     }
 
     public async Task<Response<ICollection<SchoolInfraValuesWellbeingDto>>> GetWellbeingByYearAsync(GetSchoolInfraValuesWellbeingByYearRequest request)
     {
         var swTotal = Stopwatch.StartNew();
-        var wellbeingAttributes = new[]
-            {
-                27, 30, 31, 37, 38, 43, 44, 45, 46, 47, 48, 61, 101
-            };
+        int[] wellbeingAttributes = [27, 30, 31, 37, 38, 43, 44, 45, 46, 47, 48, 61, 101];
 
         try
         {
@@ -168,9 +159,7 @@ public class SchoolInfraValuesHandler(AppDbContext context, IMemoryCache cache) 
 
             var query = context.SchoolInfraValues
                 .AsNoTracking()
-                .Where(x =>
-                    x.Ano == request.Year &&
-                    wellbeingAttributes.Contains(x.AtributoId))
+                .Where(x => x.Ano == request.Year && wellbeingAttributes.Contains(x.AtributoId))
                 .GroupBy(x => new
                 {
                     EscolaId = x.IdEscolaInfraValues,
@@ -205,33 +194,22 @@ public class SchoolInfraValuesHandler(AppDbContext context, IMemoryCache cache) 
 
             if (request.Limit.HasValue)
             {
-                query = query.Take(request.Limit.Value);
+                query = query.OrderBy(x => x.EscolaId).Take(request.Limit.Value);
             }
 
             var wellbeingDtos = await query.ToListAsync();
 
             swDb.Stop();
-
-            Console.WriteLine($"DB + Materialização: {swDb.ElapsedMilliseconds} ms");
-            Console.WriteLine($"Quantidade: {wellbeingDtos.Count}");
-
             var swSerialize = Stopwatch.StartNew();
-
             var json = System.Text.Json.JsonSerializer.Serialize(wellbeingDtos);
-
             swSerialize.Stop();
-
-            Console.WriteLine($"Serialização: {swSerialize.ElapsedMilliseconds} ms");
-            Console.WriteLine($"Tamanho JSON: {System.Text.Encoding.UTF8.GetByteCount(json) / 1024.0 / 1024.0:F2} MB");
-
             swTotal.Stop();
-            Console.WriteLine($"TOTAL (até aqui): {swTotal.ElapsedMilliseconds} ms");
 
             return new Response<ICollection<SchoolInfraValuesWellbeingDto>>(wellbeingDtos, 200, $"Bem-estar escolar carregado com sucesso em {swTotal.ElapsedMilliseconds}ms.");
         }
-        catch
+        catch (Exception ex)
         {
-            return new Response<ICollection<SchoolInfraValuesWellbeingDto>>(null, 500, "Não foi possível consultar o bem-estar escolar. [series]");
+            return new Response<ICollection<SchoolInfraValuesWellbeingDto>>(null, 500, $"Não foi possível consultar o bem-estar escolar: {ex.Message}");
         }
     }
 }

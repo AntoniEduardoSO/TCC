@@ -1,25 +1,24 @@
 import pandas as pd
-import sqlite3
 import os
-
+from sqlalchemy import create_engine, text
 
 from controllers.state_controller import StateController
 from controllers.school_controller import SchoolController
 from controllers.municipality_controller import MunicipalityController
 from controllers.microregion_controller import MicroregionController
 from controllers.mesoregion_controller import MesoregionController
-
-
 from models.predictor import RiskPredictor
 
-def init_insights_db(db_path: str):
-    try:
-        with sqlite3.connect(db_path) as conn:
-            cursor = conn.cursor()
+# Apontando para o PostgreSQL local que você acabou de popular
+DB_URL = "postgresql://postgres:311200@localhost:5432/arkhos"
 
-            cursor.execute("""
+def init_insights_db():
+    engine = create_engine(DB_URL)
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS insights (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id SERIAL PRIMARY KEY,
                     axis TEXT,
                     level TEXT,
                     ano INTEGER,
@@ -31,15 +30,14 @@ def init_insights_db(db_path: str):
                     valor_baseline REAL,
                     id_alvo INTEGER
                 );
-            """)
+            """))
 
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_insights_filter ON insights(level, id_alvo, ano);")
-            conn.commit()
-            print(f" [INIT] Tabela 'insights' verificada/criada com sucesso.")
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_insights_filter ON insights(level, id_alvo, ano);"))
+            print(f" [INIT] Tabela 'insights' verificada/criada com sucesso no PostgreSQL.")
     except Exception as e:
         print(f" [ERRO INIT] Falha ao inicializar tabela de insights: {e}")
 
-def salvar_insights(df_results: pd.DataFrame, db_path: str):
+def salvar_insights(df_results: pd.DataFrame):
     if df_results.empty: return
 
     if 'id_alvo' in df_results.columns:
@@ -56,24 +54,24 @@ def salvar_insights(df_results: pd.DataFrame, db_path: str):
             
     df_banco = df_results[colunas_banco]
 
+    engine = create_engine(DB_URL)
     try:
-        with sqlite3.connect(db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM insights")
-            df_banco.to_sql('insights', conn, if_exists='append', index=False)
-            conn.commit()
-            print(f" [DB] Insights salvos com sucesso na tabela 'insights'!")
+        with engine.begin() as conn:
+            conn.execute(text("DELETE FROM insights"))
+            
+        # O Pandas faz o insert em massa super rápido no Postgres usando SQLAlchemy
+        df_banco.to_sql('insights', engine, if_exists='append', index=False)
+        print(f" [DB] Insights salvos com sucesso na tabela 'insights' do PostgreSQL!")
     except Exception as e:
         print(f" [ERRO DB] Falha ao salvar os insights no banco: {e}")
 
-def carregar_dados_prescritivos(db_path: str, ano: int) -> pd.DataFrame:
-    if not os.path.exists(db_path):
-        raise FileNotFoundError(f"Banco de dados não encontrado em: {db_path}")
-
-    conn = sqlite3.connect(db_path)
+def carregar_dados_prescritivos(ano: int) -> pd.DataFrame:
+    engine = create_engine(DB_URL)
+    
     query = """
         SELECT 
-            r.id_escola_fk, r.ano, r.acessibility_rating, r.teacher_instability_rating, r.administrative_burden_rating, r.spending_per_student, r.dropout_rate,
+            r.id_escola_fk, r.ano, r.acessibility_rating, r.teacher_instability_rating, 
+            r.administrative_burden_rating, r.spending_per_student, r.dropout_rate,
             s.id_municipio_fk as id_municipio, c.id_microrregiao, c.id_mesorregiao,
             
             -- [INFRA] Acessibilidade
@@ -115,25 +113,26 @@ def carregar_dados_prescritivos(db_path: str, ano: int) -> pd.DataFrame:
         JOIN school_info s ON r.id_escola_fk = s.escola_id AND s.ano = r.ano
         LEFT JOIN city_info c ON s.id_municipio_fk = c.municipio_id AND c.ano = r.ano
         
-        -- Atualizamos os INs para contemplar os novos atributos
         LEFT JOIN school_infra_values i ON r.id_escola_fk = i.id_escola_fk AND i.ano = r.ano 
              AND i.id_atributo IN (1, 12, 32, 35, 41, 43, 45, 47, 48, 60, 63, 65, 66, 67, 68, 69, 75, 93)
              
         LEFT JOIN school_enroll_values e ON r.id_escola_fk = e.id_escola_fk AND e.ano = r.ano 
              AND e.id_atributo IN (8, 15, 19, 20, 21, 82, 86, 87, 88)
         
-        WHERE r.ano = ? 
-        GROUP BY r.id_escola_fk, r.ano, r.acessibility_rating, r.teacher_instability_rating, r.administrative_burden_rating, s.id_municipio_fk, c.id_microrregiao, c.id_mesorregiao;
+        WHERE r.ano = %(ano)s 
+        
+        -- Postgres EXIGE que todas as colunas do SELECT sem MAX() entrem no GROUP BY
+        GROUP BY 
+            r.id_escola_fk, r.ano, r.acessibility_rating, r.teacher_instability_rating, 
+            r.administrative_burden_rating, r.spending_per_student, r.dropout_rate,
+            s.id_municipio_fk, c.id_microrregiao, c.id_mesorregiao;
     """
     
-    df = pd.read_sql_query(query, conn, params=(ano,))
-    conn.close()
-    
+    df = pd.read_sql_query(query, engine, params={'ano': ano})
     return df
 
-def carregar_historico_ml(db_path: str) -> pd.DataFrame:
-    """Extrai a tabela completa com chaves geográficas para agregar o SHAP."""
-    conn = sqlite3.connect(db_path)
+def carregar_historico_ml() -> pd.DataFrame:
+    engine = create_engine(DB_URL)
     query = """
         SELECT 
             r.*,
@@ -144,18 +143,17 @@ def carregar_historico_ml(db_path: str) -> pd.DataFrame:
         JOIN school_info s ON r.id_escola_fk = s.escola_id AND s.ano = r.ano
         LEFT JOIN city_info c ON s.id_municipio_fk = c.municipio_id AND c.ano = r.ano;
     """
-    df = pd.read_sql_query(query, conn)
+    df = pd.read_sql_query(query, engine)
     if 'id_escola_fk' in df.columns:
         df = df.rename(columns={'id_escola_fk': 'id_escola'})
-    conn.close()
     return df
 
-def run_prescriptive_engine(db_path: str, anos_analise: list):
+def run_prescriptive_engine(anos_analise: list):
     prescricoes_regras = []
 
     for ano in anos_analise:
         try:
-            df_ano = carregar_dados_prescritivos(db_path, ano)
+            df_ano = carregar_dados_prescritivos(ano)
             if df_ano.empty:
                 print(f"[Prescritivo] Aviso: Sem dados para {ano}.")
                 continue
@@ -227,21 +225,20 @@ def run_oracle():
     diretorio_oracle = os.path.dirname(os.path.abspath(__file__))
     PASTA_DATA = os.path.join(diretorio_oracle, "data")
     CAMINHO_CSV = os.path.join(PASTA_DATA, "dummy_data.csv")
-    CAMINHO_DB = os.path.abspath(os.path.join(diretorio_oracle, "..", "arkhos.db"))
 
-    init_insights_db(CAMINHO_DB)
+    # Inicia a tabela diretamente no Postgres
+    init_insights_db()
 
     if os.path.exists(CAMINHO_CSV):
         print(f"\n[ORACLE - CACHE] Arquivo '{CAMINHO_CSV}' encontrado!")
-        print("[ORACLE - CACHE] Pulando geração pesada. Enviando dados direto para o banco...")
+        print("[ORACLE - CACHE] Pulando geração pesada. Enviando dados direto para o banco PostgreSQL...")
         
         df_csv = pd.read_csv(CAMINHO_CSV, encoding='utf-8-sig')
-        salvar_insights(df_csv, CAMINHO_DB)
+        salvar_insights(df_csv)
         
         print("\n[ORACLE - OK] Processo finalizado usando dados cacheados.")
     
     else:
-        
         ANOS_PRESCRITIVOS = list(range(2017, 2025)) 
         ANOS_PREDITIVOS = [2023, 2024]           
         
@@ -249,14 +246,14 @@ def run_oracle():
         print(" INICIANDO MOTOR ARKHOS (PRESCRITIVO + PREDITIVO)")
         print("="*50)
         
-        lista_prescritiva = run_prescriptive_engine(CAMINHO_DB, ANOS_PRESCRITIVOS)
+        lista_prescritiva = run_prescriptive_engine(ANOS_PRESCRITIVOS)
 
         lista_preditiva = []
-        df_historico_ml = carregar_historico_ml(CAMINHO_DB)
+        df_historico_ml = carregar_historico_ml()
         
         for ano_pred in ANOS_PREDITIVOS:
             print(f"\n[Preditivo] Iniciando projeções a partir do ano-base {ano_pred}...")
-            df_ano_detalhado = carregar_dados_prescritivos(CAMINHO_DB, ano_pred)
+            df_ano_detalhado = carregar_dados_prescritivos(ano_pred)
             alertas_ano = run_predictive_engine(df_historico_ml, ano_pred, df_ano_detalhado)
             lista_preditiva.extend(alertas_ano)
         
@@ -264,14 +261,12 @@ def run_oracle():
         df_results = pd.DataFrame(todas_prescricoes)
     
         if not df_results.empty:
-
             if 'id_alvo' in df_results.columns:
                 df_results['id_alvo'] = pd.to_numeric(df_results['id_alvo'], errors='coerce').fillna(0).astype(int)
             
             df_results.to_csv(CAMINHO_CSV, index=False, encoding='utf-8-sig')
-            salvar_insights(df_results, CAMINHO_DB)
+            salvar_insights(df_results)
 
-            
             print(f"\n=======================================================")
             print(f" SUCESSO! Total de {len(df_results)} registros exportados.")
             print(f" Motor cobriu regras de {min(ANOS_PRESCRITIVOS)} a {max(ANOS_PRESCRITIVOS)} e projeções de {ANOS_PREDITIVOS}.")

@@ -44,26 +44,36 @@ public class SchoolRatingsHandler(AppDbContext context, IMemoryCache cache) : IS
 
             return new Response<RegionRatingSummaryDto>(result);
         }
-        catch { return new Response<RegionRatingSummaryDto>(null, 500, "Erro ao processar ratings regionais."); }
+        catch (Exception ex) 
+        { 
+            return new Response<RegionRatingSummaryDto>(null, 500, $"Erro ao processar ratings regionais: {ex.Message}"); 
+        }
     }
 
     public async Task<Response<SchoolRatingDetailDto>> GetSchoolDetailAsync(int schoolId, int year)
     {
-        var result = await context.SchoolRatings
-            .AsNoTracking()
-            .Where(x => x.SchoolInfoId == schoolId && x.Ano == year)
-            .Select(x => new SchoolRatingDetailDto
-            {
-                EscolaId = x.SchoolInfoId,
-                NomeEscola = x.SchoolInfo.NomeEscola,
-                Ano = x.Ano,
-                SpendingPerStudent = x.SpendingPerStudent,
-                ApprovalRate = x.ApprovalRate,
-                DropoutRate = x.DropoutRate,
-                AccessibilityRating = x.AcessibilityRating
-            }).FirstOrDefaultAsync();
+        try 
+        {
+            var result = await context.SchoolRatings
+                .AsNoTracking()
+                .Where(x => x.SchoolInfoId == schoolId && x.Ano == year)
+                .Select(x => new SchoolRatingDetailDto
+                {
+                    EscolaId = x.SchoolInfoId,
+                    NomeEscola = x.SchoolInfo.NomeEscola,
+                    Ano = x.Ano,
+                    SpendingPerStudent = x.SpendingPerStudent,
+                    ApprovalRate = x.ApprovalRate,
+                    DropoutRate = x.DropoutRate,
+                    AccessibilityRating = x.AcessibilityRating
+                }).FirstOrDefaultAsync();
 
-        return new Response<SchoolRatingDetailDto>(result);
+            return new Response<SchoolRatingDetailDto>(result);
+        }
+        catch (Exception ex)
+        {
+            return new Response<SchoolRatingDetailDto>(null, 500, $"Erro ao processar detalhe de rating: {ex.Message}");
+        }
     }
     
     public async Task<Response<ICollection<SchoolRatingSpendingDto>>> GetSpendingByYearAsync(GetSchoolRatingSpendingByYearRequest request)
@@ -92,7 +102,6 @@ public class SchoolRatingsHandler(AppDbContext context, IMemoryCache cache) : IS
                     MunicipioId = x.SchoolInfo.CityInfo.MunicipioId
                 });
 
-
             if (request.Limit.HasValue)
             {
                 query = query.Take(request.Limit.Value);
@@ -101,28 +110,16 @@ public class SchoolRatingsHandler(AppDbContext context, IMemoryCache cache) : IS
             var schoolratings = await query.ToListAsync();
 
             swDb.Stop();
-
-
-            Console.WriteLine($"DB + Materialização: {swDb.ElapsedMilliseconds} ms");
-            Console.WriteLine($"Quantidade: {schoolratings.Count}");
-
             var swSerialize = Stopwatch.StartNew();
-
             var json = System.Text.Json.JsonSerializer.Serialize(schoolratings);
-
             swSerialize.Stop();
-
-            Console.WriteLine($"Serialização: {swSerialize.ElapsedMilliseconds} ms");
-            Console.WriteLine($"Tamanho JSON: {System.Text.Encoding.UTF8.GetByteCount(json) / 1024.0 / 1024.0:F2} MB");
-
             swTotal.Stop();
-            Console.WriteLine($"TOTAL (até aqui): {swTotal.ElapsedMilliseconds} ms");
 
-            return new Response<ICollection<SchoolRatingSpendingDto>>(schoolratings, message: "Retornado com sucesso o schoolratings.");
+            return new Response<ICollection<SchoolRatingSpendingDto>>(schoolratings, 200, "Retornado com sucesso o schoolratings.");
         }
-        catch
+        catch (Exception ex)
         {
-            return new Response<ICollection<SchoolRatingSpendingDto>>(null, 500, "Não foi possível consultar os ratings");
+            return new Response<ICollection<SchoolRatingSpendingDto>>(null, 500, $"Não foi possível consultar os ratings: {ex.Message}");
         }
     }
 
@@ -148,36 +145,24 @@ public class SchoolRatingsHandler(AppDbContext context, IMemoryCache cache) : IS
                     MunicipioId = x.SchoolInfo.CityInfo.MunicipioId
                 });
 
-
             if (request.Limit.HasValue)
+            {
                 query = query.Take(request.Limit.Value);
-
+            }
 
             var schooldrop = await query.ToListAsync();
 
             swDb.Stop();
-
-
-            Console.WriteLine($"DB + Materialização: {swDb.ElapsedMilliseconds} ms");
-            Console.WriteLine($"Quantidade: {schooldrop.Count}");
-
             var swSerialize = Stopwatch.StartNew();
-
             var json = System.Text.Json.JsonSerializer.Serialize(schooldrop);
-
             swSerialize.Stop();
-
-            Console.WriteLine($"Serialização: {swSerialize.ElapsedMilliseconds} ms");
-            Console.WriteLine($"Tamanho JSON: {System.Text.Encoding.UTF8.GetByteCount(json) / 1024.0 / 1024.0:F2} MB");
-
             swTotal.Stop();
-            Console.WriteLine($"TOTAL (até aqui): {swTotal.ElapsedMilliseconds} ms");
 
-            return new Response<ICollection<SchoolRatingDropDto>>(schooldrop, message: "Retornado com sucesso o schooldrop.");
+            return new Response<ICollection<SchoolRatingDropDto>>(schooldrop, 200, "Retornado com sucesso o schooldrop.");
         }
-        catch
+        catch (Exception ex)
         {
-            return new Response<ICollection<SchoolRatingDropDto>>(null, 500, "Não foi possível consultar os dropouts");
+            return new Response<ICollection<SchoolRatingDropDto>>(null, 500, $"Não foi possível consultar os dropouts: {ex.Message}");
         }
     }
 
@@ -198,9 +183,9 @@ public class SchoolRatingsHandler(AppDbContext context, IMemoryCache cache) : IS
                     RatingAcessibilidade = x.AcessibilityRating,
                     RatingRecreacao = x.RecreationRating,
                     RatingBemEstar = x.WellbeingRating,
-                    RatingSuporteHumano = x.HumanSupportRating ?? null,
+                    RatingSuporteHumano = x.HumanSupportRating,
                     RatingAdministracao = x.ManagementRating,
-                    DistorcaoIdadeSerie = x.AgeGradeDistortionRating ?? null,
+                    DistorcaoIdadeSerie = x.AgeGradeDistortionRating,
                     RatingPedagogico = x.PedagogicalRating,
                     RatingStressProfessor = x.TeacherStressRating,
                     RatingInstabilidadeProfessor = x.TeacherInstabilityRating,
@@ -210,36 +195,24 @@ public class SchoolRatingsHandler(AppDbContext context, IMemoryCache cache) : IS
                     MunicipioId = x.SchoolInfo.CityInfo.MunicipioId
                 });
 
-
             if (request.Limit.HasValue)
+            {
                 query = query.Take(request.Limit.Value);
-
+            }
 
             var schoolrating = await query.ToListAsync();
 
             swDb.Stop();
-
-
-            Console.WriteLine($"DB + Materialização: {swDb.ElapsedMilliseconds} ms");
-            Console.WriteLine($"Quantidade: {schoolrating.Count}");
-
             var swSerialize = Stopwatch.StartNew();
-
             var json = System.Text.Json.JsonSerializer.Serialize(schoolrating);
-
             swSerialize.Stop();
-
-            Console.WriteLine($"Serialização: {swSerialize.ElapsedMilliseconds} ms");
-            Console.WriteLine($"Tamanho JSON: {System.Text.Encoding.UTF8.GetByteCount(json) / 1024.0 / 1024.0:F2} MB");
-
             swTotal.Stop();
-            Console.WriteLine($"TOTAL (até aqui): {swTotal.ElapsedMilliseconds} ms");
 
-            return new Response<ICollection<SchoolRatingMapDto>>(schoolrating, message: "Retornado com sucesso o schoolrating.");
+            return new Response<ICollection<SchoolRatingMapDto>>(schoolrating, 200, "Retornado com sucesso o schoolrating.");
         }
-        catch
+        catch (Exception ex)
         {
-            return new Response<ICollection<SchoolRatingMapDto>>(null, 500, "Não foi possível consultar os schoolratings");
+            return new Response<ICollection<SchoolRatingMapDto>>(null, 500, $"Não foi possível consultar os schoolratings: {ex.Message}");
         }
     }
 }

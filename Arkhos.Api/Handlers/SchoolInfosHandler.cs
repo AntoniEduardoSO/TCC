@@ -11,16 +11,27 @@ namespace Arkhos.Api.Handlers;
 
 public class SchoolInfosHandler(AppDbContext context, IMemoryCache cache) : ISchoolInfosHandler
 {
-    public async Task<Response<ICollection<SchoolInfoMapDto>>> GetByYearAsync(GetSchoolInfoByYearRequest request)
+    // Semáforo estático para evitar "Cache Stampede"
+    private static readonly SemaphoreSlim _semaphore = new(1, 1);
+
+    public async Task<Response<ICollection<SchoolInfoMapDto>>> GetByYearAsync(GetSchoolInfoByYearRequest request, CancellationToken cancellationToken = default)
     {
         string cacheKey = $"SchoolMarkers_{request.Year}_{request.Dependencia}_{request.Limit}";
 
+        // 1. Tenta pegar do cache primeiro (caminho rápido, sem travar)
+        if (cache.TryGetValue(cacheKey, out ICollection<SchoolInfoMapDto>? cachedInfos))
+        {
+            return new Response<ICollection<SchoolInfoMapDto>>(cachedInfos!, message: "Cache hit!");
+        }
+
+        // 2. Aguarda a liberação do semáforo respeitando o cancelamento
+        await _semaphore.WaitAsync(cancellationToken);
         try
         {
+            // 3. O GetOrCreateAsync cuida de tentar pegar do cache de novo caso outra thread
+            // já tenha feito o trabalho enquanto esta thread aguardava no semáforo.
             var schoolinfos = await cache.GetOrCreateAsync(cacheKey, async entry =>
             {
-                // Deixa os marcadores em cache por 6 horas. Como é a requisição principal do mapa,
-                // ela será resolvida via RAM instantaneamente!
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6);
 
                 var query = context.SchoolInfos
@@ -28,9 +39,7 @@ public class SchoolInfosHandler(AppDbContext context, IMemoryCache cache) : ISch
                     .Where(x => x.Ano == request.Year);
 
                 if (request.Dependencia.HasValue)
-                {
                     query = query.Where(x => x.Dependencia == request.Dependencia.Value);
-                }
 
                 var projection = query.Select(x => new SchoolInfoMapDto
                 {
@@ -51,18 +60,24 @@ public class SchoolInfosHandler(AppDbContext context, IMemoryCache cache) : ISch
                 });
 
                 if (request.Limit.HasValue)
-                {
                     projection = projection.Take(request.Limit.Value);
-                }
 
-                return await projection.ToListAsync();
+                return await projection.ToListAsync(cancellationToken);
             });
 
-            return new Response<ICollection<SchoolInfoMapDto>>(schoolinfos, message: "Schoolinfos carregados com sucesso.");
+            return new Response<ICollection<SchoolInfoMapDto>>(schoolinfos!, message: "Sucesso.");
+        }
+        catch (OperationCanceledException)
+        {
+            return new Response<ICollection<SchoolInfoMapDto>>(new List<SchoolInfoMapDto>(), 499, "Requisição cancelada.");
         }
         catch (Exception ex)
         {
-            return new Response<ICollection<SchoolInfoMapDto>>(null, 500, $"Erro ao consultar informações das escolas. [ERRO FATAL NO BANCO]: {ex.Message}");
+            return new Response<ICollection<SchoolInfoMapDto>>(null, 500, $"Erro: {ex.Message}");
+        }
+        finally
+        {
+            _semaphore.Release();
         }
     }
 }

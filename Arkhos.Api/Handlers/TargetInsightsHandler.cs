@@ -31,17 +31,19 @@ public class TargetInsightsHandler(AppDbContext context, IMemoryCache cache) : I
             });
 
             if (allInsights == null || !allInsights.Any())
-                return new Response<ICollection<TargetInsight>>(new List<TargetInsight>(), 200, "Sem insights.");
+                return new Response<ICollection<TargetInsight>>([], 200, "Sem insights.");
 
             var limit = request.Limit ?? 1;
+            
+            // Randomização na memória é perfeitamente segura e rápida aqui, já que a lista do cache é pequena
             var random = new Random();
             var randomInsights = allInsights.OrderBy(x => random.Next()).Take(limit).ToList();
 
-            return new Response<ICollection<TargetInsight>>(randomInsights, 200, "Retornado com sucesso o insights.");
+            return new Response<ICollection<TargetInsight>>(randomInsights, 200, "Retornado com sucesso os insights.");
         }
-        catch
+        catch (Exception ex)
         {
-            return new Response<ICollection<TargetInsight>>(null, 500, "Não foi possível consultar os Insight");
+            return new Response<ICollection<TargetInsight>>(null, 500, $"Não foi possível consultar os Insights: {ex.Message}");
         }
     }
 }

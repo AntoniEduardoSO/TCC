@@ -12,7 +12,8 @@ public class SchoolEnrollValuesHandler(AppDbContext context, IMemoryCache cache)
 {
     public async Task<Response<ICollection<SchoolEnrollValuesGovernanceDto>>> GetGovernanceByYearAsync(GetSchoolEnrollValuesGovernanceByYearRequest request)
     {
-        double[] governance_ids = [8, 6, 15, 16, 19, 20, 21];
+        // CORREÇÃO CRÍTICA: Array de inteiros para compatibilidade com o Postgres
+        int[] governance_ids = [8, 6, 15, 16, 19, 20, 21];
 
         try
         {
@@ -46,18 +47,16 @@ public class SchoolEnrollValuesHandler(AppDbContext context, IMemoryCache cache)
 
             if (request.Limit.HasValue)
             {
-                query = query
-                    .OrderBy(x => x.EscolaId)
-                    .Take(request.Limit.Value);
+                query = query.OrderBy(x => x.EscolaId).Take(request.Limit.Value);
             }
 
             var governanceDtos = await query.ToListAsync();
 
             return new Response<ICollection<SchoolEnrollValuesGovernanceDto>>(governanceDtos, 200, "Governança carregada com sucesso.");
         }
-        catch
+        catch (Exception ex)
         {
-            return new Response<ICollection<SchoolEnrollValuesGovernanceDto>>(null, 500, "Não foi possível consultar os dados de governança.");
+            return new Response<ICollection<SchoolEnrollValuesGovernanceDto>>(null, 500, $"Erro ao consultar governança: {ex.Message}");
         }
     }
 
@@ -156,7 +155,6 @@ public class SchoolEnrollValuesHandler(AppDbContext context, IMemoryCache cache)
                 };
             });
 
-            // Retorna o que achou (ou acabou de gerar) no cache
             return new Response<RegionEnrollmentSummaryDto>(resultDto, 200, "Resumo regional carregado com sucesso.");
         }
         catch (Exception ex)
@@ -175,10 +173,8 @@ public class SchoolEnrollValuesHandler(AppDbContext context, IMemoryCache cache)
 
             if (request.ParentLevel == "meso" && request.ParentId.HasValue)
                 query = query.Where(x => x.SchoolInfo.CityInfo.IdMesorregiao == request.ParentId.Value);
-
             else if (request.ParentLevel == "micro" && request.ParentId.HasValue)
                 query = query.Where(x => x.SchoolInfo.CityInfo.IdMicrorregiao == request.ParentId.Value);
-
 
             var groupedQuery = request.ParentLevel switch
             {
@@ -200,19 +196,15 @@ public class SchoolEnrollValuesHandler(AppDbContext context, IMemoryCache cache)
 
                 EscolasMunicipaisComCreche = g.Where(x => x.SchoolInfo.Dependencia == 3 && (x.AtributoId == 31 || x.AtributoId == 32) && x.Valor > 0)
                                                   .Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
-
                 EscolasMunicipaisComFundamental = g.Where(x => x.SchoolInfo.Dependencia == 3 && ((x.AtributoId >= 33 && x.AtributoId <= 41) || x.AtributoId == 123 || x.AtributoId == 124) && x.Valor > 0)
                                                        .Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
-
                 EscolasMunicipaisComMedio = g.Where(x => x.SchoolInfo.Dependencia == 3 && ((x.AtributoId >= 42 && x.AtributoId <= 44) || x.AtributoId == 125) && x.Valor > 0)
                                                  .Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
 
                 EscolasEstaduaisComCreche = g.Where(x => x.SchoolInfo.Dependencia == 2 && (x.AtributoId == 31 || x.AtributoId == 32) && x.Valor > 0)
                                                  .Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
-
                 EscolasEstaduaisComFundamental = g.Where(x => x.SchoolInfo.Dependencia == 2 && ((x.AtributoId >= 33 && x.AtributoId <= 41) || x.AtributoId == 123 || x.AtributoId == 124) && x.Valor > 0)
                                                        .Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
-
                 EscolasEstaduaisComMedio = g.Where(x => x.SchoolInfo.Dependencia == 2 && ((x.AtributoId >= 42 && x.AtributoId <= 44) || x.AtributoId == 125) && x.Valor > 0)
                                                  .Select(x => x.IdEscolaEnrollValues).Distinct().Count(),
 
@@ -220,9 +212,9 @@ public class SchoolEnrollValuesHandler(AppDbContext context, IMemoryCache cache)
 
             return new Response<ICollection<RegionEnrollmentSummaryDto>>(list);
         }
-        catch
+        catch (Exception ex)
         {
-            return new Response<ICollection<RegionEnrollmentSummaryDto>>(null, 500, "Erro ao listar resumos.");
+            return new Response<ICollection<RegionEnrollmentSummaryDto>>(null, 500, $"Erro ao listar resumos: {ex.Message}");
         }
     }
 
@@ -230,7 +222,7 @@ public class SchoolEnrollValuesHandler(AppDbContext context, IMemoryCache cache)
     {
         try
         {
-            var detailQuery = context.SchoolEnrollValues
+            var result = await context.SchoolEnrollValues
                 .AsNoTracking()
                 .Where(x => x.Ano == year && x.IdEscolaEnrollValues == schoolId)
                 .GroupBy(x => new
@@ -245,14 +237,12 @@ public class SchoolEnrollValuesHandler(AppDbContext context, IMemoryCache cache)
                     NomeEscola = g.Key.NomeEscola,
                     Ano = g.Key.Ano,
 
-                    // MATRÍCULAS
                     MatriculaCreche = g.Sum(x => x.AtributoId == 31 ? x.Valor : 0),
                     MatriculaPreEscola = g.Sum(x => x.AtributoId == 32 ? x.Valor : 0),
                     MatriculaEnsinoFundamentalAI = g.Sum(x => (x.AtributoId >= 33 && x.AtributoId <= 37) || x.AtributoId == 123 ? x.Valor : 0),
                     MatriculaEnsinoFundamentalAF = g.Sum(x => (x.AtributoId >= 38 && x.AtributoId <= 41) || x.AtributoId == 124 ? x.Valor : 0),
                     MatriculaEnsinoMedio = g.Sum(x => (x.AtributoId >= 42 && x.AtributoId <= 44) || x.AtributoId == 125 ? x.Valor : 0),
 
-                    // PROFESSORES
                     ProfessorCreche = g.Sum(x => x.AtributoId == 83 ? x.Valor : 0),
                     ProfessorPreEscola = g.Sum(x => x.AtributoId == 84 ? x.Valor : 0),
                     ProfessorEFIniciais = g.Sum(x => x.AtributoId == 86 ? x.Valor : 0),
@@ -260,7 +250,6 @@ public class SchoolEnrollValuesHandler(AppDbContext context, IMemoryCache cache)
                     ProfessorMedio = g.Sum(x => x.AtributoId == 88 ? x.Valor : 0),
                     ProfessorEspecial = g.Sum(x => x.AtributoId == 94 ? x.Valor : 0),
 
-                    // GOVERNANÇA E EQUIPE
                     Psicologo = g.Sum(x => x.AtributoId == 8 ? x.Valor : 0),
                     Fonaudiologo = g.Sum(x => x.AtributoId == 6 ? x.Valor : 0),
                     AssistenteSocial = g.Sum(x => x.AtributoId == 15 ? x.Valor : 0),
@@ -268,20 +257,15 @@ public class SchoolEnrollValuesHandler(AppDbContext context, IMemoryCache cache)
                     AssociacaoPaiMestres = g.Sum(x => x.AtributoId == 19 ? x.Valor : 0),
                     ConselhoEscolar = g.Sum(x => x.AtributoId == 20 ? x.Valor : 0),
                     GremioEstudantil = g.Sum(x => x.AtributoId == 21 ? x.Valor : 0)
-                });
+                }).FirstOrDefaultAsync();
 
-            var result = await detailQuery.FirstOrDefaultAsync();
+            if (result == null) return new Response<SchoolEnrollmentDetailDto>(null, 404, "Escola não encontrada para o ano informado.");
 
-            if (result == null)
-            {
-                return new Response<SchoolEnrollmentDetailDto>(null, 404, "Escola não encontrada para o ano informado.");
-            }
-
-            return new Response<SchoolEnrollmentDetailDto>(result, 200, "Detalhes da escola carregados com sucesso.");
+            return new Response<SchoolEnrollmentDetailDto>(result, 200, "Detalhes carregados com sucesso.");
         }
-        catch
+        catch (Exception ex)
         {
-            return new Response<SchoolEnrollmentDetailDto>(null, 500, "Erro interno ao consultar os detalhes da escola.");
+            return new Response<SchoolEnrollmentDetailDto>(null, 500, $"Erro interno: {ex.Message}");
         }
     }
 
@@ -293,7 +277,7 @@ public class SchoolEnrollValuesHandler(AppDbContext context, IMemoryCache cache)
                 .AsNoTracking()
                 .Where(x => x.Ano == request.Year && x.SchoolInfo.Funcionamento == 1);
 
-            IQueryable<SchoolEnrollValuesStudentsDto>? finalQuery = null;
+            IQueryable<SchoolEnrollValuesStudentsDto>? finalQuery;
 
             if (request.Year > 2022)
             {
@@ -317,18 +301,15 @@ public class SchoolEnrollValuesHandler(AppDbContext context, IMemoryCache cache)
 
                         MatriculaCreche = g.Sum(x => x.AtributoId == 31 ? x.Valor : 0),
                         MatriculaPreEscola = g.Sum(x => x.AtributoId == 32 ? x.Valor : 0),
-
                         Matricula1Ano = g.Sum(x => x.AtributoId == 33 ? x.Valor : 0),
                         Matricula2Ano = g.Sum(x => x.AtributoId == 34 ? x.Valor : 0),
                         Matricula3Ano = g.Sum(x => x.AtributoId == 35 ? x.Valor : 0),
                         Matricula4Ano = g.Sum(x => x.AtributoId == 36 ? x.Valor : 0),
                         Matricula5Ano = g.Sum(x => x.AtributoId == 37 ? x.Valor : 0),
-
                         Matricula6Ano = g.Sum(x => x.AtributoId == 38 ? x.Valor : 0),
                         Matricula7Ano = g.Sum(x => x.AtributoId == 39 ? x.Valor : 0),
                         Matricula8Ano = g.Sum(x => x.AtributoId == 40 ? x.Valor : 0),
                         Matricula9Ano = g.Sum(x => x.AtributoId == 41 ? x.Valor : 0),
-
                         MatriculaMedio1Ano = g.Sum(x => x.AtributoId == 42 ? x.Valor : 0),
                         MatriculaMedio2Ano = g.Sum(x => x.AtributoId == 43 ? x.Valor : 0),
                         MatriculaMedio3Ano = g.Sum(x => x.AtributoId == 44 ? x.Valor : 0)
@@ -373,28 +354,28 @@ public class SchoolEnrollValuesHandler(AppDbContext context, IMemoryCache cache)
 
             if (request.Limit.HasValue)
             {
-                finalQuery = finalQuery
-                    .OrderBy(x => x.EscolaId)
-                    .Take(request.Limit.Value);
+                finalQuery = finalQuery.OrderBy(x => x.EscolaId).Take(request.Limit.Value);
             }
 
             var studentsEnrollment = await finalQuery.ToListAsync();
 
             return new Response<ICollection<SchoolEnrollValuesStudentsDto>>(studentsEnrollment, 200, "Matrículas carregadas com sucesso.");
         }
-        catch
+        catch (Exception ex)
         {
-            return new Response<ICollection<SchoolEnrollValuesStudentsDto>>(null, 500, "Não foi possível consultar as matrículas dos alunos.");
+            return new Response<ICollection<SchoolEnrollValuesStudentsDto>>(null, 500, $"Erro ao consultar alunos: {ex.Message}");
         }
     }
 
     public async Task<Response<ICollection<SchoolEnrollValuesTeachersDto>>> GetTeachersWithSeriesByYearAsync(GetTeachersWithSeriesByYearRequest request)
     {
+        int[] teacher_ids = [83, 84, 86, 87, 88, 94];
+
         try
         {
             var query = context.SchoolEnrollValues
                 .AsNoTracking()
-                .Where(x => x.Ano == request.Year && new[] { 83, 84, 86, 87, 88, 94 }.Contains(x.AtributoId))
+                .Where(x => x.Ano == request.Year && teacher_ids.Contains(x.AtributoId))
                 .GroupBy(x => new
                 {
                     x.IdEscolaEnrollValues,
@@ -421,19 +402,16 @@ public class SchoolEnrollValuesHandler(AppDbContext context, IMemoryCache cache)
 
             if (request.Limit.HasValue)
             {
-                query = query
-                    .OrderBy(x => x.EscolaId)
-                    .Take(request.Limit.Value);
+                query = query.OrderBy(x => x.EscolaId).Take(request.Limit.Value);
             }
 
             var teachersEnrollment = await query.ToListAsync();
 
             return new Response<ICollection<SchoolEnrollValuesTeachersDto>>(teachersEnrollment, 200, "Professores carregados com sucesso.");
         }
-        catch
+        catch (Exception ex)
         {
-            return new Response<ICollection<SchoolEnrollValuesTeachersDto>>(null, 500, "Não foi possível consultar os professores.");
+            return new Response<ICollection<SchoolEnrollValuesTeachersDto>>(null, 500, $"Erro ao consultar professores: {ex.Message}");
         }
     }
-
 }

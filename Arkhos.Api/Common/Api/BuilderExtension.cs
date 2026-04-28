@@ -69,21 +69,21 @@ public static class BuilderExtension
     {
         var isProduction = builder.Environment.IsProduction();
 
+        // A string já foi populada pelo AddConfiguration, 
+        // lendo do appsettings local ou da variável do Render.
+        var connectionString = Configuration.ConnectionString;
+
         builder.Services.AddDbContext<AppDbContext>(options =>
         {
             if (isProduction)
             {
-                Console.WriteLine("[DEBUG] NUVEM DETECTADA: Usando Turso LibSql");
-
-                // Formato exigido pela BMDRM, agora protegido pela barra.
-                string connectionString = $"https://arkhos-antonieduardoso.aws-us-east-1.turso.io/v2/pipeline;eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicm8iLCJleHAiOjE3ODUwODU1NDEsImlhdCI6MTc3NzMwOTU0MSwiaWQiOiIwMTlkY2YxNi01OTAxLTc5NzQtOTI0Zi0xZThiNmZmMjhiOTciLCJyaWQiOiI1MGU0NDk4ZS04YWNhLTQ0NDUtYmU1Mi0zMjA5NmI4NDM0MTYifQ.qf6I8DV05ZP_orB7FJ1d2SYGfi22vqDRE3bkWzxiJGdukoLY9Tm76cdU31yhrq7cmgFjfq_OyQCAIauR0aFHCA";
-
-                options.UseLibSql(connectionString);
+                Console.WriteLine("[DEBUG] NUVEM DETECTADA: Usando PostgreSQL via configuração do Render (Supabase)");
+                options.UseNpgsql(connectionString);
             }
-            else // libsql://arkhos-antonieduardoso.aws-us-east-1.turso.io
+            else
             {
-                Console.WriteLine("[DEBUG] PC LOCAL DETECTADO: Usando SQLite");
-                options.UseLibSql("https://arkhos-antonieduardoso.aws-us-east-1.turso.io/v2/pipeline;eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicm8iLCJleHAiOjE3ODUwODU1NDEsImlhdCI6MTc3NzMwOTU0MSwiaWQiOiIwMTlkY2YxNi01OTAxLTc5NzQtOTI0Zi0xZThiNmZmMjhiOTciLCJyaWQiOiI1MGU0NDk4ZS04YWNhLTQ0NDUtYmU1Mi0zMjA5NmI4NDM0MTYifQ.qf6I8DV05ZP_orB7FJ1d2SYGfi22vqDRE3bkWzxiJGdukoLY9Tm76cdU31yhrq7cmgFjfq_OyQCAIauR0aFHCA");
+                Console.WriteLine("[DEBUG] PC LOCAL DETECTADO: Usando PostgreSQL localhost");
+                options.UseNpgsql(connectionString);
             }
         });
     }

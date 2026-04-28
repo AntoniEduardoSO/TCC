@@ -12,31 +12,14 @@ public class SchoolInfraValuesMapping : IEntityTypeConfiguration<SchoolInfraValu
 
         builder.HasKey(x => new { x.Ano, x.IdEscolaInfraValues, x.AtributoId });
 
-        builder.Property(x => x.IdEscolaInfraValues)
-            .HasColumnName("id_escola_fk")
-            .HasColumnType("INTEGER")
-            .IsRequired();
+        builder.HasIndex(x => x.IdEscolaInfraValues);
+        builder.HasIndex(x => x.AtributoId);
 
-        builder.Property(x => x.Ano)
-            .HasColumnName("ano")
-            .HasColumnType("INTEGER")
-            .IsRequired();
-
-        builder.Property(x => x.AtributoId)
-            .HasColumnName("id_atributo")
-            .HasColumnType("INTEGER")
-            .IsRequired();
-
-        builder.Property(x => x.TipoAtributo)
-            .HasColumnName("tipo_atributo")
-            .HasColumnType("TEXT")
-            .IsRequired();
-
-
-        builder.Property(x => x.Valor)
-            .HasColumnName("valor")
-            .HasColumnType("REAL")
-            .IsRequired();
+        builder.Property(x => x.IdEscolaInfraValues).HasColumnName("id_escola_fk").IsRequired();
+        builder.Property(x => x.Ano).HasColumnName("ano").IsRequired();
+        builder.Property(x => x.AtributoId).HasColumnName("id_atributo").IsRequired();
+        builder.Property(x => x.TipoAtributo).HasColumnName("tipo_atributo").IsRequired();
+        builder.Property(x => x.Valor).HasColumnName("valor").IsRequired();
 
         builder.HasOne(x => x.SchoolInfraDict)
             .WithMany(x => x.SchoolInfraValues)

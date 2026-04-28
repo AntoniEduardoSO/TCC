@@ -12,33 +12,13 @@ public class SchoolInfraDictMapping : IEntityTypeConfiguration<SchoolInfraDict>
 
         builder.HasKey(x => x.Id);
 
-        builder.Property(x => x.Id)
-            .HasColumnName("id")
-            .HasColumnType("INTEGER");
+        builder.HasIndex(x => x.Variavel);
 
-        builder.Property(x => x.Variavel)
-            .HasColumnName("variavel")
-            .HasColumnType("TEXT")
-            .IsRequired();
-
-        builder.Property(x => x.Descricao)
-            .HasColumnName("descricao")
-            .HasColumnType("TEXT")
-            .IsRequired();
-
-        builder.Property(x => x.Tipo)
-            .HasColumnName("tipo")
-            .HasColumnType("TEXT")
-            .IsRequired();
-
-        builder.Property(x => x.Tamanho)
-            .HasColumnName("tamanho")
-            .HasColumnType("INTEGER")
-            .IsRequired();
-
-        builder.Property(x => x.Grupo)
-            .HasColumnName("grupo")
-            .HasColumnType("TEXT")
-            .IsRequired();
+        builder.Property(x => x.Id).HasColumnName("id");
+        builder.Property(x => x.Variavel).HasColumnName("variavel").IsRequired();
+        builder.Property(x => x.Descricao).HasColumnName("descricao").IsRequired();
+        builder.Property(x => x.Tipo).HasColumnName("tipo").IsRequired();
+        builder.Property(x => x.Tamanho).HasColumnName("tamanho").IsRequired();
+        builder.Property(x => x.Grupo).HasColumnName("grupo").IsRequired();
     }
 }

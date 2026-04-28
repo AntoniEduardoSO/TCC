@@ -19,23 +19,20 @@ public class GetSchoolInfoByYearEndpoint : IEndpoint
         int year,
         [FromServices] ISchoolInfosHandler handler,
         [FromQuery] int? dependencia = null,
-        [FromQuery] int? limit = null)
+        [FromQuery] int? limit = null,
+        CancellationToken cancellationToken = default)
     {
         var request = new GetSchoolInfoByYearRequest
         {
             Year = year,
             Dependencia = dependencia,
-            Limit = limit ?? null
-            
+            Limit = limit 
         };
 
-        var result = await handler.GetByYearAsync(request);
+        var result = await handler.GetByYearAsync(request, cancellationToken);
 
         return result.IsSuccess
             ? TypedResults.Ok(result)
             : TypedResults.BadRequest(result);
     }
 }
-
-
-

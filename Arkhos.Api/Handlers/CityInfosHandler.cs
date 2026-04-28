@@ -16,9 +16,11 @@ public class CityInfosHandler(AppDbContext context) : ICityInfosHandler
         try
         {
             var swDb = Stopwatch.StartNew();
+            
             var query = context.CityInfos
                 .AsNoTracking()
-                .Where(x => x.Ano == request.Year).Select(x => new CityInfoMapDto
+                .Where(x => x.Ano == request.Year)
+                .Select(x => new CityInfoMapDto
                 {
                     Ano = x.Ano,
                     MunicipioId = x.MunicipioId,
@@ -42,9 +44,7 @@ public class CityInfosHandler(AppDbContext context) : ICityInfosHandler
             Console.WriteLine($"Quantidade: {cityinfos.Count}");
 
             var swSerialize = Stopwatch.StartNew();
-
             var json = System.Text.Json.JsonSerializer.Serialize(cityinfos);
-
             swSerialize.Stop();
 
             Console.WriteLine($"Serialização: {swSerialize.ElapsedMilliseconds} ms");
@@ -54,11 +54,10 @@ public class CityInfosHandler(AppDbContext context) : ICityInfosHandler
             Console.WriteLine($"TOTAL (até aqui): {swTotal.ElapsedMilliseconds} ms");
 
             return new Response<ICollection<CityInfoMapDto>>(cityinfos, 200, "Retornado com sucesso o cityinfos.");
-
         }
-        catch
+        catch (Exception ex)
         {
-            return new Response<ICollection<CityInfoMapDto>>(null, 500, "Não foi possível consultar as cidades");
+            return new Response<ICollection<CityInfoMapDto>>(null, 500, $"Não foi possível consultar as cidades. Erro: {ex.Message}");
         }
     }
 }

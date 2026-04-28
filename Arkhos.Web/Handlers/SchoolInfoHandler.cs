@@ -11,8 +11,7 @@ namespace Arkhos.Web.Handlers;
 public class SchoolInfoHandler(IHttpClientFactory httpClientFactory) : ISchoolInfosHandler
 {
     private readonly HttpClient _client = httpClientFactory.CreateClient(Configuration.HttpClientName);
-
-    public async Task<Response<ICollection<SchoolInfoMapDto>>> GetByYearAsync(GetSchoolInfoByYearRequest request)
+    public async Task<Response<ICollection<SchoolInfoMapDto>>> GetByYearAsync(GetSchoolInfoByYearRequest request, CancellationToken cancellationToken = default)
     {
         var url = new StringBuilder($"v1/schoolinfo/{request.Year}");
 
@@ -22,11 +21,18 @@ public class SchoolInfoHandler(IHttpClientFactory httpClientFactory) : ISchoolIn
 
         if (queryParams.Any())
         {
-            url.Append("?");
+            url.Append('?');
             url.Append(string.Join("&", queryParams));
         }
 
-        return await _client.GetFromJsonAsync<Response<ICollection<SchoolInfoMapDto>>>(url.ToString())
-               ?? new Response<ICollection<SchoolInfoMapDto>>(null, 400, "Erro ao obter markers.");
+        try
+        {
+            return await _client.GetFromJsonAsync<Response<ICollection<SchoolInfoMapDto>>>(url.ToString(), cancellationToken)
+                   ?? new Response<ICollection<SchoolInfoMapDto>>(null, 400, "Erro ao obter markers.");
+        }
+        catch (TaskCanceledException)
+        {
+            return new Response<ICollection<SchoolInfoMapDto>>(new List<SchoolInfoMapDto>(), 499, "Requisição cancelada no front-end.");
+        }
     }
 }

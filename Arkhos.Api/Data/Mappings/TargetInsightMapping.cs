@@ -1,4 +1,3 @@
-using System.Xml.Linq;
 using Arkhos.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -13,48 +12,19 @@ public class TargetInsightMapping : IEntityTypeConfiguration<TargetInsight>
 
         builder.HasKey(x => x.Id);
         
-        builder.Property(x => x.Id)
-               .HasColumnName("id")
-               .ValueGeneratedOnAdd(); 
+        builder.HasIndex(x => x.IdAlvo);
+        builder.HasIndex(x => x.Ano);
 
-        builder.Property(x => x.Axis)
-               .HasColumnName("axis")
-               .HasColumnType("TEXT");
-
-        builder.Property(x => x.Level)
-               .HasColumnName("level")
-               .HasColumnType("TEXT");
-
-        builder.Property(x => x.Ano)
-               .HasColumnName("ano")
-               .HasColumnType("INTEGER");
-
-        builder.Property(x => x.TipoInsight)
-               .HasColumnName("tipo_insight")
-               .HasColumnType("TEXT");
-
-        builder.Property(x => x.Titulo)
-               .HasColumnName("titulo")
-               .HasColumnType("TEXT");
-
-        builder.Property(x => x.ValorDestaque)
-               .HasColumnName("valor_destaque")
-               .HasColumnType("TEXT");
-
-        builder.Property(x => x.Descricao)
-               .HasColumnName("descricao")
-               .HasColumnType("TEXT");
-
-        builder.Property(x => x.Recomendacao)
-               .HasColumnName("recomendacao")
-               .HasColumnType("TEXT");
-
-        builder.Property(x => x.ValorBaseline)
-               .HasColumnName("valor_baseline")
-               .HasColumnType("REAL");
-
-        builder.Property(x => x.IdAlvo)
-               .HasColumnName("id_alvo")
-               .HasColumnType("INTEGER");
+        builder.Property(x => x.Id).HasColumnName("id").ValueGeneratedOnAdd(); 
+        builder.Property(x => x.Axis).HasColumnName("axis");
+        builder.Property(x => x.Level).HasColumnName("level");
+        builder.Property(x => x.Ano).HasColumnName("ano");
+        builder.Property(x => x.TipoInsight).HasColumnName("tipo_insight");
+        builder.Property(x => x.Titulo).HasColumnName("titulo");
+        builder.Property(x => x.ValorDestaque).HasColumnName("valor_destaque");
+        builder.Property(x => x.Descricao).HasColumnName("descricao");
+        builder.Property(x => x.Recomendacao).HasColumnName("recomendacao");
+        builder.Property(x => x.ValorBaseline).HasColumnName("valor_baseline");
+        builder.Property(x => x.IdAlvo).HasColumnName("id_alvo");
     }
 }

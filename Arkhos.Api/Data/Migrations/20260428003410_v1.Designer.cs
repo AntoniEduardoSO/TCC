@@ -5,67 +5,74 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
 namespace Arkhos.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260425211221_v1")]
+    [Migration("20260428003410_v1")]
     partial class v1
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.5");
+            modelBuilder
+                .HasAnnotation("ProductVersion", "10.0.5")
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Arkhos.Core.Models.CityInfo", b =>
                 {
                     b.Property<int>("MunicipioId")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("municipio_id");
 
                     b.Property<int>("Ano")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("ano");
 
                     b.Property<int>("AreaTerritorial")
-                        .HasColumnType("REAL")
+                        .HasColumnType("integer")
                         .HasColumnName("area_territorial");
 
                     b.Property<double>("DensidadeDemografica")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("densidade_demografica");
 
                     b.Property<int>("IdMesorregiao")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("id_mesorregiao");
 
                     b.Property<int>("IdMicrorregiao")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("id_microrregiao");
 
                     b.Property<string>("NomeMesorregiao")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("nome_mesorregiao");
 
                     b.Property<string>("NomeMicrorregiao")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("nome_microrregiao");
 
                     b.Property<string>("NomeMunicipio")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("nome_municipio");
 
                     b.Property<int>("PopulacaoTotal")
-                        .HasColumnType("REAL")
+                        .HasColumnType("integer")
                         .HasColumnName("populacao_total");
 
                     b.HasKey("MunicipioId", "Ano");
+
+                    b.HasIndex("Ano");
 
                     b.ToTable("city_info", (string)null);
                 });
@@ -73,53 +80,55 @@ namespace Arkhos.Api.Migrations
             modelBuilder.Entity("Arkhos.Core.Models.CityTransparencyPortal", b =>
                 {
                     b.Property<string>("Id")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("id");
 
                     b.Property<string>("Credor")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("credor");
 
                     b.Property<DateTime?>("Data")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("data");
 
                     b.Property<string>("Detalhe")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("detalhe");
 
                     b.Property<string>("Eixo")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("eixo");
 
                     b.Property<string>("ElementoDespesa")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("elemento_despesa");
 
                     b.Property<string>("Macro")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("macro");
 
                     b.Property<string>("Micro")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("micro");
 
                     b.Property<int>("MuncipioId")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("municipio_id_fk");
 
                     b.Property<int>("PortalOrigem")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("portal_origem");
 
                     b.Property<double?>("Valor")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("valor");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MuncipioId");
 
                     b.ToTable("city_transparency_portal", (string)null);
                 });
@@ -128,64 +137,70 @@ namespace Arkhos.Api.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Descricao")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("descricao");
 
                     b.Property<string>("Grupo")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("grupo");
 
                     b.Property<int>("Tamanho")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("tamanho");
 
                     b.Property<string>("Tipo")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("tipo");
 
                     b.Property<string>("Variavel")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("variavel");
 
                     b.HasKey("Id");
 
-                    b.ToTable("SchoolEnrollDicts");
+                    b.HasIndex("Variavel");
+
+                    b.ToTable("school_enroll_dict", (string)null);
                 });
 
             modelBuilder.Entity("Arkhos.Core.Models.SchoolEnrollValues", b =>
                 {
                     b.Property<int>("Ano")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("ano");
 
                     b.Property<int>("IdEscolaEnrollValues")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("id_escola_fk");
 
                     b.Property<int>("AtributoId")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("id_atributo");
 
                     b.Property<string>("TipoAtributo")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("tipo_atributo");
 
                     b.Property<double>("Valor")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("valor");
 
                     b.HasKey("Ano", "IdEscolaEnrollValues", "AtributoId");
 
                     b.HasIndex("AtributoId");
+
+                    b.HasIndex("IdEscolaEnrollValues");
 
                     b.HasIndex("IdEscolaEnrollValues", "Ano");
 
@@ -195,62 +210,67 @@ namespace Arkhos.Api.Migrations
             modelBuilder.Entity("Arkhos.Core.Models.SchoolInfo", b =>
                 {
                     b.Property<int>("IdEscola")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("escola_id");
 
                     b.Property<int>("Ano")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("ano");
 
                     b.Property<short>("Alocacao")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("smallint")
                         .HasColumnName("alocacao");
 
                     b.Property<int>("CityInfoId")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("id_municipio_fk");
 
                     b.Property<short>("Dependencia")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("smallint")
                         .HasColumnName("dependencia");
 
                     b.Property<string>("Endereco")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("endereco");
 
                     b.Property<short>("Funcionamento")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("smallint")
                         .HasColumnName("funcionamento");
 
                     b.Property<double?>("Lat")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("lat");
 
                     b.Property<short?>("Localizacao")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("smallint")
+                        .HasColumnName("localizacao");
 
                     b.Property<double?>("Lon")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("lon");
 
                     b.Property<string>("NomeEscola")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("nome_escola");
 
                     b.Property<short>("Ocupacao")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("smallint")
                         .HasColumnName("ocupacao");
 
                     b.Property<int?>("Sede")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("sede");
 
                     b.Property<string>("Telefone")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("telefone");
 
                     b.HasKey("IdEscola", "Ano");
+
+                    b.HasIndex("Ano");
+
+                    b.HasIndex("CityInfoId");
 
                     b.HasIndex("CityInfoId", "Ano");
 
@@ -261,34 +281,38 @@ namespace Arkhos.Api.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Descricao")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("descricao");
 
                     b.Property<string>("Grupo")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("grupo");
 
                     b.Property<int>("Tamanho")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("tamanho");
 
                     b.Property<string>("Tipo")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("tipo");
 
                     b.Property<string>("Variavel")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("variavel");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Variavel");
 
                     b.ToTable("school_infra_dict", (string)null);
                 });
@@ -296,29 +320,31 @@ namespace Arkhos.Api.Migrations
             modelBuilder.Entity("Arkhos.Core.Models.SchoolInfraValues", b =>
                 {
                     b.Property<int>("Ano")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("ano");
 
                     b.Property<int>("IdEscolaInfraValues")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("id_escola_fk");
 
                     b.Property<int>("AtributoId")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("id_atributo");
 
                     b.Property<string>("TipoAtributo")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("tipo_atributo");
 
                     b.Property<double>("Valor")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("valor");
 
                     b.HasKey("Ano", "IdEscolaInfraValues", "AtributoId");
 
                     b.HasIndex("AtributoId");
+
+                    b.HasIndex("IdEscolaInfraValues");
 
                     b.HasIndex("IdEscolaInfraValues", "Ano");
 
@@ -328,95 +354,95 @@ namespace Arkhos.Api.Migrations
             modelBuilder.Entity("Arkhos.Core.Models.SchoolRating", b =>
                 {
                     b.Property<int>("SchoolInfoId")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("id_escola_fk");
 
                     b.Property<int>("Ano")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("ano");
 
                     b.Property<double>("AcessibilityRating")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("acessibility_rating");
 
                     b.Property<double>("AdministrativeBurdenRating")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("administrative_burden_rating");
 
                     b.Property<double?>("AgeGradeDistortionRating")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("age_grade_distortion_rating");
 
                     b.Property<double?>("ApprovalRate")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("approval_rate");
 
                     b.Property<double?>("DropoutRate")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("dropout_rate");
 
                     b.Property<double?>("FailureRate")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("failure_rate");
 
                     b.Property<double?>("HumanSupportRating")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("human_support_rating");
 
                     b.Property<double?>("IdebRating")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("ideb_rating");
 
                     b.Property<double>("InfrastructureSpendingPerStudent")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("infrastructure_spending_per_student");
 
                     b.Property<double>("ManagementRating")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("management_rating");
 
                     b.Property<double>("MealSpendingPerStudent")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("meal_spending_per_student");
 
                     b.Property<double>("PedagogicalRating")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("pedagogical_rating");
 
                     b.Property<double>("PedagogicalSpendingPerStudent")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("pedagogical_spending_per_student");
 
                     b.Property<double>("RecreationRating")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("recreation_rating");
 
                     b.Property<double?>("SaebRating")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("saeb_rating");
 
                     b.Property<double>("SpendingPerStudent")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("spending_per_student");
 
                     b.Property<double>("SpendingPerTeacher")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("spending_per_teacher");
 
                     b.Property<double>("TeacherInstabilityRating")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("teacher_instability_rating");
 
                     b.Property<double>("TeacherStressRating")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("teacher_stress_rating");
 
                     b.Property<double>("TransportSpendingPerStudent")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("transport_spending_per_student");
 
                     b.Property<double>("WellbeingRating")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("wellbeing_rating");
 
                     b.HasKey("SchoolInfoId", "Ano");
@@ -430,57 +456,63 @@ namespace Arkhos.Api.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("id");
 
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
                     b.Property<int>("Ano")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("ano");
 
                     b.Property<string>("Axis")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("axis");
 
                     b.Property<string>("Descricao")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("descricao");
 
                     b.Property<int>("IdAlvo")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("integer")
                         .HasColumnName("id_alvo");
 
                     b.Property<string>("Level")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("level");
 
                     b.Property<string>("Recomendacao")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("recomendacao");
 
                     b.Property<string>("TipoInsight")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("tipo_insight");
 
                     b.Property<string>("Titulo")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("titulo");
 
                     b.Property<double>("ValorBaseline")
-                        .HasColumnType("REAL")
+                        .HasColumnType("double precision")
                         .HasColumnName("valor_baseline");
 
                     b.Property<string>("ValorDestaque")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("text")
                         .HasColumnName("valor_destaque");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Ano");
+
+                    b.HasIndex("IdAlvo");
 
                     b.ToTable("insights", (string)null);
                 });

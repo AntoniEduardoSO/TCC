@@ -1,8 +1,8 @@
-namespace Arkhos.Api.Data.Mappings;
-
 using Arkhos.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace Arkhos.Api.Data.Mappings;
 
 public class SchoolEnrollValuesMapping : IEntityTypeConfiguration<SchoolEnrollValues>
 {
@@ -12,30 +12,14 @@ public class SchoolEnrollValuesMapping : IEntityTypeConfiguration<SchoolEnrollVa
 
         builder.HasKey(x => new { x.Ano, x.IdEscolaEnrollValues, x.AtributoId });
 
-        builder.Property(x => x.Ano)
-            .HasColumnName("ano")
-            .HasColumnType("INTEGER")
-            .IsRequired();
+        builder.HasIndex(x => x.IdEscolaEnrollValues);
+        builder.HasIndex(x => x.AtributoId);
 
-        builder.Property(x => x.IdEscolaEnrollValues)
-            .HasColumnName("id_escola_fk")
-            .HasColumnType("INTEGER")
-            .IsRequired();
-
-        builder.Property(x => x.AtributoId)
-            .HasColumnName("id_atributo")
-            .HasColumnType("INTEGER")
-            .IsRequired();
-
-        builder.Property(x => x.TipoAtributo)
-            .HasColumnName("tipo_atributo")
-            .HasColumnType("TEXT")
-            .IsRequired();
-
-        builder.Property(x => x.Valor)
-            .HasColumnName("valor")
-            .HasColumnType("REAL")
-            .IsRequired();
+        builder.Property(x => x.Ano).HasColumnName("ano").IsRequired();
+        builder.Property(x => x.IdEscolaEnrollValues).HasColumnName("id_escola_fk").IsRequired();
+        builder.Property(x => x.AtributoId).HasColumnName("id_atributo").IsRequired();
+        builder.Property(x => x.TipoAtributo).HasColumnName("tipo_atributo").IsRequired();
+        builder.Property(x => x.Valor).HasColumnName("valor").IsRequired();
 
         builder.HasOne(x => x.SchoolEnrollDict)
             .WithMany(x => x.SchoolEnrollValues)
