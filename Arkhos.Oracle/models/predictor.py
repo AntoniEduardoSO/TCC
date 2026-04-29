@@ -1,8 +1,19 @@
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.impute import KNNImputer
+from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit
 import shap  # pip install shap
-import random # Adicionado para variação dinâmica de linguagem
+import random
+
+from core.plot_generator import ArkhosPlotter
+
+param_dist = {
+    'n_estimators': [100, 200, 300],
+    'max_depth': [None, 10, 20, 30],
+    'min_samples_split': [2, 5, 10],
+    'min_samples_leaf': [1, 2, 4]
+}
 
 class RiskPredictor:
     def __init__(self, baselines: dict):
@@ -174,6 +185,8 @@ class RiskPredictor:
 
     def generate_shap_prescriptions(self, df_completo: pd.DataFrame, df_detalhado: pd.DataFrame, ano_atual: int = 2024) -> list:
         todas_prescricoes = []
+
+        plotter = ArkhosPlotter(output_dir="docs_tcc_graficos")
         
         for config in self.targets_config:
             target = config["target_col"]
@@ -186,52 +199,77 @@ class RiskPredictor:
             
             df_treino = df.dropna(subset=[f'target_futuro']).copy()
             df_2024 = df[df['ano'] == ano_atual].dropna(subset=[target]).copy()
+
+            imputer = KNNImputer(n_neighbors=5, weights='distance')
             
-            X_train = df_treino[self.features].fillna(0)
+            X_train_array = imputer.fit_transform(df_treino[self.features])
+            X_train = pd.DataFrame(X_train_array, columns=self.features, index=df_treino.index)
             y_train = df_treino['target_futuro']
-            X_2024 = df_2024[self.features].fillna(0)
+
+            X_2024_array = imputer.transform(df_2024[self.features])
+            X_2024 = pd.DataFrame(X_2024_array, columns=self.features, index=df_2024.index)
             
             if X_2024.empty or X_train.empty: continue
 
-            # Random Forest e SHAP
-            model = RandomForestRegressor(n_estimators=50, random_state=42, n_jobs=-1)
-            model.fit(X_train, y_train)
-            predicoes_futuras = model.predict(X_2024)
+            # Tratamento de multicolinearidade para evitar que variáveis redundantes dividam o peso do SHAP e ocultem o vilão
+            matriz_correlacao = X_train.corr().abs()
+            triangulo_superior = matriz_correlacao.where(np.triu(np.ones(matriz_correlacao.shape), k=1).astype(bool))
+            features_para_remover = [coluna for coluna in triangulo_superior.columns if any(triangulo_superior[coluna] > 0.85)]
+            features_ativas = [f for f in self.features if f not in features_para_remover]
             
-            explainer = shap.TreeExplainer(model)
+            X_train = X_train[features_ativas]
+            X_2024 = X_2024[features_ativas]
+
+            # Validação cruzada temporal Walk-Forward para garantir que o modelo não aprenda com dados do futuro
+            validacao_temporal = TimeSeriesSplit(n_splits=3)
+
+            # Busca automatizada pela árvore de decisão com a melhor combinação de hiperparâmetros
+            rf = RandomForestRegressor(random_state=42, n_jobs=-1)
+            otimizador_arvore = RandomizedSearchCV(rf, param_distributions=param_dist, n_iter=10, cv=validacao_temporal, random_state=42, scoring='neg_mean_absolute_error')
+            otimizador_arvore.fit(X_train, y_train)
+            
+            modelo_otimizado = otimizador_arvore.best_estimator_
+            predicoes_futuras = modelo_otimizado.predict(X_2024)
+            
+            explainer = shap.TreeExplainer(modelo_otimizado)
             shap_values = explainer.shap_values(X_2024)
+
+            # plots.
+            plotter.plot_correlation_matrix(X_train, target)
+            plotter.plot_feature_importance(modelo_otimizado, features_ativas, target)
+            plotter.plot_shap_summary(shap_values, X_2024, target)
             
             df_2024 = df_2024.reset_index(drop=True)
             df_2024['risco_predito'] = predicoes_futuras
-            for i, feat in enumerate(self.features): df_2024[f'shap_{feat}'] = shap_values[:, i]
+
+            plotter.plot_risk_distribution(df_2024, target)
+
+            for i, feat in enumerate(features_ativas): df_2024[f'shap_{feat}'] = shap_values[:, i]
                 
-            # --- 1. AVISOS ESCOLAS ---
             for idx, row in df_2024.iterrows():
                 predicao = row['risco_predito']
                 escola_id = row.get('id_escola', row.get('id_escola_fk'))
-                pesos = {feat: row[f'shap_{feat}'] for feat in self.features}
+                pesos = {feat: row.get(f'shap_{feat}', 0) for feat in features_ativas}
                 
                 alerta_disparado = False
                 viloes_ativos = []
                 
-                # Nova lógica: Capturando os Top Vilões com base na direção do prejuízo
                 if config["is_bad_when"] == "HIGH":
                     if predicao > (config["baseline_mean"] + config["baseline_std"]):
                         alerta_disparado = True
                         sorted_feats = sorted(pesos.items(), key=lambda item: item[1], reverse=True)
-                        viloes_ativos = [f for f, v in sorted_feats if v > 0] # Pega os que puxam pra cima
+                        viloes_ativos = [f for f, v in sorted_feats if v > 0] 
                 else:
                     if predicao < (config["baseline_mean"] - config["baseline_std"]):
                         alerta_disparado = True
-                        sorted_feats = sorted(pesos.items(), key=lambda item: item[1]) # Ascendente
-                        viloes_ativos = [f for f, v in sorted_feats if v < 0] # Pega os que empurram pra baixo
+                        sorted_feats = sorted(pesos.items(), key=lambda item: item[1]) 
+                        viloes_ativos = [f for f, v in sorted_feats if v < 0] 
                 
                 if alerta_disparado and viloes_ativos:
                     acao_shap = "agrava" if config["is_bad_when"] == "HIGH" else "puxa para baixo"
                     texto_ia, vilao_principal = self._gerar_texto_explicativo(viloes_ativos, acao_shap)
                     detalhe_micro = self._extrair_detalhe_granular(vilao_principal, escola_id, df_detalhado) if vilao_principal else ""
                     
-                    # Recupera a recomendação dinâmica para o nível da escola
                     rec_direcionada = self.recomendacoes_especificas.get(vilao_principal, "Realizar auditoria técnica para mapear a raiz estrutural do déficit projetado.")
 
                     req = {
@@ -252,7 +290,7 @@ class RiskPredictor:
                     alerta_disparado = False
                     viloes_ativos = []
                     
-                    mean_shaps = alvo_df[[f'shap_{f}' for f in self.features]].mean()
+                    mean_shaps = alvo_df[[f'shap_{f}' for f in features_ativas]].mean()
                     
                     if config["is_bad_when"] == "HIGH":
                         if predicao_media > (config["baseline_mean"] + (config["baseline_std"] * 0.5)):
@@ -270,7 +308,6 @@ class RiskPredictor:
                         texto_ia, vilao_principal = self._gerar_texto_explicativo(viloes_ativos, acao_shap)
                         detalhe_rede = self._extrair_detalhe_agregado(vilao_principal, alvo_id, df_detalhado, nivel_id_col) if vilao_principal else ""
                         
-                        # Recupera a recomendação dinâmica e adapta para uma visão mais sistêmica/macrorregional
                         fallback_macro = "Articular força-tarefa intersetorial e prever suplementação orçamentária para o gargalo apontado."
                         rec_direcionada_macro = self.recomendacoes_especificas.get(vilao_principal, fallback_macro)
                         
@@ -279,7 +316,7 @@ class RiskPredictor:
                             "titulo": f"{titulo_prefixo}: {config['titulo']}",
                             "valor_destaque": f"{predicao_media * 100:.1f}%" if "rate" in target else f"{predicao_media:.2f}",
                             "descricao": f"é a projeção média para a rede. {texto_ia}{detalhe_rede}",
-                            "recomendacao": rec_direcionada_macro, # <-- Alterado aqui para usar a dinâmica no Macro também!
+                            "recomendacao": rec_direcionada_macro,
                             "valor_baseline": config["baseline_mean"], "id_alvo": alvo_id
                         }
                         todas_prescricoes.append(req)
@@ -292,10 +329,10 @@ class RiskPredictor:
             alerta_disparado = False
             viloes_ativos = []
             
-            mean_shaps = df_2024[[f'shap_{f}' for f in self.features]].mean()
+            mean_shaps = df_2024[[f'shap_{f}' for f in features_ativas]].mean()
             
             if config["is_bad_when"] == "HIGH":
-                if predicao_media_estado > (config["baseline_mean"] + (config["baseline_std"] * 0.25)): # Margem de tolerância menor para o Estado
+                if predicao_media_estado > (config["baseline_mean"] + (config["baseline_std"] * 0.25)):
                     alerta_disparado = True
                     sorted_shaps = mean_shaps.sort_values(ascending=False)
                     viloes_ativos = [f.replace('shap_', '') for f, v in sorted_shaps.items() if v > 0]
@@ -309,7 +346,6 @@ class RiskPredictor:
                 acao_shap = "agrava sistemicamente" if config["is_bad_when"] == "HIGH" else "corrói o índice global"
                 texto_ia, vilao_principal = self._gerar_texto_explicativo(viloes_ativos, acao_shap)
                 
-                # Para o estado, o detalhe é gerado em cima do df inteiro (podemos passar id_alvo como None ou 27)
                 detalhe_rede = " O impacto deste fator já se reflete na maioria das mesorregiões." 
                 
                 rec_direcionada_macro = self.recomendacoes_especificas.get(vilao_principal, "Articular com a casa civil plano de mitigação global.")

@@ -9,7 +9,6 @@ from controllers.microregion_controller import MicroregionController
 from controllers.mesoregion_controller import MesoregionController
 from models.predictor import RiskPredictor
 
-# Apontando para o PostgreSQL local que você acabou de popular
 DB_URL = "postgresql://postgres:311200@localhost:5432/arkhos"
 
 def init_insights_db():
@@ -239,8 +238,8 @@ def run_oracle():
         print("\n[ORACLE - OK] Processo finalizado usando dados cacheados.")
     
     else:
-        ANOS_PRESCRITIVOS = list(range(2017, 2025)) 
-        ANOS_PREDITIVOS = [2023, 2024]           
+        ANOS_PRESCRITIVOS = list(range(2017, 2026)) 
+        ANOS_PREDITIVOS = [2023, 2024, 2025]           
         
         print("="*50)
         print(" INICIANDO MOTOR ARKHOS (PRESCRITIVO + PREDITIVO)")

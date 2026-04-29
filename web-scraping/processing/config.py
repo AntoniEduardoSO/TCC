@@ -40,22 +40,33 @@ def fix_dtypes(df_dict, df):
     for col in cols_object:
         data.loc[:, col] = data[col].fillna('').str.strip()
 
+    for col, dtype in school_schema.items():
+        if col in data.columns:
+            try:
+                # O pandas.to_numeric ajuda a converter strings vazias ou nulos antes de aplicar Int
+                if dtype in ['Int8', 'Int64']:
+                    data[col] = pd.to_numeric(data[col], errors='coerce').astype(dtype)
+                else:
+                    data[col] = data[col].astype(dtype)
+            except Exception as e:
+                print(f"Aviso: Não foi possível converter a coluna {col} para {dtype}.")
+
     return data
 
 def generate_optimized_tables(data, df_dict):
-    # Pega as colunas que sao quantitativas.
-    condicao_quant = (
-        (df_dict['variavel'].str.startswith('QT')) | 
-        ((df_dict['tipo'] == 'Num') & (df_dict['tamanho'] > 1))
-    )
-    col_quant = df_dict.loc[condicao_quant, 'variavel'].tolist()
+    # # Pega as colunas que sao quantitativas.
+    # condicao_quant = (
+    #     (df_dict['variavel'].str.startswith('QT')) | 
+    #     ((df_dict['tipo'] == 'Num') & (df_dict['tamanho'] > 1))
+    # )
+    # col_quant = df_dict.loc[condicao_quant, 'variavel'].tolist()
 
-    # Intersecao entre o dicionario df_dict e as colunas presentes do data original.
+    # # Intersecao entre o dicionario df_dict e as colunas presentes do data original.
 
-    col_present = [c for c in col_quant if c in data.columns]
+    # col_present = [c for c in col_quant if c in data.columns]
 
-    # Estamos descartando o 0 por nulo apenas para os valores quantitativos.
-    data[col_present] = data[col_present].replace(0, np.nan)
+    # # Estamos descartando o 0 por nulo apenas para os valores quantitativos.
+    # # data[col_present] = data[col_present].replace(0, np.nan)
 
     return data
 
@@ -237,49 +248,116 @@ def remove_files():
         if os.path.exists(full_path):
             os.remove(full_path)
 
+
+def process_normalized_census(current_year, i_census, df_dict):
+    dfs = get_school_census_file(i_census)
+
+    if not dfs:
+        print(f"Dados não encontrados para o ano {current_year}.")
+        return
+
+    chave_escola = next((k for k in dfs.keys() if 'tabela_escola' in k.lower()), None)
+    if not chave_escola:
+        print("Erro: Tabela_Escola não encontrada no ZIP!")
+        return
+    
+    df_base = dfs[chave_escola]
+
+    # Mapear todas as variáveis que importam para o sistema
+    variaveis_esperadas = set(df_dict['variavel'].tolist())
+
+    colunas_novas_adicionadas = []
+
+    # Iterar sobre todos os outros CSVs do ZIP
+    for nome_arquivo, df_temp in dfs.items():
+        if nome_arquivo == chave_escola:
+            continue # Pula a tabela base que já separamos
+        
+        # Verifica se as chaves de join (NU_ANO_CENSO, CO_ENTIDADE) existem neste CSV
+        if all(key in df_temp.columns for key in col_identify):
+            
+            # Pega apenas as colunas que o dicionário pede e que AINDA NÃO estão no df_base
+            colunas_uteis = [col for col in df_temp.columns if col in variaveis_esperadas and col not in df_base.columns]
+            
+            if colunas_uteis:
+                colunas_para_merge = colunas_uteis + col_identify
+                print(f"Anexando {len(colunas_uteis)} colunas do arquivo {nome_arquivo}...")
+                colunas_novas_adicionadas.extend(colunas_uteis)
+                # Merge horizontal (Left Join garante que nenhuma escola suma)
+                df_base = pd.merge(
+                    df_base,
+                    df_temp[colunas_para_merge],
+                    on=col_identify,
+                    how='left'
+                )
+
+    if colunas_novas_adicionadas:
+        df_base[colunas_novas_adicionadas] = df_base[colunas_novas_adicionadas].fillna(0)
+
+    colunas_finais = set(df_base.columns)
+    colunas_perdidas = variaveis_esperadas - colunas_finais
+
+    if colunas_perdidas:
+        print(f"\n[AVISO] {len(colunas_perdidas)} variáveis do dicionário não foram encontradas em NENHUM CSV de {current_year}:")
+        for col in sorted(colunas_perdidas):
+            print(f" - {col}")
+    else:
+        print("\n[SUCESSO] Todas as variáveis do dicionário foram mapeadas com sucesso!")
+
+    data = fix_dtypes(df_dict, df_base)
+    data = generate_optimized_tables(data, df_dict)
+
+    df_info = create_school_info(data, df_dict, current_year)
+    df_infra_long = create_infrastructure(data, df_dict)
+    df_enroll_long = create_school_enrollment(data, df_dict)
+
+    create_rating_table(df_infra_long, df_enroll_long, df_info, df_dict, current_year, dir_atual)
+
+def process_legacy_census(current_year, i_census, i_perf, df_dict):
+    create_school_perfomance_rate(get_school_perfomance_rate_file(i_perf))
+
+    df = get_school_census_file(i_census)
+
+    # Corrigindo os tipos de valores atraves do dicionario.csv e retornando o data limpo.
+    data = fix_dtypes(df_dict, df)
+
+    # Adicionando etiquetas para colunas quantitativas iguais a 0, evitando muitas linhas desnecessarias.
+    data = generate_optimized_tables(data, df_dict)
+
+    # Criando csv para school_info.csv
+    df_info = create_school_info(data, df_dict, current_year)
+    # Criando csv para infrastructure e dict_infraestructure
+    df_infra_long = create_infrastructure(data, df_dict)
+
+    # Criando csv para enrollment e dict_enrollment
+    df_enroll_long = create_school_enrollment(data, df_dict)
+
+    # Criando csv para tabelas de rating.
+    create_rating_table(df_infra_long, df_enroll_long, df_info, df_dict, current_year, dir_atual)
+
 def exec_processing():
 
     base_dir = os.getcwd()
-
     downloads_folder = os.path.join(base_dir, "data", "raw")
 
-    remove_files()
+    # remove_files()
     io.clean_tmp_folder(downloads_folder)
-
-    year = 2025
-    i = 1
 
     # Carregando o dicionario.
     df_dict = pd.read_csv(os.path.join(dir_atual, "..", "dicionario.csv"))
 
-    while i <= 8:
-        current_year = year - i
+    for current_year in [2025]:
+        
+        i_census = 2026 - current_year
 
-        create_school_perfomance_rate(get_school_perfomance_rate_file(i))
+        i_perf = 2025 - current_year
 
-        df = get_school_census_file(i)
+        if current_year <= 2024:
+            process_legacy_census(current_year, i_census, i_perf, df_dict)
+        else:
+            process_normalized_census(current_year, i_census, df_dict)
 
-        # Corrigindo os tipos de valores atraves do dicionario.csv e retornando o data limpo.
-        data = fix_dtypes(df_dict, df)
-
-        # Adicionando etiquetas para colunas quantitativas iguais a 0, evitando muitas linhas desnecessarias.
-        data = generate_optimized_tables(data, df_dict)
-
-        # Criando csv para school_info.csv
-        df_info = create_school_info(data, df_dict, current_year)
-        # Criando csv para infrastructure e dict_infraestructure
-        df_infra_long = create_infrastructure(data, df_dict)
-
-        # Criando csv para enrollment e dict_enrollment
-        df_enroll_long = create_school_enrollment(data, df_dict)
-
-        # Criando csv para tabelas de rating.
-        create_rating_table(df_infra_long, df_enroll_long, df_info, df_dict, current_year, dir_atual)
-
-        i += 1
-
-        io.clean_tmp_folder(downloads_folder) 
+        io.clean_tmp_folder(downloads_folder)
 
     get_school_ideb_file()
-
     enrich_ratings_with_learning_metrics()

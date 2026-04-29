@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
+from sklearn.ensemble import RandomForestRegressor
 
 TEACHER_COLS = [
     'QT_DOC_BAS'
@@ -66,6 +67,44 @@ WELLBEING_COLS = [
     'IN_ESGOTO_REDE_PUBLICA', 'IN_ENERGIA_REDE_PUBLICA',
     'IN_LIXO_SERVICO_COLETA'
 ]
+
+def predict_performance_for_missing_year(df_2025, df_historico):
+    features = [
+        'acessibility_rating', 'recreation_rating', 'wellbeing_rating', 
+        'human_support_rating', 'management_rating', 'age_grade_distortion_rating', 
+        'pedagogical_rating', 'teacher_stress_rating', 'teacher_instability_rating', 
+        'administrative_burden_rating', 'spending_per_student', 'spending_per_teacher', 
+        'pedagogical_spending_per_student', 'infrastructure_spending_per_student', 
+        'meal_spending_per_student', 'transport_spending_per_student'
+    ]
+    
+    targets = ['approval_rate', 'failure_rate', 'dropout_rate']
+
+    cols_presentes = [c for c in (targets + features) if c in df_historico.columns]
+
+    if len(cols_presentes) < len(targets + features):
+        missing = set(targets + features) - set(cols_presentes)
+        print(f"[ERRO] O histórico não possui as colunas: {missing}")
+        # Retorna zeros ou valores de 2024 como fallback para não quebrar o sistema
+        return pd.Series(0.9, index=df_2025.index), pd.Series(0.05, index=df_2025.index), pd.Series(0.05, index=df_2025.index)
+    
+    df_train = df_historico.dropna(subset=targets + features)
+    
+    X_train = df_train[features]
+    X_test = df_2025[features].fillna(0) # Features de 2025
+    
+    results = {}
+    
+    for target in targets:
+        y_train = df_train[target]
+        
+        model = RandomForestRegressor(n_estimators=200, max_depth=20, random_state=42, n_jobs=-1)
+        model.fit(X_train, y_train)
+        
+        # Predição para 2025
+        results[target] = pd.Series(model.predict(X_test), index=df_2025.index)
+        
+    return results['approval_rate'], results['failure_rate'], results['dropout_rate']
 
 def save_incremental(df: pd.DataFrame, filepath: str):
 
@@ -1011,46 +1050,31 @@ def enrich_ratings_with_learning_metrics():
     ratings.to_csv("data/Geral/school_ratings.csv", index=False)
 
 def create_rating_table(df_infra_long, df_enroll_long, df_school_info, df_dict, year, dir_atual):
-
     df_active = df_school_info[df_school_info['funcionamento'] == 1].copy()
-    
     df_school_ratings = pd.DataFrame(index=df_active['id_escola'])
     df_school_ratings['ano'] = year
 
     # Carregamento.
     df_dict_infra = pd.read_csv(os.path.join(dir_atual, "..", "data/Infraestrutura/infrastructure_dict.csv"))
     df_dict_enroll = pd.read_csv(os.path.join(dir_atual, "..", "data/Matricula/enroll_dict.csv"))
-    df_perf = pd.read_csv(os.path.join(dir_atual, "..","data/Matricula/school_perfomance_rate.csv"))
-    
-    df_fin_city = pd.read_csv(os.path.join(dir_atual, "..", "data/CONSOLIDADO_GERAL_FINAL.csv"), low_memory = False)
-
+    df_fin_city = pd.read_csv(os.path.join(dir_atual, "..", "data/CONSOLIDADO_GERAL_FINAL.csv"), low_memory=False)
     df_fin_city["data"] = pd.to_datetime(df_fin_city["data"], dayfirst=True)
     df_fin_city["ano"] = df_fin_city["data"].dt.year
 
-
     map_infra_names = dict(zip(df_dict_infra['id_atributo'], df_dict_infra['variavel']))
-
-    df_infra_wide = df_infra_long.pivot_table(index='id_escola',columns='id_atributo',values='valor',aggfunc='first')
+    df_infra_wide = df_infra_long.pivot_table(index='id_escola', columns='id_atributo', values='valor', aggfunc='first')
     df_infra_wide.columns = df_infra_wide.columns.map(map_infra_names)
     df_infra_wide = df_infra_wide.reindex(df_school_ratings.index).fillna(0)
 
     map_enroll_names = dict(zip(df_dict_enroll['id_atributo'], df_dict_enroll['variavel']))
-    df_enroll_wide = df_enroll_long.pivot_table(index='id_escola',columns='id_atributo',values='valor',aggfunc='first')
+    df_enroll_wide = df_enroll_long.pivot_table(index='id_escola', columns='id_atributo', values='valor', aggfunc='first')
     df_enroll_wide = df_enroll_wide.reindex(df_school_ratings.index).fillna(0)
     df_enroll_wide.columns = df_enroll_wide.columns.map(map_enroll_names)
 
-    # Criar maps rapidos para futuros calculos nos ratings
     students_by_school = build_students_map(df_enroll_wide)
     students_weighted_by_school = build_students_weighted_map(df_enroll_wide)
     support_staff_by_school = build_support_staff_by_school_map(df_enroll_wide)
     school_city_map = df_school_info.set_index("id_escola")["municipio_id"]
-
-    # Media ponderada do perfomance_rates
-    approval, failure, dropout = get_performance_rates(
-        df_perf,
-        df_school_ratings.index,
-        year
-    )
 
     df_school_ratings['acessibility_rating'] = get_acessible_rating(df_infra_wide, df_school_ratings.index, df_fin_city, students_by_school, year)
     df_school_ratings['recreation_rating'] = get_recreation_rating(df_infra_wide, df_school_ratings.index, df_fin_city, students_by_school, year)
@@ -1060,7 +1084,7 @@ def create_rating_table(df_infra_long, df_enroll_long, df_school_info, df_dict, 
     df_school_ratings['age_grade_distortion_rating'] = get_age_grade_distortion(df_enroll_wide, df_school_ratings.index)
     df_school_ratings['pedagogical_rating'] = get_pedagogical_rating(df_infra_wide, df_school_ratings.index, df_fin_city, students_by_school, year) 
     df_school_ratings['teacher_stress_rating'] = get_teacher_stress_rating(df_enroll_wide, df_school_ratings.index, df_fin_city, students_weighted_by_school, year)
-    df_school_ratings['teacher_instability_rating']   = get_teacher_instability_rating(df_school_ratings.index, df_fin_city, school_city_map, year)
+    df_school_ratings['teacher_instability_rating'] = get_teacher_instability_rating(df_school_ratings.index, df_fin_city, school_city_map, year)
     df_school_ratings['administrative_burden_rating'] = get_administrative_burden_rating(df_school_ratings.index, df_fin_city, school_city_map, year)
     df_school_ratings['spending_per_teacher'] = get_spending_per_teacher(df_enroll_wide, df_school_ratings.index, df_fin_city, students_by_school, year, school_city_map)
     df_school_ratings['pedagogical_spending_per_student'] = get_pedagogical_spending_per_student(df_school_ratings.index,df_fin_city,students_by_school, df_enroll_wide, year, school_city_map)
@@ -1068,9 +1092,26 @@ def create_rating_table(df_infra_long, df_enroll_long, df_school_info, df_dict, 
     df_school_ratings['meal_spending_per_student'] = get_school_meal_spending_per_student(df_school_ratings.index,df_fin_city,students_by_school,df_enroll_wide,year, school_city_map)
     df_school_ratings['transport_spending_per_student'] = get_transport_spending_per_student(df_school_ratings.index,df_fin_city,students_by_school,df_enroll_wide,year, school_city_map)
     df_school_ratings['spending_per_student'] = get_spending_per_student(df_school_ratings.index, df_fin_city, students_by_school, df_enroll_wide, year, school_city_map)
-    df_school_ratings["approval_rate"] = approval.clip(0,1)
-    df_school_ratings["failure_rate"] = failure.clip(0,1)
-    df_school_ratings["dropout_rate"] = dropout.clip(0,1)
+
+    df_perf_path = os.path.join(dir_atual, "..", "data/Matricula/school_perfomance_rate.csv")
+
+    if year == 2025:
+        print(f"[Arkhos.Oracle] Projetando rendimento para {year} com base nos indicadores calculados...")
+        path_historico = os.path.join(dir_atual, "..", "data/Geral/school_ratings.csv")
+        df_historico = pd.read_csv(path_historico)
+
+        approval, failure, dropout = predict_performance_for_missing_year(
+            df_school_ratings,
+            df_historico
+        )
+    else:
+        df_perf = pd.read_csv(df_perf_path)
+        approval, failure, dropout = get_performance_rates(df_perf, df_school_ratings.index, year)
+
+
+    df_school_ratings["approval_rate"] = approval.clip(0, 1).fillna(0.9)
+    df_school_ratings["failure_rate"] = failure.clip(0, 1).fillna(0.05)
+    df_school_ratings["dropout_rate"] = dropout.clip(0, 1).fillna(0.05)
 
     path_ratings = os.path.join(dir_atual, "..", "data/Geral/school_ratings.csv")
     save_incremental(df_school_ratings.reset_index(), path_ratings)

@@ -17,36 +17,30 @@ downloads_folder = project_root / "data" / "raw"
 downloads_folder_str = str(downloads_folder)
 
 def process_inep_zip(zip_path, year, type):
-    dfs = []
-
     with zipfile.ZipFile(zip_path, 'r') as z:
-
         all_files = z.namelist()
 
-        target_file = next(
-            (f for f in all_files if f"microdados_ed_basica_{year}" in f and f.endswith(".csv")),
-            None
-        )
-        
-        if year == 2020:
+        # Nova Estrutura Granular (2025 em diante)
+        if year >= 2025:
+            dfs = {}
+            
+            # Varre e carrega todos os CSVs disponíveis no ZIP
+            for f_name in all_files:
+                if f_name.lower().endswith(".csv"):
+                    with z.open(f_name) as f:
+                        dfs[f_name] = pd.read_csv(f, sep=';', encoding='latin-1', low_memory=False)
+            return dfs if dfs else None
+
+        else:
             target_file = next(
-                (f for f in all_files if f"microdados_ed_basica_{year}" in f and f.endswith(".CSV")),
+                (f for f in all_files if f"microdados_ed_basica_{year}" in f.lower() and f.lower().endswith(".csv")),
                 None
             )
 
-        if target_file:
-            
-            with z.open(target_file) as f:
-
-                df = pd.read_csv(
-                    f,
-                    sep=';',
-                    encoding='latin-1',
-                    low_memory=False
-                )
-                return df
-        
-        else:
+            if target_file:
+                with z.open(target_file) as f:
+                    df = pd.read_csv(f, sep=';', encoding='latin-1', low_memory=False)
+                    return df
             return None
 
 def wait_and_read_csv(folder_path, timeout = 300):
@@ -87,9 +81,7 @@ def download_files_type_2(driver, wait, downloads_folder, i):
 
 def download_files_type_1(driver, wait, downloads_folder, i):
 
-    year = 2025 - i
-
-    i+=1
+    year = 2026 - i 
 
     btn = wait.until(
         EC.element_to_be_clickable((By.XPATH, f"//*[@id='parent-fieldname-text']/ul[{i}]/li/a"))
@@ -111,17 +103,17 @@ def get_school_census_file(i):
     output_dir = os.path.join("data", "Geral")
     os.makedirs(output_dir, exist_ok=True)
 
-    df = []
+    df = None
     
     downloads_folder.mkdir(parents=True, exist_ok=True)
     driver, wait = get_driver(downloads_folder, True)
 
     driver.get("https://www.gov.br/inep/pt-br/acesso-a-informacao/dados-abertos/microdados/censo-escolar")
 
-    if i <= 4:
+    if i <= 5:
         df = download_files_type_1(driver, wait, downloads_folder, i)
-    elif i > 4:
-        i -= 4
+    else:
+        i -= 5
         df = download_files_type_2(driver, wait, downloads_folder, i)
     
     return df
