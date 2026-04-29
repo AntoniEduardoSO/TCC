@@ -5,7 +5,7 @@ namespace Arkhos.Web;
 public class DashboardStateService
 {
     public ICollection<SchoolInfoMapDto>? AllSchools { get; private set; }
-    public int SelectedYear { get; private set; } = 2024;
+    public int SelectedYear { get; private set; } = 2025;
     public int? SelectedDependency { get; private set; } = null;
     public bool IsLoading { get; private set; } = false;
 

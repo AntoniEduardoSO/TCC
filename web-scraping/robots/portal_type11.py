@@ -22,7 +22,7 @@ cols_to_drop = [
     'COD_EXIB'
 ]
 
-years = range(2017, 2025)
+years = range(2017, 2026)
 periods = ["01", "02", "03", "04", "05", "06"]
 uf = "AL"
 

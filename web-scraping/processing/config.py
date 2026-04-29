@@ -340,13 +340,13 @@ def exec_processing():
     base_dir = os.getcwd()
     downloads_folder = os.path.join(base_dir, "data", "raw")
 
-    # remove_files()
+    remove_files()
     io.clean_tmp_folder(downloads_folder)
 
     # Carregando o dicionario.
     df_dict = pd.read_csv(os.path.join(dir_atual, "..", "dicionario.csv"))
 
-    for current_year in [2025]:
+    for current_year in range(2017, 2026):
         
         i_census = 2026 - current_year
 
