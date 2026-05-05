@@ -1,10 +1,12 @@
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.impute import KNNImputer
 from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit
-import shap  # pip install shap
+import shap
 import random
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from core.plot_generator import ArkhosPlotter
 
@@ -44,7 +46,9 @@ class RiskPredictor:
             'pedagogical_spending_per_student': 'escassez de investimento direto em pedagogia',
             'infrastructure_spending_per_student': 'falta de repasses para custeio de infraestrutura',
             'meal_spending_per_student': 'deficiência no custeio nutricional da merenda',
-            'transport_spending_per_student': 'falhas logísticas de transporte escolar'
+            'transport_spending_per_student': 'falhas logísticas de transporte escolar',
+            'alvo_ano_passado': 'histórico recente de defasagem neste indicador',
+            'tendencia_alvo': 'tendência contínua de piora no último ano'
         }
 
         self.recomendacoes_especificas = {
@@ -63,7 +67,9 @@ class RiskPredictor:
             'pedagogical_spending_per_student': 'Remanejar rubricas orçamentárias descentralizadas para focar estritamente na aquisição de material de apoio didático.',
             'infrastructure_spending_per_student': 'Realizar auditoria técnica nos repasses de manutenção e priorizar zeladoria escolar imediata.',
             'meal_spending_per_student': 'Revisar contratos do PNAE, garantindo o percentual mínimo de compras da agricultura familiar local.',
-            'transport_spending_per_student': 'Otimizar rotas do PNATE e exigir manutenção preventiva da frota terceirizada.'
+            'transport_spending_per_student': 'Otimizar rotas do PNATE e exigir manutenção preventiva da frota terceirizada.',
+            'alvo_ano_passado': 'Revisar imediatamente a ineficácia das ações corretivas aplicadas no ano letivo anterior.',
+            'tendencia_alvo': 'Desenvolver plano de intervenção de choque para interromper a trajetória atual de queda contínua.'
         }
 
         self.targets_config = [
@@ -95,6 +101,103 @@ class RiskPredictor:
                 "desc_base": "é a nota projetada de estabilidade, apontando para grave rotatividade futura"
             }
         ]
+
+    def executar_backtesting(self, df_completo: pd.DataFrame, ano_treino_max: int = 2023, ano_teste: int = 2024) -> pd.DataFrame:
+        print(f"\n{'='*50}")
+        print(f" INICIANDO BACKTESTING DE MODELOS (Gabarito: {ano_teste})")
+        print(f"{'='*50}")
+
+        resultados_metricas = []
+
+        margens_por_alvo = {
+            "dropout_rate": 0.02,
+            "acessibility_rating": 0.05,
+            "teacher_instability_rating": 0.05
+        }
+
+        for config in self.targets_config:
+            target = config["target_col"]
+            margem = margens_por_alvo.get(target, 0.05)
+            
+            print(f"\n[Validação] Analisando: {target} (Margem: ±{margem*100:.1f}%)")
+
+            df = df_completo.copy()
+            df = df.dropna(subset=[target])
+            df = df.sort_values(by=['id_escola', 'ano'])
+            
+            df['alvo_ano_passado'] = df.groupby('id_escola')[target].shift(1)
+            df['tendencia_alvo'] = df[target] - df['alvo_ano_passado']
+            
+            df['target_futuro'] = df.groupby('id_escola')[target].shift(-1)
+            df = df.dropna(subset=['target_futuro'])
+
+            df_treino = df[df['ano'] <= ano_treino_max].copy()
+            df_teste = df[df['ano'] == ano_teste].copy()
+
+            if df_treino.empty or df_teste.empty:
+                print(f"  -> Sem dados suficientes para {target} no ano de teste.")
+                continue
+
+            current_features = self.features + ['alvo_ano_passado', 'tendencia_alvo']
+            
+            scaler = MinMaxScaler()
+            imputer = KNNImputer(n_neighbors=5, weights='distance')
+
+            X_train_scaled = scaler.fit_transform(df_treino[current_features])
+            X_train_imputed = imputer.fit_transform(X_train_scaled)
+            X_train = pd.DataFrame(X_train_imputed, columns=current_features, index=df_treino.index)
+
+            y_train = df_treino['target_futuro']
+            
+            X_test_scaled = scaler.transform(df_teste[current_features])
+            X_test_imputed = imputer.transform(X_test_scaled)
+            X_test = pd.DataFrame(X_test_imputed, columns=current_features, index=df_teste.index)
+            
+            y_true = df_teste['target_futuro']
+
+            matriz_correlacao = X_train.corr().abs()
+            triangulo_superior = matriz_correlacao.where(np.triu(np.ones(matriz_correlacao.shape), k=1).astype(bool))
+            features_ativas = [col for col in triangulo_superior.columns if not any(triangulo_superior[col] > 0.85)]
+            
+            X_train = X_train[features_ativas]
+            X_test = X_test[features_ativas]
+
+            modelo = RandomForestRegressor(n_estimators=200, max_depth=20, random_state=42, n_jobs=-1)
+            modelo.fit(X_train, y_train)
+            y_pred = modelo.predict(X_test)
+
+            mae = mean_absolute_error(y_true, y_pred)
+            rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+            
+            acertos_numericos = np.abs(y_true - y_pred) <= margem
+            taxa_sucesso_numerica = np.mean(acertos_numericos) * 100
+
+            if config["is_bad_when"] == "HIGH":
+                limite_critico = config["baseline_mean"] + config["baseline_std"]
+                risco_real = y_true > limite_critico
+                risco_predito = y_pred > limite_critico
+            else:
+                limite_critico = config["baseline_mean"] - config["baseline_std"]
+                risco_real = y_true < limite_critico
+                risco_predito = y_pred < limite_critico
+            
+            acertos_risco = (risco_real == risco_predito)
+            taxa_sucesso_risco = np.mean(acertos_risco) * 100
+
+            print(f"  -> Acerto Numérico: {taxa_sucesso_numerica:.1f}% | Detecção de Risco: {taxa_sucesso_risco:.1f}% | MAE: {mae:.4f}")
+
+            resultados_metricas.append({
+                "Indicador": target,
+                "Eixo": config["axis"],
+                "Margem Tolerância": f"±{margem*100:.1f}%",
+                "Acerto Numérico (%)": round(taxa_sucesso_numerica, 2),
+                "Detecção de Risco (%)": round(taxa_sucesso_risco, 2),
+                "MAE": round(mae, 4),
+                "RMSE": round(rmse, 4)
+            })
+
+        df_resultados = pd.DataFrame(resultados_metricas)
+        return df_resultados
 
     def _prepare_data(self, df_historico: pd.DataFrame):
         df = df_historico.copy()
@@ -159,7 +262,6 @@ class RiskPredictor:
         return ""
 
     def _gerar_texto_explicativo(self, viloes: list, acao_shap: str) -> tuple:
-        """Motor NLG (Natural Language Generation) usando terminologia acadêmica estrita de ML"""
         if len(viloes) >= 2:
             vilao_1, vilao_2 = viloes[0], viloes[1]
             motivo_1 = self.dicionario_viloes.get(vilao_1, "fator estrutural")
@@ -195,35 +297,42 @@ class RiskPredictor:
             df = df_completo.copy()
             df = df.dropna(subset=[target])
             df = df.sort_values(by=['id_escola', 'ano'])
+            
+            df['alvo_ano_passado'] = df.groupby('id_escola')[target].shift(1)
+            df['tendencia_alvo'] = df[target] - df['alvo_ano_passado']
+            
             df[f'target_futuro'] = df.groupby('id_escola')[target].shift(-1)
             
             df_treino = df.dropna(subset=[f'target_futuro']).copy()
             df_2024 = df[df['ano'] == ano_atual].dropna(subset=[target]).copy()
 
+            current_features = self.features + ['alvo_ano_passado', 'tendencia_alvo']
+
+            scaler = MinMaxScaler()
             imputer = KNNImputer(n_neighbors=5, weights='distance')
             
-            X_train_array = imputer.fit_transform(df_treino[self.features])
-            X_train = pd.DataFrame(X_train_array, columns=self.features, index=df_treino.index)
-            y_train = df_treino['target_futuro']
+            X_train_scaled = scaler.fit_transform(df_treino[current_features])
+            X_train_imputed = imputer.fit_transform(X_train_scaled)
+            X_train = pd.DataFrame(X_train_imputed, columns=current_features, index=df_treino.index)
 
-            X_2024_array = imputer.transform(df_2024[self.features])
-            X_2024 = pd.DataFrame(X_2024_array, columns=self.features, index=df_2024.index)
+            y_train = df_treino[f'target_futuro']
+
+            X_2024_scaled = scaler.transform(df_2024[current_features])
+            X_2024_imputed = imputer.transform(X_2024_scaled)
+            X_2024 = pd.DataFrame(X_2024_imputed, columns=current_features, index=df_2024.index)
             
             if X_2024.empty or X_train.empty: continue
 
-            # Tratamento de multicolinearidade para evitar que variáveis redundantes dividam o peso do SHAP e ocultem o vilão
             matriz_correlacao = X_train.corr().abs()
             triangulo_superior = matriz_correlacao.where(np.triu(np.ones(matriz_correlacao.shape), k=1).astype(bool))
             features_para_remover = [coluna for coluna in triangulo_superior.columns if any(triangulo_superior[coluna] > 0.85)]
-            features_ativas = [f for f in self.features if f not in features_para_remover]
+            features_ativas = [f for f in current_features if f not in features_para_remover]
             
             X_train = X_train[features_ativas]
             X_2024 = X_2024[features_ativas]
 
-            # Validação cruzada temporal Walk-Forward para garantir que o modelo não aprenda com dados do futuro
             validacao_temporal = TimeSeriesSplit(n_splits=3)
 
-            # Busca automatizada pela árvore de decisão com a melhor combinação de hiperparâmetros
             rf = RandomForestRegressor(random_state=42, n_jobs=-1)
             otimizador_arvore = RandomizedSearchCV(rf, param_distributions=param_dist, n_iter=10, cv=validacao_temporal, random_state=42, scoring='neg_mean_absolute_error')
             otimizador_arvore.fit(X_train, y_train)
@@ -234,7 +343,6 @@ class RiskPredictor:
             explainer = shap.TreeExplainer(modelo_otimizado)
             shap_values = explainer.shap_values(X_2024)
 
-            # plots.
             plotter.plot_correlation_matrix(X_train, target)
             plotter.plot_feature_importance(modelo_otimizado, features_ativas, target)
             plotter.plot_shap_summary(shap_values, X_2024, target)
@@ -282,7 +390,6 @@ class RiskPredictor:
                     }
                     todas_prescricoes.append(req)
 
-            # --- 2. AVISOS MACRO (Agregações) ---
             def processar_nivel_agregado(nivel_id_col, nome_level, titulo_prefixo, extrator_detalhe):
                 if nivel_id_col not in df_2024.columns: return
                 for alvo_id, alvo_df in df_2024.groupby(nivel_id_col):

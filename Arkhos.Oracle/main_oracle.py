@@ -9,6 +9,8 @@ from controllers.microregion_controller import MicroregionController
 from controllers.mesoregion_controller import MesoregionController
 from models.predictor import RiskPredictor
 
+from core.plot_generator import ArkhosPlotter
+
 DB_URL = "postgresql://postgres:311200@localhost:5432/arkhos"
 
 def init_insights_db():
@@ -249,6 +251,24 @@ def run_oracle():
 
         lista_preditiva = []
         df_historico_ml = carregar_historico_ml()
+        preditor = RiskPredictor(baselines={})
+
+        if not df_historico_ml.empty:
+            print("\n" + "="*50)
+            print(" [TCC] INICIANDO VALIDAÇÃO DO MODELO (BACKTESTING 2024)")
+            print("="*50)
+            
+            # Roda a função de Backtesting que criamos na classe RiskPredictor
+            df_validacao = preditor.executar_backtesting(df_historico_ml, ano_treino_max=2023, ano_teste=2024)
+            
+            print("\n[Resumo da Validação Estatística do Motor Arkhos]")
+            print(df_validacao.to_markdown(index=False)) # Exibe a tabela bonitinha no terminal
+            
+            # Gera e salva o gráfico da taxa de acerto
+            plotter = ArkhosPlotter(output_dir="docs_tcc_graficos")
+            plotter.plot_model_validation(df_validacao)
+            
+            print("="*50 + "\n")
         
         for ano_pred in ANOS_PREDITIVOS:
             print(f"\n[Preditivo] Iniciando projeções a partir do ano-base {ano_pred}...")

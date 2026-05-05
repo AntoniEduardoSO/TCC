@@ -32,31 +32,36 @@ class ArkhosPlotter:
         plt.close()
         print(f"[Plot] Matriz de correlação salva em: {filepath}")
 
-    def plot_feature_importance(self, model, feature_names: list, target_name: str):
-        """
-        Extrai a importância nativa da Random Forest (Gini Importance).
-        Ótimo para comparar com o resultado do SHAP depois.
-        """
-        importances = model.feature_importances_
-        indices = np.argsort(importances)[::-1]
-        
-        # Pega as top 10 para não poluir o gráfico
-        top_n = min(10, len(feature_names))
-        top_indices = indices[:top_n]
-        top_features = [feature_names[i] for i in top_indices]
-        top_importances = importances[top_indices]
-
+    def plot_model_validation(self, df_metricas: pd.DataFrame):
         plt.figure(figsize=(10, 6))
-        sns.barplot(x=top_importances, y=top_features, palette="viridis")
-        plt.title(f"Top {top_n} Importância de Atributos - Random Forest ({target_name})", pad=15)
-        plt.xlabel("Importância Relativa")
-        plt.ylabel("Indicadores")
+        
+        nomes_eixos = {
+            'Performance': 'Risco de Evasão',
+            'Infrastructure': 'Déficit de Acessibilidade',
+            'Management': 'Instabilidade Docente'
+        }
+        df_metricas['Eixo_PT'] = df_metricas['Eixo'].map(nomes_eixos)
+
+        ax = sns.barplot(
+            data=df_metricas, 
+            x='Eixo_PT', 
+            y='Detecção de Risco (%)', 
+            palette=["#ff6b6b", "#4ecdc4", "#45b7d1"]
+        )
+        
+        for i in ax.containers:
+            ax.bar_label(i, fmt='%.1f%%', padding=5, fontsize=12, fontweight='bold')
+
+        plt.title("Acurácia de Detecção de Risco pelo Arkhos (Backtesting 2024)", pad=20, fontsize=16, fontweight='bold')
+        plt.xlabel("Modelo Analítico", fontsize=12)
+        plt.ylabel("Acerto na Classificação de Risco (%)", fontsize=12)
+        plt.ylim(0, 105)
         plt.tight_layout()
         
-        filepath = os.path.join(self.output_dir, f"rf_importance_{target_name}.png")
+        filepath = os.path.join(self.output_dir, "validacao_modelos_acuracia_risco.png")
         plt.savefig(filepath, bbox_inches='tight')
         plt.close()
-        print(f"[Plot] Importância da Random Forest salva em: {filepath}")
+        print(f"[Plot] Gráfico de risco salvo em: {filepath}")
 
     def plot_shap_summary(self, shap_values, X_eval: pd.DataFrame, target_name: str):
         plt.figure(figsize=(10, 8))

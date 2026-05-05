@@ -84,8 +84,12 @@ def exec_transparency_portal(conn, cur):
     chunk_size = 50000
     
     for df_chunk in pd.read_csv('data/CONSOLIDADO_GERAL_FINAL.csv', encoding='utf-8-sig', chunksize=chunk_size):
-        df_chunk['data'] = pd.to_datetime(df_chunk['data'], format='%d/%m/%Y', errors='coerce').dt.strftime('%Y-%m-%d')
-        df_chunk = df_chunk.where(pd.notnull(df_chunk), None)
+
+        df_chunk['data'] = pd.to_datetime(df_chunk['data'], format='%d/%m/%Y', errors='coerce')
+        
+        df_chunk['data'] = df_chunk['data'].apply(
+            lambda x: x.strftime('%Y-%m-%d') if pd.notnull(x) else None
+        )
 
         if 'municipio_nome' in df_chunk.columns:
             df_chunk = df_chunk.drop(columns=['municipio_nome'])
@@ -96,6 +100,8 @@ def exec_transparency_portal(conn, cur):
         ]
         df_chunk = df_chunk[colunas_ordem]
         data_tuples = list(df_chunk.itertuples(index=False, name=None))
+
+        df_chunk = df_chunk.where(pd.notnull(df_chunk), None)
 
         query = """
             INSERT INTO city_transparency_portal (

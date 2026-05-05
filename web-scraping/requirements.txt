@@ -9,3 +9,9 @@ openpyxl
 unidecode
 psycopg2-binary
 sqlalchemy
+scikit-learn
+shap
+numpy
+matplotlib
+seaborn
+tabulate
