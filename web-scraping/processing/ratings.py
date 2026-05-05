@@ -85,13 +85,12 @@ def predict_performance_for_missing_year(df_2025, df_historico):
     if len(cols_presentes) < len(targets + features):
         missing = set(targets + features) - set(cols_presentes)
         print(f"[ERRO] O histórico não possui as colunas: {missing}")
-        # Retorna zeros ou valores de 2024 como fallback para não quebrar o sistema
         return pd.Series(0.9, index=df_2025.index), pd.Series(0.05, index=df_2025.index), pd.Series(0.05, index=df_2025.index)
     
     df_train = df_historico.dropna(subset=targets + features)
     
     X_train = df_train[features]
-    X_test = df_2025[features].fillna(0) # Features de 2025
+    X_test = df_2025[features].fillna(0) 
     
     results = {}
     
@@ -195,11 +194,9 @@ def build_students_weighted_map(df_enroll_wide):
     W_MED = 1.0
     W_ESP = 7.0
 
-    # 1. Infantil
     if 'QT_MAT_INF_CRE' in df_enroll_wide.columns: weighted += df_enroll_wide['QT_MAT_INF_CRE'].fillna(0) * W_CRE
     if 'QT_MAT_INF_PRE' in df_enroll_wide.columns: weighted += df_enroll_wide['QT_MAT_INF_PRE'].fillna(0) * W_PRE
 
-    # 2. Fundamental AI
     ai_cols = ['QT_MAT_FUND_AI_1', 'QT_MAT_FUND_AI_2', 'QT_MAT_FUND_AI_3', 'QT_MAT_FUND_AI_4', 'QT_MAT_FUND_AI_5']
     if any(c in df_enroll_wide.columns for c in ai_cols):
         for c in ai_cols: 
@@ -207,7 +204,6 @@ def build_students_weighted_map(df_enroll_wide):
     elif 'QT_MAT_FUND_AI' in df_enroll_wide.columns:
         weighted += df_enroll_wide['QT_MAT_FUND_AI'].fillna(0) * W_AI
 
-    # 3. Fundamental AF
     af_cols = ['QT_MAT_FUND_AF_6', 'QT_MAT_FUND_AF_7', 'QT_MAT_FUND_AF_8', 'QT_MAT_FUND_AF_9']
     if any(c in df_enroll_wide.columns for c in af_cols):
         for c in af_cols: 
@@ -215,7 +211,6 @@ def build_students_weighted_map(df_enroll_wide):
     elif 'QT_MAT_FUND_AF' in df_enroll_wide.columns:
         weighted += df_enroll_wide['QT_MAT_FUND_AF'].fillna(0) * W_AF
 
-    # 4. Ensino Médio
     med_cols = ['QT_MAT_MED_PROP_1', 'QT_MAT_MED_PROP_2', 'QT_MAT_MED_PROP_3']
     if any(c in df_enroll_wide.columns for c in med_cols):
         for c in med_cols: 
@@ -223,15 +218,23 @@ def build_students_weighted_map(df_enroll_wide):
     elif 'QT_MAT_MED' in df_enroll_wide.columns:
         weighted += df_enroll_wide['QT_MAT_MED'].fillna(0) * W_MED
 
-    # 5. Educação Especial
     if 'QT_MAT_ESP' in df_enroll_wide.columns: weighted += df_enroll_wide['QT_MAT_ESP'].fillna(0) * W_ESP
 
     return weighted
 
-def get_acessible_rating( df_infra_wide, active_schools_ids, df_fin_city, students_by_school, year):
+def get_acessible_rating( df_infra_wide, active_schools_ids, df_fin_city, students_by_school, year, school_location_map):
+
+    pesos_acessibilidade = {
+        'IN_BANHEIRO_PNE': 0.35,
+        'IN_ACESSIBILIDADE_RAMPAS': 0.25,
+        'IN_ACESSIBILIDADE_VAO_LIVRE': 0.15,
+        'IN_SALA_ATENDIMENTO_ESPECIAL': 0.15,
+        'IN_ACESSIBILIDADE_PISOS_TATEIS': 0.05,
+        'IN_ACESSIBILIDADE_SINAL_TATIL': 0.025,
+        'IN_ACESSIBILIDADE_SINAL_SONORO': 0.025
+    }
 
     df_fin_city_year = filter_financial_source(df_fin_city, year)
-
 
     infra_spending = df_fin_city_year[
         (df_fin_city_year["eixo"] == "Infraestrutura Escolar") &
@@ -244,8 +247,21 @@ def get_acessible_rating( df_infra_wide, active_schools_ids, df_fin_city, studen
 
     infra_spending_total = infra_spending["valor"].sum()
 
-    total_students_city = students_by_school.sum()
+    pesos_cidade = {}
 
+    for sid in active_schools_ids:
+        if sid not in df_infra_wide.index: continue
+        alunos = students_by_school.get(sid, 0)
+        if alunos == 0: continue
+
+        localizacao = school_location_map.get(sid, 1)
+        fator_rural = 1.3 if localizacao == 2 else 1.0
+
+        fator_tamanho = 1.5 if alunos < 50 else (1.2 if alunos < 150 else 1.0)
+
+        pesos_cidade[sid] = alunos * fator_rural * fator_tamanho
+
+    soma_pesos_cidade = sum(pesos_cidade.values())
     ratings_map = {}
 
     for school_id in active_schools_ids:
@@ -255,40 +271,26 @@ def get_acessible_rating( df_infra_wide, active_schools_ids, df_fin_city, studen
 
         school_data = df_infra_wide.loc[school_id]
 
-        qnt_room = school_data.get('QT_SALAS_UTILIZADAS', 0)
-        qnt_acessible_room = school_data.get('QT_SALAS_UTILIZADAS_ACESSIVEIS', 0)
-
-        sum_acessibility = sum(
-            school_data.get(col, 0)
-            for col in ACESSIBLE_COLS[2:]
+        infra_structure_score = sum(
+            school_data.get(col, 0) * peso 
+            for col, peso in pesos_acessibilidade.items()
         )
 
-        ratio_rooms = (
-            qnt_acessible_room / qnt_room
-            if qnt_room > 0 else 0
-        )
+        if soma_pesos_cidade > 0 and school_id in pesos_cidade:
+            share_ponderado = pesos_cidade[school_id] / soma_pesos_cidade
+        else:
+            share_ponderado = 0
 
-        infra_structure_score = (
-            (ratio_rooms*2 + sum_acessibility)
-        ) / len(ACESSIBLE_COLS)
+        infra_spending_school = infra_spending_total * share_ponderado
 
-        students_school = students_by_school.get(school_id, 0)
+        alunos_reais = students_by_school.get(school_id, 0)
+        gasto_per_capita_escola = (infra_spending_school / alunos_reais) if alunos_reais > 0 else 0
 
-        share = (
-            students_school / total_students_city
-            if total_students_city > 0 else 0
-        )
-
-        infra_spending_school = infra_spending_total * share
-
-        infra_spending_score = min(
-            infra_spending_school / 2000,
-            1
-        )
+        infra_spending_score = min(gasto_per_capita_escola / 2000, 1.0)
 
         rating = round(
-            0.8 * infra_structure_score +
-            0.2 * infra_spending_score,
+            0.8 * infra_structure_score + 
+            0.2 * infra_spending_score, 
             4
         )
 
@@ -361,61 +363,64 @@ def get_recreation_rating(df_infra_wide, active_schools_ids, df_fin_city, studen
     
     return pd.Series(ratings_map)
 
-def get_wellbeing_rating(df_infra_wide, active_schools_ids, df_fin_city, students_by_school, year):
+def get_wellbeing_rating(df_infra_wide, active_schools_ids, df_fin_city, students_by_school, year, school_location_map):
+
+    pesos_bem_estar = {
+        'IN_AGUA_POTAVEL': 0.40,
+        'IN_ESGOTO_REDE_PUBLIC': 0.30,
+        'IN_REFEITORIO': 0.20,
+        'IN_INTERNET_ALUNOS': 0.10
+    }
 
     df_fin_city_year = filter_financial_source(df_fin_city, year)
 
     wellbeing_spending = df_fin_city_year[
         (
             (df_fin_city_year["eixo"] == "Infraestrutura Escolar") &
-            (df_fin_city_year["macro"].isin([
-                "Utilidades",
-                "Manutenção"
-            ]))
-        )
-        |
-        (
-            df_fin_city_year["eixo"] == "Alimentação Escolar"
-        )
+            (df_fin_city_year["macro"].isin(["Utilidades", "Manutenção"]))
+        ) | (df_fin_city_year["eixo"] == "Alimentação Escolar")
     ]
-
     wellbeing_spending_total = wellbeing_spending["valor"].sum()
 
-    total_students_city = students_by_school.sum()
+    pesos_cidade = {}
+    for sid in active_schools_ids:
+        if sid not in df_infra_wide.index: continue
+        alunos = students_by_school.get(sid, 0)
+        if alunos == 0: continue
 
+        localizacao = school_location_map.get(sid, 1)
+        fator_rural = 1.3 if localizacao == 2 else 1.0
+        fator_tamanho = 1.5 if alunos < 50 else (1.2 if alunos < 150 else 1.0)
+        pesos_cidade[sid] = alunos * fator_rural * fator_tamanho
+
+    soma_pesos_cidade = sum(pesos_cidade.values())
     ratings_map = {}
 
     for school_id in active_schools_ids:
-
         if school_id not in df_infra_wide.index:
             continue
 
         school_data = df_infra_wide.loc[school_id]
-
-        sum_wellbeing = sum(
-            school_data.get(col, 0)
-            for col in WELLBEING_COLS
+        wellbeing_structure_score = sum(
+            school_data.get(col, 0) * peso 
+            for col, peso in pesos_bem_estar.items()
         )
 
-        wellbeing_structure_score = sum_wellbeing / len(WELLBEING_COLS)
+        if soma_pesos_cidade > 0 and school_id in pesos_cidade:
+            share_ponderado = pesos_cidade[school_id] / soma_pesos_cidade
+        else:
+            share_ponderado = 0
 
-        students_school = students_by_school.get(school_id, 0)
+        wellbeing_spending_school = wellbeing_spending_total * share_ponderado
+        
+        alunos_reais = students_by_school.get(school_id, 0)
+        gasto_per_capita_escola = (wellbeing_spending_school / alunos_reais) if alunos_reais > 0 else 0
 
-        share = (
-            students_school / total_students_city
-            if total_students_city > 0 else 0
-        )
-
-        wellbeing_spending_school = wellbeing_spending_total * share
-
-        wellbeing_spending_score = min(
-            wellbeing_spending_school / 1500,
-            1
-        )
+        wellbeing_spending_score = min(gasto_per_capita_escola / 1500, 1.0)
 
         rating = round(
-            0.8 * wellbeing_structure_score +
-            0.2 * wellbeing_spending_score,
+            0.8 * wellbeing_structure_score + 
+            0.2 * wellbeing_spending_score, 
             4
         )
 
@@ -696,14 +701,6 @@ def get_teacher_instability_rating(active_schools_ids, df_fin_city, school_city_
         
         instability_score = 1 - min(ratio / 0.7, 1)
 
-        if sid == 27000095:
-            print(f"\n--- DEBUG INSTABILIDADE (Escola {sid}) ---")
-            print(f"Gasto Total Professores: R$ {teacher_spending:,.2f}")
-            print(f"Gasto Temporários: R$ {temp_spending:,.2f}")
-            print(f"Razão (Proporção Temporários): {ratio*100:.2f}%")
-            print(f"Nota Final (0 = bateu no teto de 40%): {instability_score}")
-            print("------------------------------------------\n")
-
         ratings[sid] = round(instability_score, 4)
 
     return pd.Series(ratings)
@@ -744,226 +741,196 @@ def get_administrative_burden_rating(active_schools_ids, df_fin_city, school_cit
 
     return pd.Series(ratings)
 
-def get_spending_per_student(active_schools_ids, df_fin_city, students_by_school, df_enroll_wide, year, school_city_map):
-
+def get_spending_per_student(active_schools_ids, df_fin_city, students_by_school, df_enroll_wide, year, school_city_map, school_location_map):
     df_year = filter_financial_source(df_fin_city, year)
-
     ratings = {}
 
+    pesos_escolas = {}
     for sid in active_schools_ids:
+        alunos = students_by_school.get(sid, 0)
+        loc = school_location_map.get(sid, 1)
+        fator_rural = 1.3 if loc == 2 else 1.0
+        fator_tamanho = 1.2 if alunos < 100 else 1.0
+        pesos_escolas[sid] = alunos * fator_rural * fator_tamanho
 
-        city_id = school_city_map[sid]
+    for sid in active_schools_ids:
+        city_id = school_city_map.get(sid)
+        if not city_id:
+            ratings[sid] = 0; continue
 
         df_city = df_year[df_year["municipio_id"] == city_id]
-
         total_spending_city = df_city["valor"].sum()
 
         schools_in_city = school_city_map[school_city_map == city_id].index
+        total_pesos_city = sum(pesos_escolas.get(s, 0) for s in schools_in_city)
+        
+        peso_school = pesos_escolas.get(sid, 0)
+        alunos_reais = students_by_school.get(sid, 0)
 
-        total_students_city = sum(
-            students_by_school.get(s, 0) for s in schools_in_city
-        )
+        share = peso_school / total_pesos_city if total_pesos_city > 0 else 0
+        school_spending = total_spending_city * share
 
-        ratings[sid] = round(
-            total_spending_city / total_students_city, 4
-        ) if total_students_city > 0 else 0
+        ratings[sid] = round(school_spending / alunos_reais, 4) if alunos_reais > 0 else 0
 
     return pd.Series(ratings)
 
-def get_spending_per_teacher(df_enroll_wide, active_schools_ids, df_fin_city, students_by_school, year, school_city_map):
+def get_spending_per_teacher(df_enroll_wide, active_schools_ids, df_fin_city, students_by_school, year, school_city_map, school_location_map):
 
     df_fin_city["ano"] = df_fin_city["ano"].astype("Int64")
-
     df_year = filter_financial_source(df_fin_city, year)
-
     total_teachers = df_enroll_wide[TEACHER_COLS].sum(axis=1)
-
     ratings = {}
 
+    pesos_escolas = {}
     for sid in active_schools_ids:
-        city_id = school_city_map[sid]
+        professores = total_teachers.get(sid, 0)
+        loc = school_location_map.get(sid, 1)
+        fator_rural = 1.2 if loc == 2 else 1.0
+        pesos_escolas[sid] = professores * fator_rural
+
+    for sid in active_schools_ids:
+        city_id = school_city_map.get(sid)
+        if not city_id: ratings[sid] = 0; continue
 
         df_city = df_year[df_year["municipio_id"] == city_id]
-
-
-
         teacher_spending_city = df_city[
-            (df_city["eixo"] == "Pessoal") &
-            (df_city["macro"] == "Magistério/Docentes")
+            (df_city["eixo"] == "Pessoal") & (df_city["macro"] == "Magistério/Docentes")
         ]["valor"].sum()
 
-
         schools_in_city = school_city_map[school_city_map == city_id].index
-
         valid_schools = schools_in_city.intersection(total_teachers.index)
+        
+        total_pesos_city = sum(pesos_escolas.get(s, 0) for s in valid_schools)
 
-        total_teachers_city = total_teachers.loc[valid_schools].sum()
+        share = pesos_escolas.get(sid, 0) / total_pesos_city if total_pesos_city > 0 else 0
+        school_spending = teacher_spending_city * share
+        professores_reais = total_teachers.get(sid, 0)
 
-        teachers_school = total_teachers.get(sid, 0)
-
-        spending_per_teacher = teacher_spending_city / total_teachers_city if total_teachers_city > 0 else 0
-
-        ratings[sid] = round(
-            spending_per_teacher, 4
-        )
+        spending_per_teacher = school_spending / professores_reais if professores_reais > 0 else 0
+        ratings[sid] = round(spending_per_teacher, 4)
 
     return pd.Series(ratings)
 
 def get_pedagogical_spending_per_student(active_schools_ids, df_fin_city, students_by_school, df_enroll_wide, year, school_city_map):
-
     df_year = filter_financial_source(df_fin_city, year)
-
     ratings = {}
 
+    pesos_escolas = {}
     for sid in active_schools_ids:
+        alunos = students_by_school.get(sid, 0)
+        fator_tamanho = 1.2 if alunos < 50 else 1.0
+        pesos_escolas[sid] = alunos * fator_tamanho
 
-        city_id = school_city_map[sid]
+    for sid in active_schools_ids:
+        city_id = school_city_map.get(sid)
+        if not city_id: ratings[sid] = 0; continue
 
         df_city = df_year[df_year["municipio_id"] == city_id]
-
         pedagogical_city = df_city[
             (df_city["eixo"] == "Recursos Pedagógicos") |
-            (
-                (df_city["eixo"] == "Infraestrutura Escolar") &
-                (df_city["macro"] == "Tecnologia Educacional")
-            )
+            ((df_city["eixo"] == "Infraestrutura Escolar") & (df_city["macro"] == "Tecnologia Educacional"))
         ]["valor"].sum()
 
         schools_in_city = school_city_map[school_city_map == city_id].index
+        total_pesos_city = sum(pesos_escolas.get(s, 0) for s in schools_in_city)
 
-        total_students_city = sum(
-            students_by_school.get(s, 0) for s in schools_in_city
-        )
-
-        students_school = students_by_school.get(sid, 0)
-
-        share = (
-            students_school / total_students_city
-            if total_students_city > 0 else 0
-        )
-
+        share = pesos_escolas.get(sid, 0) / total_pesos_city if total_pesos_city > 0 else 0
         school_spending = pedagogical_city * share
+        alunos_reais = students_by_school.get(sid, 0)
 
-        ratings[sid] = round(
-            school_spending / students_school, 4
-        ) if students_school > 0 else 0
+        ratings[sid] = round(school_spending / alunos_reais, 4) if alunos_reais > 0 else 0
 
     return pd.Series(ratings)
 
-def get_infrastructure_spending_per_student(active_schools_ids, df_fin_city, students_by_school, df_enroll_wide, year, school_city_map):
+def get_infrastructure_spending_per_student(active_schools_ids, df_fin_city, students_by_school, df_enroll_wide, year, school_city_map, school_location_map):
 
     df_year = filter_financial_source(df_fin_city, year)
-
     ratings = {}
 
+    pesos_escolas = {}
     for sid in active_schools_ids:
+        alunos = students_by_school.get(sid, 0)
+        loc = school_location_map.get(sid, 1)
+        fator_rural = 1.2 if loc == 2 else 1.0
+        fator_tamanho = 1.5 if alunos < 50 else (1.2 if alunos < 150 else 1.0)
+        pesos_escolas[sid] = alunos * fator_rural * fator_tamanho
 
-        city_id = school_city_map[sid]
+    for sid in active_schools_ids:
+        city_id = school_city_map.get(sid)
+        if not city_id: ratings[sid] = 0; continue
 
         df_city = df_year[df_year["municipio_id"] == city_id]
-
         infra_city = df_city[
             (df_city["eixo"] == "Infraestrutura Escolar") &
-            (df_city["macro"].isin([
-                "Obras",
-                "Manutenção",
-                "Infraestrutura Física"
-            ]))
+            (df_city["macro"].isin(["Obras", "Manutenção", "Infraestrutura Física"]))
         ]["valor"].sum()
 
         schools_in_city = school_city_map[school_city_map == city_id].index
+        total_pesos_city = sum(pesos_escolas.get(s, 0) for s in schools_in_city)
 
-        total_students_city = sum(
-            students_by_school.get(s, 0) for s in schools_in_city
-        )
-
-        students_school = students_by_school.get(sid, 0)
-
-        share = (
-            students_school / total_students_city
-            if total_students_city > 0 else 0
-        )
-
+        share = pesos_escolas.get(sid, 0) / total_pesos_city if total_pesos_city > 0 else 0
         school_spending = infra_city * share
+        alunos_reais = students_by_school.get(sid, 0)
 
-        ratings[sid] = round(
-            school_spending / students_school, 4
-        ) if students_school > 0 else 0
+        ratings[sid] = round(school_spending / alunos_reais, 4) if alunos_reais > 0 else 0
 
     return pd.Series(ratings)
 
-def get_school_meal_spending_per_student(active_schools_ids,df_fin_city,students_by_school,df_enroll_wide,year, school_city_map):
-
+def get_school_meal_spending_per_student(active_schools_ids,df_fin_city,students_by_school,df_enroll_wide,year, school_city_map, school_location_map):
     df_year = filter_financial_source(df_fin_city, year)
-
     ratings = {}
 
+    pesos_escolas = {}
     for sid in active_schools_ids:
+        alunos = students_by_school.get(sid, 0)
+        loc = school_location_map.get(sid, 1)
+        fator_rural = 1.3 if loc == 2 else 1.0
+        pesos_escolas[sid] = alunos * fator_rural
 
-        city_id = school_city_map[sid]
+    for sid in active_schools_ids:
+        city_id = school_city_map.get(sid)
+        if not city_id: ratings[sid] = 0; continue
 
         df_city = df_year[df_year["municipio_id"] == city_id]
-
-        meal_city = df_city[
-            df_city["eixo"] == "Alimentação Escolar"
-        ]["valor"].sum()
+        meal_city = df_city[df_city["eixo"] == "Alimentação Escolar"]["valor"].sum()
 
         schools_in_city = school_city_map[school_city_map == city_id].index
+        total_pesos_city = sum(pesos_escolas.get(s, 0) for s in schools_in_city)
 
-        total_students_city = sum(
-            students_by_school.get(s, 0) for s in schools_in_city
-        )
-
-        students_school = students_by_school.get(sid, 0)
-
-        share = (
-            students_school / total_students_city
-            if total_students_city > 0 else 0
-        )
-
+        share = pesos_escolas.get(sid, 0) / total_pesos_city if total_pesos_city > 0 else 0
         school_spending = meal_city * share
+        alunos_reais = students_by_school.get(sid, 0)
 
-        ratings[sid] = round(
-            school_spending / students_school, 4
-        ) if students_school > 0 else 0
+        ratings[sid] = round(school_spending / alunos_reais, 4) if alunos_reais > 0 else 0
 
     return pd.Series(ratings)
 
-def get_transport_spending_per_student(active_schools_ids,df_fin_city,students_by_school,df_enroll_wide,year, school_city_map):
-
+def get_transport_spending_per_student(active_schools_ids,df_fin_city,students_by_school,df_enroll_wide,year, school_city_map, school_location_map):
     df_year = filter_financial_source(df_fin_city, year)
-
     ratings = {}
 
+    pesos_escolas = {}
     for sid in active_schools_ids:
+        alunos = students_by_school.get(sid, 0)
+        loc = school_location_map.get(sid, 1)
+        fator_rural = 2.5 if loc == 2 else 1.0 
+        pesos_escolas[sid] = alunos * fator_rural
 
-        city_id = school_city_map[sid]
+    for sid in active_schools_ids:
+        city_id = school_city_map.get(sid)
+        if not city_id: ratings[sid] = 0; continue
 
         df_city = df_year[df_year["municipio_id"] == city_id]
-
-        transport_city = df_city[
-            df_city["eixo"] == "Transporte Escolar"
-        ]["valor"].sum()
+        transport_city = df_city[df_city["eixo"] == "Transporte Escolar"]["valor"].sum()
 
         schools_in_city = school_city_map[school_city_map == city_id].index
+        total_pesos_city = sum(pesos_escolas.get(s, 0) for s in schools_in_city)
 
-        total_students_city = sum(
-            students_by_school.get(s, 0) for s in schools_in_city
-        )
-
-        students_school = students_by_school.get(sid, 0)
-
-        share = (
-            students_school / total_students_city
-            if total_students_city > 0 else 0
-        )
-
+        share = pesos_escolas.get(sid, 0) / total_pesos_city if total_pesos_city > 0 else 0
         school_spending = transport_city * share
+        alunos_reais = students_by_school.get(sid, 0)
 
-        ratings[sid] = round(
-            school_spending / students_school, 4
-        ) if students_school > 0 else 0
-
+        ratings[sid] = round(school_spending / alunos_reais, 4) if alunos_reais > 0 else 0
 
     return pd.Series(ratings)
 
@@ -1074,11 +1041,14 @@ def create_rating_table(df_infra_long, df_enroll_long, df_school_info, df_dict, 
     students_by_school = build_students_map(df_enroll_wide)
     students_weighted_by_school = build_students_weighted_map(df_enroll_wide)
     support_staff_by_school = build_support_staff_by_school_map(df_enroll_wide)
-    school_city_map = df_school_info.set_index("id_escola")["municipio_id"]
 
-    df_school_ratings['acessibility_rating'] = get_acessible_rating(df_infra_wide, df_school_ratings.index, df_fin_city, students_by_school, year)
+
+    school_city_map = df_school_info.set_index("id_escola")["municipio_id"]
+    school_location_map = df_school_info.set_index("id_escola")["localizacao"]
+
+    df_school_ratings['acessibility_rating'] = get_acessible_rating(df_infra_wide, df_school_ratings.index, df_fin_city, students_by_school, year, school_location_map)
     df_school_ratings['recreation_rating'] = get_recreation_rating(df_infra_wide, df_school_ratings.index, df_fin_city, students_by_school, year)
-    df_school_ratings['wellbeing_rating'] = get_wellbeing_rating(df_infra_wide, df_school_ratings.index, df_fin_city, students_by_school, year)
+    df_school_ratings['wellbeing_rating'] = get_wellbeing_rating(df_infra_wide, df_school_ratings.index, df_fin_city, students_by_school, year, school_location_map)
     df_school_ratings['human_support_rating'] = get_human_support_rating(df_enroll_wide, df_school_ratings.index, df_fin_city, students_by_school, support_staff_by_school, year)
     df_school_ratings['management_rating'] = get_management_rating(df_enroll_wide, df_school_ratings.index)
     df_school_ratings['age_grade_distortion_rating'] = get_age_grade_distortion(df_enroll_wide, df_school_ratings.index)
@@ -1086,12 +1056,12 @@ def create_rating_table(df_infra_long, df_enroll_long, df_school_info, df_dict, 
     df_school_ratings['teacher_stress_rating'] = get_teacher_stress_rating(df_enroll_wide, df_school_ratings.index, df_fin_city, students_weighted_by_school, year)
     df_school_ratings['teacher_instability_rating'] = get_teacher_instability_rating(df_school_ratings.index, df_fin_city, school_city_map, year)
     df_school_ratings['administrative_burden_rating'] = get_administrative_burden_rating(df_school_ratings.index, df_fin_city, school_city_map, year)
-    df_school_ratings['spending_per_teacher'] = get_spending_per_teacher(df_enroll_wide, df_school_ratings.index, df_fin_city, students_by_school, year, school_city_map)
+    df_school_ratings['spending_per_teacher'] = get_spending_per_teacher(df_enroll_wide, df_school_ratings.index, df_fin_city, students_by_school, year, school_city_map, school_location_map)
     df_school_ratings['pedagogical_spending_per_student'] = get_pedagogical_spending_per_student(df_school_ratings.index,df_fin_city,students_by_school, df_enroll_wide, year, school_city_map)
-    df_school_ratings['infrastructure_spending_per_student'] = get_infrastructure_spending_per_student(df_school_ratings.index,df_fin_city,students_by_school, df_enroll_wide, year, school_city_map)
-    df_school_ratings['meal_spending_per_student'] = get_school_meal_spending_per_student(df_school_ratings.index,df_fin_city,students_by_school,df_enroll_wide,year, school_city_map)
-    df_school_ratings['transport_spending_per_student'] = get_transport_spending_per_student(df_school_ratings.index,df_fin_city,students_by_school,df_enroll_wide,year, school_city_map)
-    df_school_ratings['spending_per_student'] = get_spending_per_student(df_school_ratings.index, df_fin_city, students_by_school, df_enroll_wide, year, school_city_map)
+    df_school_ratings['infrastructure_spending_per_student'] = get_infrastructure_spending_per_student(df_school_ratings.index,df_fin_city,students_by_school, df_enroll_wide, year, school_city_map, school_location_map)
+    df_school_ratings['meal_spending_per_student'] = get_school_meal_spending_per_student(df_school_ratings.index,df_fin_city,students_by_school,df_enroll_wide,year, school_city_map, school_location_map)
+    df_school_ratings['transport_spending_per_student'] = get_transport_spending_per_student(df_school_ratings.index,df_fin_city,students_by_school,df_enroll_wide,year, school_city_map, school_location_map)
+    df_school_ratings['spending_per_student'] = get_spending_per_student(df_school_ratings.index, df_fin_city, students_by_school, df_enroll_wide, year, school_city_map, school_location_map)
 
     df_perf_path = os.path.join(dir_atual, "..", "data/Matricula/school_perfomance_rate.csv")
 

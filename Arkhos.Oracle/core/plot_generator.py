@@ -31,6 +31,32 @@ class ArkhosPlotter:
         plt.savefig(filepath, bbox_inches='tight')
         plt.close()
         print(f"[Plot] Matriz de correlação salva em: {filepath}")
+    
+    def plot_feature_importance(self, model, feature_names: list, target_name: str):
+        """
+        Extrai a importância nativa do modelo de árvore (Gini Importance).
+        Gera um gráfico de barras com os top N indicadores mais relevantes.
+        """
+        importances = model.feature_importances_
+        indices = np.argsort(importances)[::-1]
+        
+        top_n = min(10, len(feature_names))
+        top_indices = indices[:top_n]
+        top_features = [feature_names[i] for i in top_indices]
+        top_importances = importances[top_indices]
+
+        plt.figure(figsize=(10, 6))
+        sns.barplot(x=top_importances, y=top_features, palette="viridis")
+        
+        plt.title(f"Top {top_n} Indicadores de Maior Impacto ({target_name})", pad=15, fontsize=14, fontweight='bold')
+        plt.xlabel("Importância Relativa (Peso no Modelo)", fontsize=12)
+        plt.ylabel("Indicadores", fontsize=12)
+        plt.tight_layout()
+        
+        filepath = os.path.join(self.output_dir, f"model_importance_{target_name}.png")
+        plt.savefig(filepath, bbox_inches='tight')
+        plt.close()
+        print(f"[Plot] Importância dos atributos salva em: {filepath}")
 
     def plot_model_validation(self, df_metricas: pd.DataFrame):
         plt.figure(figsize=(10, 6))
